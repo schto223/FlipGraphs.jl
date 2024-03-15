@@ -1,5 +1,5 @@
 
-export TriGraph, flip!, mcKay 
+export TriGraph, flip!, mcKay, triangulatedPolygon 
 
 struct TriGraph <: AbstractGraph{Integer}    
     n::Int
@@ -104,11 +104,12 @@ len(v) = size(v,1)
 
 
 function drawPNG(g::TriGraph, fName::String ="triGraph" )
+    n = g.n
     a = 2*π/n 
     x = [cos(π/2 -a + a*i) for i = 1:n]
     y = [-sin(π/2 -a + a*i) for i = 1:n]
     nodeLabel = 1:n
-    draw(PNG(fName * ".png", 1000px, 1000px), gplot(g, x, y, nodelabel=nodeLabel))
+    draw(PNG("img/"*fName * ".png", 1000px, 1000px), gplot(g, x, y, nodelabel=nodeLabel))
 end
 
 function plot(g::TriGraph)

@@ -13,8 +13,8 @@ import Graphs:
     has_edge, outneighbors, edges, edgetype, has_vertex, ne, nv, is_directed, vertices, inneighbors, src, dst
 
 import GraphPlot: gplot, cycle_graph
-import Compose: px, PNG, draw
 import Cairo, Fontconfig
+import Compose: px, PNG, draw
 
 include("planarTriangulations.jl")
 include("flipGraph.jl")

@@ -1,13 +1,13 @@
 
+using FlipGraphs
 
 
 
 
-
-n = 5
+n = 6
 g = triangulatedPolygon(n)
 
-drawPNG(g)
+#drawPNG(g)
 
 G = construct_FlipGraph(g)
 

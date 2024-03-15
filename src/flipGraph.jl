@@ -18,19 +18,19 @@ end
 
 
 function edges(G::FlipGraph)
-    E = collect(Edge(i,j) for i = 1:G.n for j in G.adjList)
+    E = collect(Edge(i,j) for i = 1:len(G.V) for j in G.adjList)
     return filter!(e->(src(e)>dst(e)), E)
 end 
 
 edgetype(G::FlipGraph) = SimpleEdge{Int}
 has_edge(G::FlipGraph, e::Edge) = (dst(e) ∈ G.adjList[src(e)])
 has_edge(G::FlipGraph, s, d) = (d ∈ G.adjList[s])
-has_vertex(G::FlipGraph, v) = (1 <= v && v <= G.n)
+has_vertex(G::FlipGraph, v) = (1 <= v && v <= nv(G))
 inneighbors(G::FlipGraph, v) = G.adjList[v]
-ne(G::FlipGraph) = size(sum(size(G.adjList[i],1) for i=1:G.n) ,1)
-nv(G::FlipGraph) = G.n
+ne(G::FlipGraph) = size(sum(size(G.adjList[i],1) for i=1:G.adjList) ,1)/2
+nv(G::FlipGraph) = len(G.V)
 outneighbors(G::FlipGraph,v) = G.adjList[v]
-vertices(G::FlipGraph) = collect(1:G.n)
+vertices(G::FlipGraph) = G.V
 is_directed(G::FlipGraph) = false
 is_directed(::Type{FlipGraph}) = false
 
@@ -53,14 +53,13 @@ end
 
 
 function drawPNG(G::FlipGraph, fName::String ="flipGraph" )
-    a = 2*π/n 
-    x = [cos(π/2 -a + a*i) for i = 1:n]
-    y = [-sin(π/2 -a + a*i) for i = 1:n]
+    n = len(G.V)
     nodeLabel = 1:n
-    draw(PNG(fName+".png", 1000px, 1000px), gplot(G, x, y, nodelabel=nodeLabel))
+    draw(PNG("img/"*fName*".png", 1000px, 1000px), gplot(G, nodelabel=nodeLabel))
 end
 
 function plot(G::FlipGraph)
+    n= len(G.V)
     a = 2*π/n 
     x = [cos(π/2 -a + a*i) for i = 1:n]
     y = [-sin(π/2 -a + a*i) for i = 1:n]
@@ -86,20 +85,24 @@ function construct_FlipGraph(g::TriGraph)
             if flippable(g,e)
                 gg = flip(g,e)
                 sigma_pis = mcKay(gg)
+                newGraph = true
                 for i = 1:len(G.V)
                     if is_isomorph(G.V[i], gg, sigma_pis)
                         add_edge!(G, ind_g, i)
-                    else
-                        add_vertex!(G, rename_vertices(gg, sigma_pis[1]))
-                        add_edge!(G, ind_g, len(G.V))
-                        push!(queue, (G.V[end], len(G.V)+1))
+                        newGraph = false
+                        break
                     end
+                end
+                if newGraph
+                    add_vertex!(G, rename_vertices(gg, sigma_pis[1]))
+                    add_edge!(G, ind_g, len(G.V))
+                    push!(queue, (G.V[end], len(G.V)))
                 end
             end
         end
     end
 
-
+    return G
 end
 
 
@@ -113,7 +116,7 @@ end
 
 
 function is_isomorph(g1::TriGraph, g2::TriGraph, sigma_pis::Array{Array{Int,1},1})
-    if degrees(g1) != degrees(g2)
+    if sort(degrees(g1)) != sort(degrees(g2))
         return false
     end
     for sig in sigma_pis
