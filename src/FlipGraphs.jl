@@ -16,6 +16,10 @@ import GraphPlot: gplot, cycle_graph
 import Cairo, Fontconfig
 import Compose: px, PNG, draw
 
+export edgetype, has_edge, has_edge, has_vertex, inneighbors, ne, nv, outneighbors, vertices, is_directed, add_edge!, add_vertex!, remove_edge!
+
+
+
 include("planarTriangulations.jl")
 include("flipGraph.jl")
 

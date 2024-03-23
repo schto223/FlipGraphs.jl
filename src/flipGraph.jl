@@ -2,7 +2,15 @@
 
 export FlipGraph, drawPNG, plot, construct_FlipGraph
 
-struct FlipGraph <: AbstractGraph{Integer}    
+"""
+    struct FlipGraph <: AbstractGraph{Int}
+        
+    A Graph representing the FlipGraph of a convex polygon.
+    Vertices are different triangulations of the same convex polygon.
+    Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
+
+"""
+struct FlipGraph <: AbstractGraph{Int}    
     V::Array{TriGraph,1}
     adjList::Array{Array{Int,1},1}
 
@@ -18,7 +26,7 @@ end
 
 
 function edges(G::FlipGraph)
-    E = collect(Edge(i,j) for i = 1:len(G.V) for j in G.adjList)
+    E = collect(Edge(i,j) for i = 1:len(G.V) for j in G.adjList[i])
     return filter!(e->(src(e)>dst(e)), E)
 end 
 
@@ -27,7 +35,7 @@ has_edge(G::FlipGraph, e::Edge) = (dst(e) ∈ G.adjList[src(e)])
 has_edge(G::FlipGraph, s, d) = (d ∈ G.adjList[s])
 has_vertex(G::FlipGraph, v) = (1 <= v && v <= nv(G))
 inneighbors(G::FlipGraph, v) = G.adjList[v]
-ne(G::FlipGraph) = size(sum(size(G.adjList[i],1) for i=1:G.adjList) ,1)/2
+ne(G::FlipGraph) = sum(size(G.adjList[i],1) for i=1:len(G.adjList))÷2
 nv(G::FlipGraph) = len(G.V)
 outneighbors(G::FlipGraph,v) = G.adjList[v]
 vertices(G::FlipGraph) = G.V
@@ -36,8 +44,10 @@ is_directed(::Type{FlipGraph}) = false
 
 
 function add_edge!(G::FlipGraph, v, w) 
-    push!(G.adjList[v],w)
-    push!(G.adjList[w],v)
+    if !has_edge(G, v, w) && v!=w
+        push!(G.adjList[v],w)
+        push!(G.adjList[w],v)
+    end
 end
 
 function add_vertex!(G::FlipGraph, g::TriGraph) 
@@ -52,10 +62,14 @@ end
 
 
 
-function drawPNG(G::FlipGraph, fName::String ="flipGraph" )
-    n = len(G.V)
+function drawPNG(G::FlipGraph, fName::String ="flipGraph" , drawLabels::Bool=false)
+    n = nv(G)#len(G.V)
     nodeLabel = 1:n
-    draw(PNG("img/"*fName*".png", 1000px, 1000px), gplot(G, nodelabel=nodeLabel))
+    if drawLabels
+        draw(PNG("img/"*fName*".png", 1000px, 1000px), gplot(G, nodelabel=nodeLabel))
+    else
+        draw(PNG("img/"*fName*".png", 1000px, 1000px), gplot(G))
+    end
 end
 
 function plot(G::FlipGraph)
@@ -67,42 +81,76 @@ function plot(G::FlipGraph)
     gplot(G, x,y, nodelabel=nodeLabel)
 end
 
-function construct_FlipGraph(g::TriGraph)
+"""
+    Returns the *FlipGraph* for the triangulated Polygon g.  
+
+    If reduce is true, then vertices are the classes of isomorphisms up to renaming the vertices. Each class is represented by one of its elements.
+    If reduce is false, then each vertex is a different triangulation of the initial graph g.
+
+"""
+function construct_FlipGraph(g::TriGraph, reduce::Bool=true)
     G = FlipGraph()
-    sigpi = mcKay(g)[1]
-    g = rename_vertices(g, sigpi)
-
-    add_vertex!(G,g)
+    if reduce
+        sigpi = mcKay(g)[1]
+        g = rename_vertices(g, sigpi)
+    end
+    add_vertex!(G, g)
     
-
     queue = Array{Tuple{TriGraph,Int},1}()
     push!(queue,(g,1))
     
-    while !isempty(queue)
-        g, ind_g = popfirst!(queue)
-        #ind_g = getindex(G.V, g)
-        for e in g.E
-            if flippable(g,e)
-                gg = flip(g,e)
-                sigma_pis = mcKay(gg)
-                newGraph = true
-                for i = 1:len(G.V)
-                    if is_isomorph(G.V[i], gg, sigma_pis)
-                        add_edge!(G, ind_g, i)
-                        newGraph = false
-                        break
+    if reduce
+        while !isempty(queue)
+            g, ind_g = popfirst!(queue)
+            for e in g.E
+                if flippable(g,e)
+                    gg = flip(g,e)
+                    sigma_pis = mcKay(gg)
+                    newGraph = true
+                    for i = 1:len(G.V)
+                        if is_isomorph(G.V[i], gg, sigma_pis)
+                            add_edge!(G, ind_g, i)
+                            newGraph = false
+                            break
+                        end
+                    end
+                    if newGraph
+                        add_vertex!(G, rename_vertices(gg, sigma_pis[1]))
+                        add_edge!(G, ind_g, len(G.V))
+                        push!(queue, (G.V[end], len(G.V)))
                     end
                 end
-                if newGraph
-                    add_vertex!(G, rename_vertices(gg, sigma_pis[1]))
-                    add_edge!(G, ind_g, len(G.V))
-                    push!(queue, (G.V[end], len(G.V)))
+            end
+        end
+    else 
+        while !isempty(queue)
+            g, ind_g = popfirst!(queue)
+            for e in g.E 
+                if flippable(g,e)
+                    gg = flip(g,e)
+                    newGraph = true
+                    for i = 1:len(G.V)
+                        if all(issetequal(G.V[i].adjList[j], gg.adjList[j]) for j in 1:nv(g))
+                            add_edge!(G, ind_g, i)
+                            newGraph = false
+                            break
+                        end
+                    end
+                    if newGraph
+                        add_vertex!(G, gg)
+                        add_edge!(G, ind_g, len(G.V))
+                        push!(queue, (G.V[end], len(G.V)))
+                    end
                 end
             end
         end
     end
 
     return G
+end
+
+function construct_FlipGraph(n::Int, reduce::Bool=true)
+    return construct_FlipGraph(triangulatedPolygon(n), reduce)
 end
 
 

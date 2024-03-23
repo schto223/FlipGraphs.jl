@@ -22,7 +22,7 @@ has_edge(g::TriGraph, e::Edge) = (e ∈ g.E)
 has_edge(g::TriGraph, s, d) = (d ∈ g.adjList[s])
 has_vertex(g::TriGraph, v) = (1 <= v && v <= g.n)
 inneighbors(g::TriGraph,v) = g.adjList[v]
-ne(g::TriGraph) = size(g.E,1)
+ne(g::TriGraph) = size(g.E, 1)
 nv(g::TriGraph) = g.n
 outneighbors(g::TriGraph,v) = g.adjList[v]
 vertices(g::TriGraph) = collect(1:g.n)
@@ -30,9 +30,11 @@ is_directed(g::TriGraph) = false
 is_directed(::Type{TriGraph}) = false
 
 function add_edge!(g::TriGraph, v, w) 
-    push!(g.E, Edge(v,w))
-    push!(g.adjList[v],w)
-    push!(g.adjList[w],v)
+    if !has_edge(g, v, w)
+        push!(g.E, Edge(v,w))
+        push!(g.adjList[v],w)
+        push!(g.adjList[w],v)
+    end
 end
 
 function remove_edge!(g::TriGraph, e::Edge)
@@ -207,7 +209,7 @@ function mcKay(g::TriGraph)
     makeEquitable!(root, g)
 
     if len(root.p) == g.n
-        return root
+        return Array{Array{Int,1},1}([sigma(root.p)])
     end
 
     queue = [root]::Array{mcKayTreeNode,1}
