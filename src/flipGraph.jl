@@ -4,10 +4,9 @@ export FlipGraph, drawPNG, plot, construct_FlipGraph
 
 """
     struct FlipGraph <: AbstractGraph{Int}
-        
-    A Graph representing the FlipGraph of a convex polygon.
-    Vertices are different triangulations of the same convex polygon.
-    Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
+A Graph representing the FlipGraph of a convex polygon.
+Vertices are different triangulations of the same convex polygon.
+Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 
 """
 struct FlipGraph <: AbstractGraph{Int}    
@@ -61,7 +60,12 @@ function remove_edge!(G::FlipGraph, e::Edge)
 end
 
 
+"""
+    drawPNG(G::FlipGraph, fName::String ="flipGraph" , drawLabels::Bool=false)
 
+Creates a PNG image of the Graph G.
+
+"""
 function drawPNG(G::FlipGraph, fName::String ="flipGraph" , drawLabels::Bool=false)
     n = nv(G)#len(G.V)
     nodeLabel = 1:n
@@ -72,17 +76,12 @@ function drawPNG(G::FlipGraph, fName::String ="flipGraph" , drawLabels::Bool=fal
     end
 end
 
-function plot(G::FlipGraph)
-    n= len(G.V)
-    a = 2*π/n 
-    x = [cos(π/2 -a + a*i) for i = 1:n]
-    y = [-sin(π/2 -a + a*i) for i = 1:n]
-    nodeLabel = 1:n
-    gplot(G, x,y, nodelabel=nodeLabel)
-end
+
 
 """
-    Returns the *FlipGraph* for the triangulated Polygon g.  
+    function construct_FlipGraph(g::TriGraph, reduce::Bool=true)
+    
+        Returns the **FlipGraph** for the triangulated Polygon g.  
 
     If reduce is true, then vertices are the classes of isomorphisms up to renaming the vertices. Each class is represented by one of its elements.
     If reduce is false, then each vertex is a different triangulation of the initial graph g.
@@ -162,7 +161,9 @@ function rename_vertices(g::TriGraph, sigma_pi::Array{Int,1})
     return gg
 end
 
+"""
 
+"""
 function is_isomorph(g1::TriGraph, g2::TriGraph, sigma_pis::Array{Array{Int,1},1})
     if sort(degrees(g1)) != sort(degrees(g2))
         return false
@@ -174,6 +175,9 @@ function is_isomorph(g1::TriGraph, g2::TriGraph, sigma_pis::Array{Array{Int,1},1
     end
     return false
 end
+
+
+function 
 
 
 
