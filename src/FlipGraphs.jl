@@ -21,7 +21,8 @@ export edgetype, has_edge, has_edge, has_vertex, inneighbors, ne, nv, outneighbo
 
 
 include("planarTriangulations.jl")
-include("flipGraph.jl")
+include("flipGraph_planar.jl")
+include("deltaComplex.jl")
 
 
 end # module

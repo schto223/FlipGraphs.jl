@@ -2,21 +2,21 @@
 using FlipGraphs
 
 
+#for n in 3:15
+#    g = triangulatedPolygon(n)
+#    G = construct_FlipGraph(g, false)
+#    drawPNG(G, string("flipG-",n))
+#    G = construct_FlipGraph(g, true)
+#    drawPNG(G, string("flipReduced-",n))
+#end
 
 
-n = 3
-g = triangulatedPolygon(n)
+D = createDeltaComplex(2,10)
 
-#drawPNG(g)
+display(D)
+flip!(D,3)
 
-G = construct_FlipGraph(g, false)
+println()
 
-drawPNG(G)
-
-for n in 3:10
-    g = triangulatedPolygon(n)
-    G = construct_FlipGraph(g, false)
-    drawPNG(G, string("flipG-",n))
-    G = construct_FlipGraph(g, true)
-    drawPNG(G, string("flipReduced-",n))
-end
+display(D)
+diameter(D)
