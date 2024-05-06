@@ -24,7 +24,7 @@
     @test isBiDirectional(g)
 
     g = triangulatedPolygon(10)
-    FE = filter(e->flippable(g,e) e in edges(g))
+    FE = filter(e->flippable(g,e), e in edges(g))
     @test length(FE) == 7
     flip!(g, FE[3])
     @test ne(g) = 17

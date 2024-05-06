@@ -1,8 +1,18 @@
 using Documenter, FlipGraphs
 
-#makedocs(sitename="FlipGraphs Documentation", modules= [FlipGraphs])
-
 makedocs(
+    sitename="FlipGraphs Documentation", 
+    modules= [FlipGraphs],
+    doctest = false, #remove later
+    pages = [
+        "About" => "index.md",
+        "Convex Polygons" => ["polygonTriangulation.md", "flipGraph_planar.md", "plotting.md"],
+        "Closed Surfaces" => ["deltaComplex.md"]
+    ],
+    checkdocs = :exports # remove later or replace by :exports
+)
+
+"""makedocs(
     modules = [FlipGraphs],
     format = Documenter.HTML(
         # Use clean URLs, unless built as a "local" build
@@ -19,3 +29,4 @@ makedocs(
 deploydocs(
     repo = "github.com/schto223/FlipGraphs.jl.git",
 )
+"""

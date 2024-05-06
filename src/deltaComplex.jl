@@ -1,7 +1,7 @@
 using StaticArrays
 import Base.reverse
 
-export DeltaComplex, get_num_edges, get_num_points, get_num_trifaces, euler_characteristic, genus, adjacency_matrix, diameter, createDeltaComplex, flip!, is_flippable
+export DeltaComplex, get_num_edges, get_num_points, get_num_trifaces, euler_characteristic, genus, adjacency_matrix, diameter, createDeltaComplex, flip!, is_flippable, is_orientable
 
 struct DualEdge
     triangles :: MVector{2,Int}  #edge in dual of a triangulation
@@ -76,8 +76,8 @@ get_point(T::TriFace, point_index::Integer) = T.points[point_index]
 edge_is_anticlockwise(T::TriFace, edge_index::Integer) = T.edge_is_anticlockwise[edge_index] :: Bool
 set_edge_anticlockwise!(T::TriFace, edge_index::Integer, is_anticlockwise::Bool) = T.edge_is_anticlockwise[edge_index] = is_anticlockwise :: Bool 
 set_edge!(T::TriFace, edge_index::Integer, edge::DualEdge) = (T.edges[edge_index] = edge)
-get_edge(T::TriFace, edge_index::Integer) = T.edges[edge_index]
-get_edges(T::TriFace) = T.edges
+get_edge(T::TriFace, edge_index::Integer) = T.edges[edge_index] :: DualEdge
+get_edges(T::TriFace) = T.edges :: Vector{DualEdge}
 get_neighbor(T::TriFace, edge_index::Integer) = get_other_endpoint(T.edges[edge_index], T.id) :: Int
 
 function Base.show(io::IO, mime::MIME"text/plain", T::TriFace)
@@ -126,7 +126,8 @@ end
 
 """
     struct DeltaComplex
-        A Graph datastructure representing a triangulation of a surface. Vertices are triangular faces. Every vertex has three edges incident to it.
+    
+A Graph datastructure representing a triangulation of a surface. Vertices are triangular faces. Every vertex has three edges incident to it.
 """
 struct DeltaComplex
     V :: Array{TriFace, 1}
@@ -148,12 +149,30 @@ get_edge(D::DeltaComplex, i::Integer) = D.E[i]
 get_edges(D::DeltaComplex) = D.E
 remove_edge!(D::DeltaComplex, e::DualEdge) = remove!(D.E, e)
 set_num_points!(D::DeltaComplex, num_points) = setindex!(D.num_points,num_points)
+"""
+    get_num_points(D::DeltaComplex)
+"""
 get_num_points(D::DeltaComplex) = getindex(D.num_points) :: Int
+"""
+    get_num_trifaces(D::DeltaComplex)
+
+Return the number of vertices(i.e. triangular faces) in `D`.
+"""
 get_num_trifaces(D::DeltaComplex) = length(D.V) :: Integer
+nv(D::DeltaComplex) = get_num_trifaces(D)
+
+"""
+    get_num_edges(D::DeltaComplex)
+"""
 get_num_edges(D::DeltaComplex) = length(D.E) :: Integer
+ne(D::DeltaComplex) = get_num_edges(D::DeltaComplex)
 
 function Base.show(io::IO, mime::MIME"text/plain", D::DeltaComplex)
-    println(io, string("DeltaComplex of genus ", genus(D), " with ", get_num_points(D), " points"))
+    if is_orientable(D)
+        println(io, string("DeltaComplex on orientable surface of genus ", genus(D), " with ", get_num_points(D), " points"))
+    else
+        println(io, string("DeltaComplex on non-orientable surface with ", get_num_points(D), " points"))
+    end
     println(io, string(get_num_trifaces(D), " TriFaces:"))
     for T in get_vertices(D)
         print(io," "); show(io, mime, T); println(io)
@@ -164,15 +183,44 @@ function Base.show(io::IO, mime::MIME"text/plain", D::DeltaComplex)
     end  
 end
 
-euler_characteristic(D::DeltaComplex) = get_num_points(D) - get_num_edges(D) + get_num_trifaces(D) :: Int
-genus(D::DeltaComplex) = (2-euler_characteristic(D))÷2  #assumes D is closed(i.e. has no boundary)
+"""
+    euler_characteristic(D::DeltaComplex)
 
+Compute the euler characteristic of the DeltaComplex `D`:\\
+`` X = #vertices - #edges + #faces ``
+"""
+euler_characteristic(D::DeltaComplex) = get_num_points(D) - get_num_edges(D) + get_num_trifaces(D) :: Int
+
+"""
+    genus(D::DeltaComplex)
+
+Compute the genus of the DeltaComplex `D` if D forms an orientable surface.
+"""
+function genus(D::DeltaComplex)     
+    if !is_orientable(D)
+        throw(ArgumentError("Cannot yet compute the genus of a non-orientable surface"))
+    end
+    return (2-euler_characteristic(D))÷2  #assumes D is closed(i.e. has no boundary)
+end
+
+"""
+    adjacency_matrix(D::DeltaComplex) :: Matrix{<:Integer}
+
+Return the adjacency_matrix of `D`.
+"""
 function adjacency_matrix(D::DeltaComplex) :: Matrix{<:Integer}
     A = zeros(Int, get_num_trifaces(D), get_num_trifaces(D))
     foreach(e-> (A[e.triangles[1], e.triangles[2]] = 1; A[e.triangles[2], e.triangles[1]] = 1), get_edges(D))
     return A
 end
 
+"""
+    diameter(D::DeltaComplex)
+
+Compute the diameter of a DeltaComplex `D`.\\
+
+The diameter of a Graph is the greatest minimal distance between any 2 vertices.
+"""
 function diameter(D::DeltaComplex)
     function Seidel(G::Matrix{<:Integer})
         if all(G.==1)
@@ -241,7 +289,12 @@ function rename_points!(D::DeltaComplex, x_old::Integer, x_new::Integer)
 end
 
 
+"""
+    createDeltaComplex(genus [, num_points])
 
+Create a triangulation of an orientable surface with `num_points` points on it. \\
+By default `num_points` is set to 1.
+"""
 function createDeltaComplex(genus :: Integer, num_points ::Integer = 1)
     n = 4*genus
     s = [(-1)^div(k-1, 2) * (2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
@@ -252,7 +305,26 @@ function createDeltaComplex(genus :: Integer, num_points ::Integer = 1)
     return D
 end
 
+"""
+    createDeltaComplex(s :: Array{<:Integer,1})
 
+Create a triangulation of an orientable surface with a single point, by gluing corresponding edges together.\\
+
+`s` should be an array of nonzero integers representing the edges of a polygon in anticlockwise order.\\ 
+The i-th edge is orientated anticlockwise if `s[i]`>0 and anticlockwise if `s[i]`<0.\\
+If `s[i]` and `s[j]` have the same absolute value, they are glued together while respecting their orientation.\\
+
+#Examples
+The following results in the triangulation of a torus with one point:
+```julia-rep
+julia> createDeltaComplex([1,2,-1,-2])
+```
+
+The following results in the triangulation of a Klein bottle with one point:
+```julia-rep
+julia> createDeltaComplex([1,2,-1,-2])
+```
+"""
 function createDeltaComplex(s :: Array{<:Integer,1})
     n = length(s)
 
@@ -375,11 +447,24 @@ function subdivide(D::DeltaComplex, t::Integer)
     return D
 end
 
+"""
+    is_flippable(D::DeltaComplex, e_id::Integer)
+    is_flippable(e::DualEdge)
+
+Return true if the given edge is can be flipped.\\ 
+This is only the case if the edge does not connect a triangle face to itself.
+"""
 is_flippable(D::DeltaComplex, e_id::Integer) = is_flippable(get_edge(D,e_id))
 function is_flippable(e::DualEdge)
     return e.triangles[1] != e.triangles[2]
 end
 
+"""
+    flip!(D::DeltaComplex, e_id::Integer)
+    flip!(D::DeltaComplex, e::DualEdge)
+
+Flip the given edge in D
+"""
 flip!(D::DeltaComplex, e_id::Integer) = flip!(D, get_edge(D,e_id))
 function flip!(D::DeltaComplex, e::DualEdge)
     T1 = get_vertex(D, e.triangles[1])
@@ -428,17 +513,31 @@ function flip!(D::DeltaComplex, e::DualEdge)
     return D
 end
 
+"""
+    is_orientable(D::DeltaComplex)
+"""
+function is_orientable(D::DeltaComplex)
+    color = zeros(Int8, nv(D))
+    v0 = 1
+    color[v0] = 1
+    queue = [v0]
+    while !isempty(queue)
+        v = pop!(queue)
+        for i = 1:3
+            if color[get_neighbor(D.V[v], i)] == 0
+                if  get_edge(D.V[v],i).is_twisted
+                    color[get_neighbor(D.V[v], i)] = - color[v]
+                else
+                    color[get_neighbor(D.V[v], i)] = color[v]
+                end
+                push!(queue, get_neighbor(D.V[v], i))
+            elseif (color[get_neighbor(D.V[v], i)] == color[v]) == (get_edge(D.V[v],i).is_twisted) 
+                return false
+            end
+        end
+    end
+    return true
+end
 
-D = createDeltaComplex(2,10)
 
-display(D)
-flip!(D,3)
-
-println()
-
-display(D)
-diameter(D)
-
-return nothing
-
-
+#TODO check if everything works with twisted edges
