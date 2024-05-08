@@ -26,3 +26,7 @@ Manifest.toml
 
 #Images
 img/*
+
+
+#local
+local_code/*

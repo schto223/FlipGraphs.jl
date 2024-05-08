@@ -1,6 +1,15 @@
-@testset "planarTriangulations" begin
+function isBiDirectional(g::TriangulatedPolygon)
+    for i = 1:nv(g), j in g.adjList[i]
+        if !(i in g.adjList[j])
+            return false
+        end
+    end
+    return true
+end
+
+@testset "polygonTriangulations" begin
 	
-    for i = 1:10
+    for i = 3:10
         g = triangulatedPolygon(i)
 
 	    @test ne(g) == i+(i-3)
@@ -24,19 +33,10 @@
     @test isBiDirectional(g)
 
     g = triangulatedPolygon(10)
-    FE = filter(e->flippable(g,e), e in edges(g))
+    FE = filter(e->is_flippable(g,e), edges(g))
     @test length(FE) == 7
     flip!(g, FE[3])
-    @test ne(g) = 17
+    @test ne(g) == 17
     
-
 end
 
-function isBiDirectional(g::TriGraph)
-    for i = 1:ne(g), j in g.adjList[i]
-        if !(i in g.adjList[j])
-            return false
-        end
-    end
-    return true
-end

@@ -9,17 +9,12 @@ Vertices are different triangulations of the same convex polygon.
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraphPlanar <: AbstractGraph{Int}    
-    V::Array{TriangulatedPolygon,1}
-    adjList::Array{Array{Int,1},1}
-
-    function FlipGraphPlanar(g::TriangulatedPolygon)
-        new(Array{TriangulatedPolygon, 1}([g]), Array{Array{Int,1},1}([[]]))
-    end
+    V::Vector{TriangulatedPolygon}
+    adjList::Vector{Vector{Int}}
 
     function FlipGraphPlanar()
-        new(Array{TriangulatedPolygon,1}(), Array{Array{Int,1},1}())
+        new(Array{TriangulatedPolygon,1}(), Vector{Vector{Int}}())
     end
-
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", G::FlipGraphPlanar)
@@ -88,8 +83,8 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
     if modular
         while !isempty(queue)
             g, ind_g = popfirst!(queue)
-            for e in g.E
-                if isFlippable(g,e)
+            for e in edges(g)
+                if is_flippable(g,e)
                     gg = flip(g,e)
                     sigma_pis = mcKay(gg)
                     newGraph = true
@@ -111,8 +106,8 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
     else 
         while !isempty(queue)
             g, ind_g = popfirst!(queue)
-            for e in g.E 
-                if isFlippable(g,e)
+            for e in edges(g) 
+                if is_flippable(g,e)
                     gg = flip(g,e)
                     newGraph = true
                     for i = 1:len(G.V)
@@ -156,9 +151,9 @@ end
 
 Rename the vertices of `g` by applying the permutation `sigma_pi`.
 """
-function rename_vertices(g::TriangulatedPolygon, sigma_pi::Array{Int,1})
-    gg = TriangulatedPolygon(g.n, Array{Edge{Int},1}(), Array{Array{Int,1},1}([[] for i in 1:g.n]))
-    for e in g.E
+function rename_vertices(g::TriangulatedPolygon, sigma_pi::Vector{<:Integer})
+    gg = TriangulatedPolygon(g.n, Vector{Vector{Int}}([[] for i in 1:g.n]))
+    for e in edges(g)
         add_edge!(gg,sigma_pi[e.src], sigma_pi[e.dst])
     end
     return gg
@@ -176,9 +171,14 @@ function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, sigma_pis
         return false
     end
     for sig in sigma_pis
-        if all(e-> has_edge(g1, sig[src(e)], sig[dst(e)]), g2.E)
+        if all(e-> has_edge(g1, sig[src(e)], sig[dst(e)]), edges(g2))
             return true
         end
     end
     return false
+end
+
+
+function diameter(G::FlipGraphPlanar)
+    return diameter(adjacency_matrix(G.adjList))
 end

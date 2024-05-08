@@ -14,13 +14,15 @@ import Graphs:
 
 
 
-export edgetype, has_edge, has_edge, has_vertex, inneighbors, ne, nv, outneighbors, vertices, is_directed, add_edge!, add_vertex!, remove_edge!
+export edgetype, has_edge, has_edge, has_vertex, inneighbors, ne, nv, outneighbors, vertices, is_directed, add_edge!, add_vertex!, remove_edge!, edges
 
 
 
 include("polygonTriangulations.jl")
 include("flipGraph_planar.jl")
 include("deltaComplex.jl")
+include("graphFunctions.jl")
+include("plotting.jl")
 
 
 end # module

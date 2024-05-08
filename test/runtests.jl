@@ -3,8 +3,9 @@ using FlipGraphs
 
 if isempty(ARGS)
     tests = [
-        "planarTriangulations.jl",
-        "flipGraph_planar.jl"
+        "polygonTriangulations.jl",
+        "flipGraph_planar.jl",
+        "deltaComplex.jl"
     ]
 else
     tests = ARGS

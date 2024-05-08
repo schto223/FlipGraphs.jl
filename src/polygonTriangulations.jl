@@ -1,5 +1,5 @@
 
-export TriangulatedPolygon, flip!, mcKay, triangulatedPolygon 
+export TriangulatedPolygon, flip!, mcKay, triangulatedPolygon, is_flippable
 
 
 """
@@ -9,15 +9,14 @@ A structure representing a triangulation of a convex polygon.
 """
 struct TriangulatedPolygon <: AbstractGraph{Integer}    
     n::Int
-    E::Array{Edge{Int}, 1}
     adjList::Array{Array{Int,1},1}
 
-    function TriangulatedPolygon(n::Int)
-        new(n, [], [[] for i=1:n])
+    function TriangulatedPolygon(n::Integer)
+        new(n, Vector{Vector{Int}}([[] for i=1:n]))
     end
 
-    function TriangulatedPolygon(n::Int, E::Array{Edge{Int}, 1}, adjList::Array{Array{Int,1},1})
-        new(n,E,adjList)
+    function TriangulatedPolygon(n::Integer, adjList::Vector{Vector{T}}) where {T<:Integer}
+        new(n,adjList)
     end
 end
 
@@ -27,13 +26,17 @@ function Base.show(io::IO, mime::MIME"text/plain", p::TriangulatedPolygon)
 end
 
 
-edges(g::TriangulatedPolygon) = g.E
+function edges(g::TriangulatedPolygon)
+    E = collect(Edge(i,j) for i = 1:nv(g) for j in g.adjList[i])
+    return filter!(e->(src(e)>dst(e)), E)
+end 
+
 edgetype(g::TriangulatedPolygon) = SimpleEdge{Int}
-has_edge(g::TriangulatedPolygon, e::Edge) = (e ∈ g.E)
+has_edge(g::TriangulatedPolygon, e::Edge) = (dst(e) ∈ g.adjList[src(e)])
 has_edge(g::TriangulatedPolygon, s, d) = (d ∈ g.adjList[s])
 has_vertex(g::TriangulatedPolygon, v) = (1 <= v && v <= g.n)
 inneighbors(g::TriangulatedPolygon,v) = g.adjList[v]
-ne(g::TriangulatedPolygon) = size(g.E, 1)
+ne(g::TriangulatedPolygon) = sum(size(g.adjList[i], 1) for i=1:nv(g))÷2
 nv(g::TriangulatedPolygon) = g.n
 outneighbors(g::TriangulatedPolygon,v) = g.adjList[v]
 vertices(g::TriangulatedPolygon) = collect(1:g.n)
@@ -42,16 +45,18 @@ is_directed(::Type{TriangulatedPolygon}) = false
 
 function add_edge!(g::TriangulatedPolygon, v, w) 
     if !has_edge(g, v, w)
-        push!(g.E, Edge(v,w))
         push!(g.adjList[v],w)
         push!(g.adjList[w],v)
     end
 end
 
 function remove_edge!(g::TriangulatedPolygon, e::Edge)
-    deleteat!(g.E, findfirst(isequal(e), g.E))
-    deleteat!(g.adjList[src(e)], findfirst(x->x==dst(e), g.adjList[src(e)]))
-    deleteat!(g.adjList[dst(e)], findfirst(x->x==src(e), g.adjList[dst(e)]))
+    remove_edge!(g,src(e),dst(e))
+end
+
+function remove_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer)
+    deleteat!(g.adjList[src], findfirst(x->x==dst, g.adjList[src]))
+    deleteat!(g.adjList[dst], findfirst(x->x==src, g.adjList[dst]))
 end
 
 
@@ -60,13 +65,16 @@ end
 
 Create a triangulated convex n-gon.
 """
-function triangulatedPolygon(n::Int)
+function triangulatedPolygon(n::Integer)
+    n>=0 || throw(ArgumentError(string("The number of vertices(n) cannot be negative. Got: n = ",n)))
     g = TriangulatedPolygon(n)
 
     for i = 1:n-1
         add_edge!(g, i, i+1)
     end
-    add_edge!(g,n,1)
+    if n>1
+        add_edge!(g,n,1)
+    end
      
     if n <= 3
         return g
@@ -112,13 +120,13 @@ function flip(g::TriangulatedPolygon, e::Edge)
 end
 
 """
-    isFlippable(g::TriangulatedPolygon, e::Edge)
+    is_flippable(g::TriangulatedPolygon, e::Edge)
 
 Return `true` if the edge `e` is flippable.\\
 
 Note that for a triangulation of a convex polygon inner edges are always flippable, while outer edges cannot be flipped.
 """
-function isFlippable(g::TriangulatedPolygon, e::Edge)
+function is_flippable(g::TriangulatedPolygon, e::Edge)
     neigh1 = outneighbors(g, e.src)
     neigh2 = outneighbors(g, e.dst)
     S = intersect(neigh1, neigh2)
@@ -142,13 +150,10 @@ mutable struct mcKayTreeNode #was mutable
     children::Array{mcKayTreeNode}
     parent::mcKayTreeNode
 
-    function mcKayTreeNode(n::Int)
-        new(0,[collect(1:n)],[],nothing)
-    end
-    function mcKayTreeNode(u::Int,p::Array{Array{Int,1},1}, parent::mcKayTreeNode)
+    function mcKayTreeNode(u::Integer,p::Vector{Vector{Int}}, parent::mcKayTreeNode)
         new(u, p, [], parent)
     end
-    function mcKayTreeNode(u::Int,p::Array{Array{Int,1},1})
+    function mcKayTreeNode(u::Integer,p::Vector{Vector{Int}})
         new(u, p, [] )
     end
 end
@@ -162,7 +167,7 @@ function addChild!(parent::mcKayTreeNode, child::mcKayTreeNode)
 end
 
 
-function relDegs(g::TriangulatedPolygon, U::Array{Int,1}, V::Array{Int,1})
+function relDegs(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer})
     rdegs = zeros(Int, len(U))
     for i in 1:len(U), j in V
         if has_edge(g, U[i],j)
@@ -175,7 +180,16 @@ end
 
 #Apply the mcKay Algorithm in order to determine all possible permutations of the vertices which give a canonical isomorphism class representant.
 function mcKay(g::TriangulatedPolygon)
-    function split(V::Array{Int, 1}, degs::Array{Int, 1}) 
+    # renamed from sigma
+    function σ(p::Vector{Vector{Int}})
+        sigpi = zeros(Int, len(p))
+        for i = 1:len(p)
+            sigpi[p[i][1]] = i
+        end
+        return sigpi
+    end
+
+    function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
         sV = Array{Array{Int,1},1}()
         deg = 0 
         k = len(V)
@@ -261,14 +275,7 @@ function mcKay(g::TriangulatedPolygon)
             
 end
 
-# renamed from sigma
-function σ(p::Array{Array{Int,1}, 1})
-    sigpi = zeros(Int, len(p))
-    for i = 1:len(p)
-        sigpi[p[i][1]] = i
-    end
-    return sigpi
-end
+
 
 
 
