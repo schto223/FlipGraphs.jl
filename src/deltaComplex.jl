@@ -1,23 +1,25 @@
 using StaticArrays
-import Base.reverse
+import Base.reverse, Base.reverse!
 
-export DeltaComplex, createDeltaComplex,
-get_num_edges, get_num_points, get_num_trifaces, ne,np,nv,
-get_edge, get_points, get_vertex,
-trifaces, flip!, is_flippable, is_orientable,
-euler_characteristic, genus, 
-adjacency_matrix
+export DeltaComplex, createDeltaComplex
+export ne,np,nv
+export get_edge, get_point, get_vertex, vertices, edges, points
+export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees
+export euler_characteristic, genus, demigenus, diameter_triangulation, diameter_deltaComplex
+export adjacency_matrix_triangulation, adjacency_matrix_deltaComplex
+export subdivide!, twist_edges!
 
-struct DualEdge
+mutable struct DualEdge
+    id::Integer
     triangles :: MVector{2,Int}  #edge in dual of a triangulation
-    resp_sides :: MVector{2, Int8}  #the indices of the sides of the triangles through which the edge passes.
+    resp_sides :: MVector{2,Int8}  #the indices of the sides of the triangles through which the edge passes.
     is_twisted :: Bool     #true if the one has to flip one of the triangular faces.
 
     function DualEdge(t1::Integer, side1::Integer, t2::Integer, side2::Integer, is_twisted::Bool = false)
-        new((t1, t2), (side1, side2), is_twisted)
+        new(0, (t1, t2), (side1, side2), is_twisted)
     end
-    function DualEdge(triangles :: MVector{2, <:Integer}, resp_sides::MVector{2, <:Integer}, is_twisted::Bool)
-        new(triangles, resp_sides, is_twisted)
+    function DualEdge(triangles :: MVector{2, <:Integer}, resp_sides::MVector{2, <:Integer}, is_twisted::Bool = false)
+        new(0, triangles, resp_sides, is_twisted)
     end
 end
 
@@ -31,9 +33,25 @@ function Base.show(io::IO, mime::MIME"text/plain", d::DualEdge)
     print(io, string("---(",d.resp_sides[2],")-(Δ",d.triangles[2],")"))
 end
 
-function update_endpoints!(d::DualEdge, t1::Integer, side1::Integer, t2::Integer, side2::Integer)
-    d.triangles .= t1,t2
-    d.resp_sides .= side1,side2
+vertices(d::DualEdge) = d.triangles[1], d.triangles[2]
+get_vertex(d::DualEdge, i::Integer) = d.triangles[i]
+
+resp_sides(d::DualEdge) = d.resp_sides[1], d.resp_sides[2]
+get_resp_side(d::DualEdge, i::Integer) =d.resp_sides[i]
+
+set_twisted!(d:: DualEdge, is_twisted::Bool) = (d.is_twisted = is_twisted)
+is_twisted(d::DualEdge) = d.is_twisted
+
+get_id(d::DualEdge) = d.id
+
+reverse(d::DualEdge) = DualEdge(reverse(d.triangles), reverse(d.resp_sides), d.is_twisted)
+function reverse!(d::DualEdge) 
+    reverse!(d.triangles)
+    reverse!(d.resp_sides)
+end
+
+function Base.:(==)(d::DualEdge, e::DualEdge) 
+    return all(d.triangles.==e.triangles) && all(d.resp_sides==e.resp_sides) && e.is_twisted==d.is_twisted
 end
 
 function update_endpoint!(d::DualEdge, i::Integer, ti::Integer, sidei::Integer)
@@ -41,6 +59,7 @@ function update_endpoint!(d::DualEdge, i::Integer, ti::Integer, sidei::Integer)
     d.resp_sides[i] = sidei
 end
 
+#updates the endpoint of the dual Edge d
 function update_endpoint!(d::DualEdge, t_old::Integer, side_old::Integer, t_new::Integer, side_new::Integer)
     if (d.triangles[1]==t_old && d.resp_sides[1]==side_old)
         update_endpoint!(d, 1, t_new, side_new)
@@ -49,10 +68,7 @@ function update_endpoint!(d::DualEdge, t_old::Integer, side_old::Integer, t_new:
     end
 end
 
-reverse(d::DualEdge) = DualEdge(reverse(d.triangles), reverse(d.resp_sides), d.is_twisted)
-is_twisted(d::DualEdge) = d.is_twisted
-
-function get_other_endpoint(d::DualEdge, t::Integer) :: Int
+function other_endpoint(d::DualEdge, t::Integer) :: Int
     if d.triangles[1] == t
         return d.triangles[2]
     else
@@ -60,77 +76,45 @@ function get_other_endpoint(d::DualEdge, t::Integer) :: Int
     end
 end
 
-function set_twisted!(e:: DualEdge, is_twisted::Bool)
-    e.is_twisted = is_twisted
-end
-
-trifaces(e::DualEdge) = (e.triangles[1],e.triangles[2])
-
 
 struct TriFace
     id :: Int  # the unique index number of this face in the DeltaComplex
     points :: MVector{3, Int} #corners x,y,z
-    edge_is_anticlockwise :: MVector{3, Bool}  #edge orientations xy, yz, zx  <- true if that order i.e. yx would be false
     edges :: Vector{DualEdge}  #edge xy, yz, zx
 
-    TriFace(id::Int, x::Int, xy::Bool, y::Int, yz::Bool, z::Int, zx::Bool) = new(id, [x,y,z], [xy,yz,zx], Vector{DualEdge}(undef,3))
-    TriFace(id::Int, x::Int, y::Int, z::Int) = new(id, [x,y,z], [true,true,true], Vector{DualEdge}(undef,3) )#MVector{3, DualEdge}(undef))
-    TriFace(id::Int, points :: Vector{<:Integer}, edge_is_anticlockwise :: Vector{Bool}, edges:: Vector{DualEdge}) = new(id,points, edge_is_anticlockwise, edges)
+    TriFace(id::Int, x::Int, y::Int, z::Int) = new(id, [x,y,z], Vector{DualEdge}(undef,3) )#MVector{3, DualEdge}(undef))
+    TriFace(id::Int, points :: Vector{<:Integer}, edges:: Vector{DualEdge}) = new(id,points, edges)
 end
 
 has_point(T::TriFace, x::Integer) = (x in T.points) :: Bool
-get_points(T::TriFace) = return Tuple(T.points) :: Tuple{Int, Int, Int}
+points(T::TriFace) = return Tuple(T.points) :: Tuple{Int, Int, Int}
 get_point(T::TriFace, point_index::Integer) = T.points[point_index]
-edge_is_anticlockwise(T::TriFace, edge_index::Integer) = T.edge_is_anticlockwise[edge_index] :: Bool
-set_edge_anticlockwise!(T::TriFace, edge_index::Integer, is_anticlockwise::Bool) = T.edge_is_anticlockwise[edge_index] = is_anticlockwise :: Bool 
 set_edge!(T::TriFace, edge_index::Integer, edge::DualEdge) = (T.edges[edge_index] = edge)
 get_edge(T::TriFace, edge_index::Integer) = T.edges[edge_index] :: DualEdge
-get_edges(T::TriFace) = T.edges :: Vector{DualEdge}
-get_neighbor(T::TriFace, edge_index::Integer) = get_other_endpoint(T.edges[edge_index], T.id) :: Int
+edges(T::TriFace) = T.edges :: Vector{DualEdge}
+get_neighbor(T::TriFace, edge_index::Integer) = other_endpoint(T.edges[edge_index], T.id) :: Int
 
 function Base.show(io::IO, mime::MIME"text/plain", T::TriFace)
-    print(io, string("TriFace #",T.id, ": Points(", T.points[1]," ", T.points[2]," ", T.points[3],")   SideOrientations("))
-    for b in T.edge_is_anticlockwise
-        if b
-            print(io, " ↺ ")
-        else
-            print(io, " ↻ ")
-        end
-    end
-    print(io, string(")   Neighbours(",get_neighbor(T,1), " ",get_neighbor(T,2), " ",get_neighbor(T,3), ")"))
+    print(io, string("TriFace #",T.id, ": Points(", T.points[1]," ", T.points[2]," ", T.points[3],")"))
+    print(io, string(" Neighbors(",get_neighbor(T,1), " ",get_neighbor(T,2), " ",get_neighbor(T,3), ")"))
 end
 
-function get_triangle_edge(T::TriFace, edge_index::Integer)
-    edge = (T.points[edge_index], T.points[(edge_index%3) + 1])
-    if edge_is_anticlockwise(T, edge_index)
-        return edge
-    else
-        return reverse(edge)
-    end
+function triangle_edge(T::TriFace, edge_index::Integer)
+    return (T.points[edge_index], T.points[(edge_index%3) + 1])
 end
 
-"""
-    function get_edge_index(T :: TriFace, e:: DualEdge)
-returns the index 1,2 or 3 of the edge e in the TriFace T. If e is not incident to T this function returns -1.
-
-
-function get_edge_index(T :: TriFace, e:: DualEdge)
-    if T.v[1] in e.edge
-        if T.v[2] in e.edge
-            return 1
-        elseif T.v[3] in e.edge
-            return 3
-        end
-    elseif T.v[2] in e.edge && T.v[3] in e.edge
-        return 2
-    end
-    return -1
+function left_edge(T::TriFace, edge_index::Integer)::DualEdge
+    return get_edge(T, [(edge_index+1)%3+1])
 end
 
-function get_edge(T:: TriFace, i::Int) ::DualEdge
-    return T.E[i]
+function right_edge(T::TriFace, edge_index::Integer)::DualEdge
+    return get_edge(T, [edge_index%3+1])
 end
-"""
+
+function is_anticlockwise(T::TriFace, edge_index::Integer)::Bool
+    d = get_edge(T, edge_index)
+    return (T.id == get_vertex(d, 1) && get_resp_side(d,1) == edge_index)
+end
 
 """
     struct DeltaComplex
@@ -139,11 +123,9 @@ A Graph datastructure representing a triangulation of a surface. \\
 Vertices are triangular faces. Every vertex has three edges incident to it.
 """
 struct DeltaComplex
-    V :: Array{TriFace, 1}
-    E :: Array{DualEdge, 1}    
+    V :: Vector{TriFace}
+    E :: Vector{DualEdge}    
     num_points :: Base.RefValue{Int}
-    #E :: Array{Tuple{Int, Int, Bool}, 1} #t1, t2, is_twisted_edge
-    #is_twisted_edge :: Dict{Tuple{Int, Int}, Bool} #true if twisted, else false
 
     function DeltaComplex()
         new(TriFace[], DualEdge[], Ref(1))
@@ -151,44 +133,46 @@ struct DeltaComplex
 end
 
 add_vertex!(D::DeltaComplex, v::TriFace) = push!(D.V, v)
-get_vertex(D::DeltaComplex, i::Integer)::TriFace = D.V[i] 
-get_vertices(D::DeltaComplex) = D.V ::Array{TriFace, 1}
+get_vertex(D::DeltaComplex, i::Integer)::TriFace = D.V[i]
+vertices(D::DeltaComplex)::Vector{TriFace} = D.V 
 add_edge!(D::DeltaComplex, e::DualEdge) = push!(D.E, e)
 get_edge(D::DeltaComplex, i::Integer) = D.E[i]
-get_edges(D::DeltaComplex) = D.E
+edges(D::DeltaComplex) = D.E
 remove_edge!(D::DeltaComplex, e::DualEdge) = remove!(D.E, e)
 set_num_points!(D::DeltaComplex, num_points) = setindex!(D.num_points, num_points)
+points(D::DeltaComplex, d::DualEdge) = triangle_edge(D.V[d.triangles[1]], d.resp_sides[1])
 
 """
-    get_num_points(D::DeltaComplex)
+    np(D::DeltaComplex)
 
 Return the number of points in the triangulation defined by `D`
 """
-get_num_points(D::DeltaComplex) = np(D) :: Int
 np(D::DeltaComplex) = getindex(D.num_points) :: Int
 
 """
-    get_num_trifaces(D::DeltaComplex)
+    nv(D::DeltaComplex)
 
 Return the number of vertices(i.e. triangular faces) in `D`.
 """
-get_num_trifaces(D::DeltaComplex) = nv(D)
 nv(D::DeltaComplex) = length(D.V) :: Integer
 
 """
-    get_num_edges(D::DeltaComplex)
+    ne(D::DeltaComplex)
+
+Return the number of edges in the DeltaComplex `D`.
+
+This is equal to the number of edges in the triangulation itself.
 """
-get_num_edges(D::DeltaComplex) = ne(D)
 ne(D::DeltaComplex) = length(D.E) :: Integer
 
 function Base.show(io::IO, mime::MIME"text/plain", D::DeltaComplex)
     if is_orientable(D)
-        println(io, string("DeltaComplex on orientable surface of genus ", genus(D), " with ", np(D), " point",(if np==1 "s";else "";end)))
+        println(io, string("DeltaComplex on orientable surface of genus ", genus(D), " with ", np(D), " point",(np(D)==1 ? "s" : "")))
     else
-        println(io, string("DeltaComplex on non-orientable surface of demigenus ", demigenus(D), " with ", np(D), " point", (if np==1 "s";else "";end)))
+        println(io, string("DeltaComplex on non-orientable surface of demigenus ", demigenus(D), " with ", np(D), " point", (np(D)==1 ? "s" : "")))
     end
     println(io, string(nv(D), " TriFaces:"))
-    for T in get_vertices(D)
+    for T in vertices(D)
         print(io," "); show(io, mime, T); println(io)
     end
     println(io, string(ne(D), " DualEdges:"))
@@ -208,7 +192,7 @@ euler_characteristic(D::DeltaComplex) = np(D) - ne(D) + nv(D) :: Int
 """
     genus(D::DeltaComplex)
 
-Compute the genus of the DeltaComplex `D` if D forms an orientable surface.
+Compute the genus of the DeltaComplex `D` if it forms an orientable surface.
 """
 function genus(D::DeltaComplex)     
     if !is_orientable(D)
@@ -222,7 +206,7 @@ end
 
 Compute the demigenus of the DeltaComplex `D`.\\
 
-The demigenus (``k``) of a connected non-orientable closed surface is defined via the euler characteristic ()``X``) :\\
+The **demigenus** or **non-orientable genus** (``k``) of a connected non-orientable closed surface is defined via the euler characteristic ()``X``) :\\
 ``k = 2 - X``
 """
 function demigenus(D::DeltaComplex)
@@ -233,13 +217,13 @@ function demigenus(D::DeltaComplex)
 end
 
 """
-    adjacency_matrix(D::DeltaComplex) :: Matrix{<:Integer}
+    adjacency_matrix_deltaComplex(D::DeltaComplex) :: Matrix{<:Integer}
 
 Compute the adjacency matrix of the delta complex `D`.
 """
 function adjacency_matrix_deltaComplex(D::DeltaComplex) :: Matrix{<:Integer}
-    A = zeros(Int, get_num_trifaces(D), get_num_trifaces(D))
-    foreach(e-> (A[e.triangles[1], e.triangles[2]] = 1; A[e.triangles[2], e.triangles[1]] = 1), get_edges(D))
+    A = zeros(Int, nv(D), nv(D))
+    foreach(e-> (A[e.triangles[1], e.triangles[2]] = 1; A[e.triangles[2], e.triangles[1]] = 1), edges(D))
     return A
 end
 
@@ -254,7 +238,7 @@ function adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{<:Integer}
         A[t.points[1], t.points[2]] = 1; A[t.points[2], t.points[1]] = 1;
         A[t.points[2], t.points[3]] = 1; A[t.points[3], t.points[2]] = 1;
         A[t.points[3], t.points[1]] = 1; A[t.points[1], t.points[3]] = 1;
-        ), get_vertices(D))
+        ), vertices(D))
     return A
 end
 
@@ -290,16 +274,22 @@ end
 
 Glue two triangle faces together along their shared edge. Only works if it is along the same edge in our triangulation.
 """
-glue_faces_along_edge!(D::DeltaComplex, T1:: TriFace, edge_index_1::Integer, T2:: TriFace, edge_index_2::Integer) = glue_faces_along_edge!(D, T1.id, edge_index_1, T2.id, edge_index_2)
-function glue_faces_along_edge!(D::DeltaComplex, t1:: Integer, edge_index_1::Integer, t2:: Integer, edge_index_2::Integer)
-    T1 = get_vertex(D, t1)
-    T2 = get_vertex(D, t2)
+function glue_faces_along_edge!(D::DeltaComplex, t1:: Integer, edge_index_1::Integer, t2:: Integer, edge_index_2::Integer, twist::Bool=false)  
+    return glue_faces_along_edge!(D, get_vertex(D, t1), edge_index_1, get_vertex(D, t2), edge_index_2, twist)
+end
+
+function glue_faces_along_edge!(D::DeltaComplex, T1:: TriFace, edge_index_1::Integer, T2:: TriFace, edge_index_2::Integer, twist::Bool=false) 
 
     #set_neighbor!(T1, edge_index_1, t2)
     #set_neighbor!(T2, edge_index_2, t1)
 
-    x1,y1 = get_triangle_edge(T1, edge_index_1)
-    x2,y2 = get_triangle_edge(T2, edge_index_2)
+    x1,y1 = triangle_edge(T1, edge_index_1)
+    x2,y2 = triangle_edge(T2, edge_index_2)
+
+    if !twist
+        x2,y2 = y2,x2
+    end
+
     if x1 != x2
         merge_points!(D, x1, x2) 
         if y1 == max(x1,x2) 
@@ -313,11 +303,10 @@ function glue_faces_along_edge!(D::DeltaComplex, t1:: Integer, edge_index_1::Int
         merge_points!(D, y1, y2)
     end
 
-    e =  DualEdge(t1, edge_index_1, t2, edge_index_2, (edge_is_anticlockwise(T1, edge_index_1) == edge_is_anticlockwise(T2, edge_index_2)) )
+    e = DualEdge(T1.id, edge_index_1, T2.id, edge_index_2, twist)
     add_edge!(D,e)
     set_edge!(T1, edge_index_1, e)
     set_edge!(T2, edge_index_2, e)
-      
 end
 
 
@@ -326,12 +315,13 @@ function merge_points!(D::DeltaComplex, x::Integer, y::Integer)
         x, y = y, x
     end
     if x!=y
-        set_num_points!(D, get_num_points(D)-1)
+        set_num_points!(D, np(D)-1)
     end
-    return rename_points!(D, y, x)
+    return rename_point!(D, y, x)
 end
 
-function rename_points!(D::DeltaComplex, x_old::Integer, x_new::Integer)
+
+function rename_point!(D::DeltaComplex, x_old::Integer, x_new::Integer)
     foreach(T -> replace!(T.points, x_old => x_new), D.V)
     return D
 end
@@ -355,8 +345,8 @@ function createDeltaComplex(genus :: Integer, num_points :: Integer = 1)
         s = [(-1)^div(k-1, 2) * (2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
     end
     D = createDeltaComplex(s)
-    for i = 2:num_points
-        subdivide(D, i-1)
+    for i in 2:num_points
+        subdivide!(D, i-1)
     end
     return D
 end
@@ -402,7 +392,7 @@ function createDeltaComplex(s :: Array{<:Integer,1})
         if count(==(i), s_abs) != 2
             if count(==(i), s_abs) == 1
                 throw(ArgumentError(string(i)*" only appears once in s. \n
-                    Delta-Complexes with boundary haven't been implemented yet.\n 
+                    Delta-Complexes with boundary haven't been implemented.\n 
                 Make sure, that every scaffolding edge is assigned to exactly 1 other edge."))
             else
                 throw(ArgumentError(string(i)*" appears more than twice in s. \n
@@ -412,49 +402,55 @@ function createDeltaComplex(s :: Array{<:Integer,1})
     end
 
     D = createDeltaScaffold(size(s,1))
-
+    #glue respective sides of scaffold together
     for a in s_abs_unique
         i,j = findall(σ -> σ==a , s_abs)
         Ti, edge_idx_i = get_TriFace_and_rel_edge(D, i)
         Tj, edge_idx_j = get_TriFace_and_rel_edge(D, j)
+        glue_faces_along_edge!(D, Ti.id, edge_idx_i, Tj.id, edge_idx_j, s[i]==s[j])
+    end
 
-        if s[i] < 0
-            set_edge_anticlockwise!(Ti, edge_idx_i, false)
+    #rename points s.t. there are no "holes" from 1 to num_points
+    pointnames = Set{Int}()
+    foreach(T-> foreach(p-> push!(pointnames,p), points(T)), D.V)
+    pnames = sort(collect(pointnames))
+    for i in eachindex(pnames)
+        if i!=pnames[i]
+            rename_point!(D,pnames[i],i)
         end
-        if s[j] < 0
-            set_edge_anticlockwise!(Tj, edge_idx_j, false)
-        end
-        
-        glue_faces_along_edge!(D, Ti.id, edge_idx_i, Tj.id, edge_idx_j)
+    end
+
+    #give edges their id
+    for i in eachindex(D.E)
+        D.E[i].id = i
     end
     return D
 end
 
 
 function createDeltaScaffold(num_vertices :: Integer)
-    if num_vertices%2 != 0 
-        throw(ArgumentError("num_vertices has to be a multiple of 2"))
-    elseif  num_vertices<=0
-        throw(ArgumentError("num_vertices has to be strictly positive"))
-    end
-
+    num_vertices%2 == 0 || throw(ArgumentError(
+        string("num_vertices has to be a multiple of 2. Got: num_vertices=",num_vertices)))
+    num_vertices>0 || throw(ArgumentError(
+        string("num_vertices has to be strictly positive. Got: num_vertices=",num_vertices)))
+    
     n = num_vertices
     D = DeltaComplex()
     set_num_points!(D, n)
 
-    T1 = TriFace(1, 1, true, 2, true, n, true)
-    T2 = TriFace(2, 2, true, n-1, true, n, false)
+    T1 = TriFace(1, 1, 2, n)
+    T2 = TriFace(2, 2, n-1, n)
     add_vertex!(D, T1)
     add_vertex!(D, T2)
     glue_faces_along_edge!(D, T1, 2, T2, 3)
 
-    for i = 1 : (num_vertices-4) ÷ 2
-        T1 = TriFace(2*i+1, i+1, true, i+2, true, n-i, false)
+    for i in 1 : (num_vertices-4) ÷ 2
+        T1 = TriFace(2*i+1, i+1, i+2, n-i)
         add_vertex!(D, T1)
-        glue_faces_along_edge!(D, T2, 1, T1, 3)
-        T2 = TriFace(2*i+2, i+2, true, n-i-1, true, n-i, false)
+        glue_faces_along_edge!(D, T2, 1, T1, 3, false)
+        T2 = TriFace(2*i+2, i+2, n-i-1, n-i)
         add_vertex!(D, T2)
-        glue_faces_along_edge!(D, T1, 2, T2, 3)
+        glue_faces_along_edge!(D, T1, 2, T2, 3, false)
     end
 
     return D
@@ -462,51 +458,55 @@ end
 
 
 """
-    subdivide(D::DeltaComplex, t::Integer)
+    subdivide!(D::DeltaComplex, t::Integer)
 
 Add a point to the inside of the `t`-th TriFace and connect it to each corner.
 """
-function subdivide(D::DeltaComplex, t::Integer)
-    set_num_points!(D, get_num_points(D)+1)
-    n = get_num_trifaces(D)
+function subdivide!(D::DeltaComplex, t::Integer)#twist
+    set_num_points!(D, np(D)+1)
+    n = nv(D)
+    m = ne(D) 
+    p = np(D)
     T = get_vertex(D, t)    
-    v1,v2,v3 = get_points(T)
-    v0 = get_num_points(D)
-    
-    edges_out = filter(e -> (t in e.triangles ),  D.E)
+    v1,v2,v3 = points(T)
+    e1,e2,e3 = edges(T)
 
-    filter!(e -> !(t in e.triangles ),  D.E)
-    T1 = TriFace(T.id, [v1, v2, v0], [edge_is_anticlockwise(T,1), true, false], Vector{DualEdge}(undef,3)) # [get_neighbor(T,1) , n+1, n+2])
-    T2 = TriFace(n+1, [v2, v3, v0], [edge_is_anticlockwise(T,2), true, false], Vector{DualEdge}(undef,3)) #[get_neighbor(T,2) , n+2, T.id])
-    T3 = TriFace(n+2, [v3, v1, v0], [edge_is_anticlockwise(T,3), true, false], Vector{DualEdge}(undef,3)) #[get_neighbor(T,3) , T.id, n+1])
-
+    T1 = TriFace(T.id, [v1, v2, p], Vector{DualEdge}(undef,3)) # [get_neighbor(T,1) , n+1, n+2])
+    T2 = TriFace(n+1, [v2, v3, p], Vector{DualEdge}(undef,3)) #[get_neighbor(T,2) , n+2, T.id])
+    T3 = TriFace(n+2, [v3, v1, p], Vector{DualEdge}(undef,3)) #[get_neighbor(T,3) , T.id, n+1])
     D.V[t] = T1
     push!(D.V, T2, T3)
-  
-    for i in eachindex(edges_out)
-        if edges_out[i].triangles[1] != T.id
-            edges_out[i] = reverse(edges_out[i])
-        end
-    end        
-    sort!(edges_out, by = (e -> e.resp_sides[1]))
 
-    if length(edges_out) == 2  # the triangle shares an edge with itself
-        i = 1
-        if edges_out[2].triangles[1] == edges_out[2].triangles[2]
-            i = 2
-        end
-        push!(edges_out, reverse!(deepcopy(edges_out[i])))
+    for e in (e1,e2,e3)
+        get_vertex(e,1) == T.id || reverse!(e)
+        e.resp_sides[1] = 1
     end
-    #glue outer edges together
-    glue_faces_along_edge!(D, T1.id, 1, get_neighbor(T,1), edges_out[1].resp_sides[2])
-    glue_faces_along_edge!(D, T2.id, 1, get_neighbor(T,2), edges_out[2].resp_sides[2])
-    glue_faces_along_edge!(D, T3.id, 1, get_neighbor(T,3), edges_out[3].resp_sides[2])
+    e1.triangles[1] = T1.id
+    e2.triangles[1] = T2.id
+    e3.triangles[1] = T3.id
 
-    #glue inner edges together
-    glue_faces_along_edge!(D, T1.id, 2, T2.id, 3)
-    glue_faces_along_edge!(D, T2.id, 2, T3.id, 3)
-    glue_faces_along_edge!(D, T3.id, 2, T1.id, 3)
+    e4 = DualEdge(T3.id, 2, T1.id, 3, false)
+    e4.id = m+1
+    e5 = DualEdge(T1.id, 2, T2.id, 3, false)
+    e5.id = m+2
+    e6 = DualEdge(T2.id, 2, T3.id, 3, false)
+    e6.id = m+3
+    push!(D.E,e4,e5,e6)
+
+    T1.edges.=[e1,e5,e4]
+    T2.edges.=[e2,e6,e5]
+    T3.edges.=[e3,e4,e6]
     return D
+end
+
+twist_edges!(D::DeltaComplex, t::Integer) = twist_edges!(get_vertex(D,t))
+function twist_edges!(T::TriFace)
+    update_endpoint!(get_edge(T,1), T.id, 1, T.id, 3)
+    update_endpoint!(get_edge(T,3), T.id, 3, T.id, 1)
+    reverse!(T.points)
+    reverse!(T.edges)
+    foreach(e -> e.is_twisted = !e.is_twisted, edges(T))
+    return T
 end
 
 """
@@ -525,60 +525,80 @@ end
     flip!(D::DeltaComplex, e_id::Integer)
     flip!(D::DeltaComplex, e::DualEdge)
 
-Flip the given edge in D
+Flip the given edge in `D`
 """
 flip!(D::DeltaComplex, e_id::Integer) = flip!(D, get_edge(D,e_id))
 function flip!(D::DeltaComplex, e::DualEdge)
     T1 = get_vertex(D, e.triangles[1])
     T2 = get_vertex(D, e.triangles[2])
     
+    if e.is_twisted
+        twist_edges!(T2)
+    end 
+    
     #find edges a,b,c,d and points x,y,z,q
-    if e.resp_sides[1]==1
-        t,a,b = get_edges(T1)
-        z,x,y = get_points(T1)
+    if e.resp_sides[1] == 1
+        t,a,b = edges(T1)
+        z,x,y = points(T1)
         rot1 = 0
-    elseif e.resp_sides[1]==2
-        b,t,a = get_edges(T1)
-        y,z,x = get_points(T1)
+    elseif e.resp_sides[1] == 2
+        b,t,a = edges(T1)
+        y,z,x = points(T1)
         rot1 = 1
-    elseif e.resp_sides[1]==3
-        a,b,t = get_edges(T1)
-        x,y,z = get_points(T1)
+    elseif e.resp_sides[1] == 3
+        a,b,t = edges(T1)
+        x,y,z = points(T1)
         rot1 = -1
     end
 
-    if e.resp_sides[2]==1
-        t,c,d = get_edges(T2)
+    if e.resp_sides[2] == 1
+        t,c,d = edges(T2)
         q = get_point(T2,3)
         rot2 = 0
-    elseif e.resp_sides[2]==2
-        d,t,c = get_edges(T2)
+    elseif e.resp_sides[2] == 2
+        d,t,c = edges(T2)
         q = get_point(T2,1)
         rot2 = 1
-    elseif e.resp_sides[2]==3
-        c,d,t = get_edges(T2)
+    elseif e.resp_sides[2] == 3
+        c,d,t = edges(T2)
         q = get_point(T2,2)
         rot2 = -1
     end
 
     #The flip itself
-    T1.edges .= e,b,c
-    T1.points .= q,y,z
-    T2.edges .= e,d,a
-    T2.points .= y,q,x
+    if e.resp_sides[1] == 1
+        T1.edges .= e,b,c
+        T1.points .= q,y,z
+    elseif e.resp_sides[1] == 2
+        T1.edges .= c,e,b
+        T1.points .= z,q,y
+    elseif e.resp_sides[1] == 3
+        T1.edges .= b,c,e
+        T1.points .= y,z,q
+    end
 
-    e.resp_sides.= 1,1
-    update_endpoint!(a, T1.id, 2 + rot1, T2.id, 3)
-    update_endpoint!(b, T1.id, (3+rot1-1)%3 + 1, T1.id, 2)
-    update_endpoint!(c, T2.id, 2 + rot2, T1.id, 3)
-    update_endpoint!(d, T2.id, (3+rot2-1)%3 + 1, T2.id, 2)
-    #TODO either update side orientations or remove them alltogether
+    if e.resp_sides[2] == 1
+        T2.edges .= e,d,a
+        T2.points .= y,q,x
+    elseif e.resp_sides[2] == 2
+        T2.edges .= a,e,d
+        T2.points .= x,y,q
+    elseif e.resp_sides[2] == 3
+        T2.edges .= d,a,e
+        T2.points .= q,x,y
+    end
 
+    update_endpoint!(a, T1.id, 2 + rot1, T2.id, (3+rot2-1)%3+1)
+    update_endpoint!(b, T1.id, (3+rot1-1)%3 + 1, T1.id, 2+rot1)
+    update_endpoint!(c, T2.id, 2 + rot2, T1.id, (3+rot1-1)%3+1)
+    update_endpoint!(d, T2.id, (3+rot2-1)%3 + 1, T2.id, 2+rot2)
     return D
 end
 
 """
     is_orientable(D::DeltaComplex)
+
+Ckeck if the surface on which `D` lies is orientable or not.
 """
 function is_orientable(D::DeltaComplex)
     color = zeros(Int8, nv(D))
@@ -587,7 +607,7 @@ function is_orientable(D::DeltaComplex)
     queue = [v0]
     while !isempty(queue)
         v = pop!(queue)
-        for i = 1:3
+        for i in 1:3
             if color[get_neighbor(D.V[v], i)] == 0
                 if  get_edge(D.V[v],i).is_twisted
                     color[get_neighbor(D.V[v], i)] = - color[v]
@@ -603,5 +623,56 @@ function is_orientable(D::DeltaComplex)
     return true
 end
 
+"""
+    random_flips!(D::DeltaComplex, n::Integer)
+
+Randomly pick an edge, and flip it if possible. Repeat this `n` times.
+"""
+function random_flips!(D::DeltaComplex, n::Integer)
+    foreach(e-> !is_flippable(e) || flip!(D, e), rand(D.E,n))
+    return D
+end
+
+
+function randomize!(D::DeltaComplex, n_flips_initial::Integer, n_flips_step::Integer, variance_interval_size::Integer)
+    function variance(x::Vector{<:Integer})
+        mean = sum(x)//length(x)
+        y = x.-mean 
+        return sum(y.*y)//length(x)
+    end
+    
+    diameters = zeros(Int, variance_interval_size)
+    random_flips!(D,n_flips_initial)
+    diameters[1] = diameter_triangulation(D)
+    
+    for i in 2:variance_interval_size
+        random_flips!(D,n_flips_step)
+        diameters[i] = diameter_triangulation(D)
+    end
+    cur_variance = variance(diameters)
+    last_variance = cur_variance + 1
+    println(diameters)
+    while cur_variance < last_variance
+        last_variance = cur_variance
+        for i in 1:variance_interval_size
+            random_flips!(D,n_flips_step)
+            diameters[i] = diameter_triangulation(D)
+        end
+        cur_variance = variance(diameters)
+        println(diameters)
+    end
+    return D
+end
+
+"""
+    point_degrees(D::DeltaComplex)
+
+Return a vector containing the respective degree of each point in the triangulation.
+"""
+function point_degrees(D::DeltaComplex) ::Vector{<:Integer}
+    pd = zeros(Int, np(D))
+    foreach(T-> foreach(p->pd[p]+=1 , T.points) ,D.V)
+    return pd
+end
 
 #TODO check if everything works with twisted edges

@@ -1,11 +1,14 @@
 
 
 export FlipGraphPlanar, construct_FlipGraph
+export edges, has_edge, ne, nv, vertices
+export is_isomorph, diameter
 
 """
     struct FlipGraphPlanar <: AbstractGraph{Int}
-A Graph representing the FlipGraph of a convex polygon.
-Vertices are different triangulations of the same convex polygon.
+
+A Graph representing the FlipGraph of a convex polygon.\\
+Vertices are different triangulations of the same convex polygon.\\
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraphPlanar <: AbstractGraph{Int}    
@@ -21,18 +24,23 @@ function Base.show(io::IO, mime::MIME"text/plain", G::FlipGraphPlanar)
     print(io, string("FlipGraphPlanar with ", nv(G) , " vertices and ", ne(G), " edges")); 
 end
 
-function edges(G::FlipGraphPlanar)
-    E = collect(Edge(i,j) for i = 1:len(G.V) for j in G.adjList[i])
+"""
+    edges(G::FlipGraphPlanar) ::Vector{Edge}
+
+Construct an array containing all the edges in `G`.
+"""
+function edges(G::FlipGraphPlanar) ::Vector{Edge}
+    E = collect(Edge(i,j) for i = 1:length(G.V) for j in G.adjList[i])
     return filter!(e->(src(e)>dst(e)), E)
 end 
 
 edgetype(G::FlipGraphPlanar) = SimpleEdge{Int}
 has_edge(G::FlipGraphPlanar, e::Edge) = (dst(e) ∈ G.adjList[src(e)])
 has_edge(G::FlipGraphPlanar, s, d) = (d ∈ G.adjList[s])
-has_vertex(G::FlipGraphPlanar, v) = (1 <= v && v <= nv(G))
+has_vertex(G::FlipGraphPlanar, v) = (1 <= v <= nv(G))
 inneighbors(G::FlipGraphPlanar, v) = G.adjList[v]
-ne(G::FlipGraphPlanar) = sum(size(G.adjList[i],1) for i=1:len(G.adjList))÷2
-nv(G::FlipGraphPlanar) = len(G.V)
+ne(G::FlipGraphPlanar) = sum(size(G.adjList[i],1) for i=1:length(G.adjList))÷2
+nv(G::FlipGraphPlanar) = length(G.V)
 outneighbors(G::FlipGraphPlanar,v) = G.adjList[v]
 vertices(G::FlipGraphPlanar) = G.V
 is_directed(G::FlipGraphPlanar) = false
@@ -88,7 +96,7 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
                     gg = flip(g,e)
                     sigma_pis = mcKay(gg)
                     newGraph = true
-                    for i = 1:len(G.V)
+                    for i = 1:nv(G)
                         if is_isomorph(G.V[i], gg, sigma_pis)
                             add_edge!(G, ind_g, i)
                             newGraph = false
@@ -97,8 +105,8 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
                     end
                     if newGraph
                         add_vertex!(G, rename_vertices(gg, sigma_pis[1]))
-                        add_edge!(G, ind_g, len(G.V))
-                        push!(queue, (G.V[end], len(G.V)))
+                        add_edge!(G, ind_g, nv(G))
+                        push!(queue, (G.V[end], nv(G)))
                     end
                 end
             end
@@ -110,7 +118,7 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
                 if is_flippable(g,e)
                     gg = flip(g,e)
                     newGraph = true
-                    for i = 1:len(G.V)
+                    for i = 1:length(G.V)
                         if all(issetequal(G.V[i].adjList[j], gg.adjList[j]) for j in 1:nv(g))
                             add_edge!(G, ind_g, i)
                             newGraph = false
@@ -119,8 +127,8 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
                     end
                     if newGraph
                         add_vertex!(G, gg)
-                        add_edge!(G, ind_g, len(G.V))
-                        push!(queue, (G.V[end], len(G.V)))
+                        add_edge!(G, ind_g, nv(G))
+                        push!(queue, (G.V[end], nv(G)))
                     end
                 end
             end

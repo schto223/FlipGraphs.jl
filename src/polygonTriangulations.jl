@@ -1,5 +1,6 @@
 
-export TriangulatedPolygon, flip!, mcKay, triangulatedPolygon, is_flippable
+export TriangulatedPolygon, flip!, flip, mcKay, triangulatedPolygon, is_flippable
+export ne,nv,edges, has_edge, vertices
 
 
 """
@@ -34,7 +35,7 @@ end
 edgetype(g::TriangulatedPolygon) = SimpleEdge{Int}
 has_edge(g::TriangulatedPolygon, e::Edge) = (dst(e) ∈ g.adjList[src(e)])
 has_edge(g::TriangulatedPolygon, s, d) = (d ∈ g.adjList[s])
-has_vertex(g::TriangulatedPolygon, v) = (1 <= v && v <= g.n)
+has_vertex(g::TriangulatedPolygon, v) = (1 <= v <= g.n)
 inneighbors(g::TriangulatedPolygon,v) = g.adjList[v]
 ne(g::TriangulatedPolygon) = sum(size(g.adjList[i], 1) for i=1:nv(g))÷2
 nv(g::TriangulatedPolygon) = g.n
@@ -141,8 +142,6 @@ function degrees(g::TriangulatedPolygon)
     return [size(g.adjList[i],1) for i=1:g.n]
 end
 
-len(v) = size(v,1)
-
 
 mutable struct mcKayTreeNode #was mutable
     u::Int #::Base.RefValue{Int} #was just Int
@@ -168,8 +167,8 @@ end
 
 
 function relDegs(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer})
-    rdegs = zeros(Int, len(U))
-    for i in 1:len(U), j in V
+    rdegs = zeros(Int, length(U))
+    for i in 1:length(U), j in V
         if has_edge(g, U[i],j)
             rdegs[i]+=1
         end
@@ -182,8 +181,8 @@ end
 function mcKay(g::TriangulatedPolygon)
     # renamed from sigma
     function σ(p::Vector{Vector{Int}})
-        sigpi = zeros(Int, len(p))
-        for i = 1:len(p)
+        sigpi = zeros(Int, length(p))
+        for i = 1:length(p)
             sigpi[p[i][1]] = i
         end
         return sigpi
@@ -192,10 +191,10 @@ function mcKay(g::TriangulatedPolygon)
     function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
         sV = Array{Array{Int,1},1}()
         deg = 0 
-        k = len(V)
+        k = length(V)
         while k > 0
             W = Array{Int,1}()
-            for i in 1:len(degs)
+            for i in 1:length(degs)
                 if degs[i] == deg
                     push!(W, V[i])
                     k -= 1
@@ -212,7 +211,7 @@ function mcKay(g::TriangulatedPolygon)
     function makeEquitable!(tNode::mcKayTreeNode, g::TriangulatedPolygon)
         p = tNode.p
         i = 1; j = 1
-        while i <= len(p)
+        while i <= length(p)
             rDegs = relDegs(g, p[i], p[j])
             if !all(x->x==rDegs[1],rDegs) 
                 newVs = split(p[i], rDegs)
@@ -224,7 +223,7 @@ function mcKay(g::TriangulatedPolygon)
                 i = 1
             else 
                 j += 1
-                if j > len(p)
+                if j > length(p)
                     j = 1
                     i += 1
                 end
@@ -236,7 +235,7 @@ function mcKay(g::TriangulatedPolygon)
     root = mcKayTreeNode(0, p)
     makeEquitable!(root, g)
 
-    if len(root.p) == g.n
+    if length(root.p) == g.n
         return Array{Array{Int,1},1}([σ(root.p)])
     end
 
@@ -245,10 +244,10 @@ function mcKay(g::TriangulatedPolygon)
     while !isempty(queue)
         tNode = popfirst!(queue)::mcKayTreeNode
         i = 1
-        while len(tNode.p[i]) == 1
+        while length(tNode.p[i]) == 1
             i += 1
         end
-        for j = 1:len(tNode.p[i])
+        for j = 1:length(tNode.p[i])
             child = deepcopy(tNode)
             addChild!(tNode, child)
             setParent!(child, tNode)
@@ -258,7 +257,7 @@ function mcKay(g::TriangulatedPolygon)
             popat!(V, j)
             insert!(child.p, i+1, V)
             makeEquitable!(child, g)
-            if len(child.p)!=g.n
+            if length(child.p)!=g.n
                 push!(queue, child)
             else
                 push!(leafs, child)
@@ -271,8 +270,7 @@ function mcKay(g::TriangulatedPolygon)
         push!(sigpis, σ(leaf.p))
     end
 
-    return sigpis
-            
+    return sigpis   
 end
 
 
