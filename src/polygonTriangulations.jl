@@ -101,6 +101,7 @@ end
 
 Flip the edge `e` in `g`.
 """
+flip!(g::TriangulatedPolygon, i::Integer) = flip!(g, edges(g)[i])
 function flip!(g::TriangulatedPolygon, e::Edge)
     neigh1 = outneighbors(g, src(e))
     neigh2 = outneighbors(g, dst(e))
@@ -139,62 +140,38 @@ function is_flippable(g::TriangulatedPolygon, e::Edge)
 end
 
 function degrees(g::TriangulatedPolygon)
-    return [size(g.adjList[i],1) for i=1:g.n]
-end
-
-
-mutable struct mcKayTreeNode #was mutable
-    u::Int #::Base.RefValue{Int} #was just Int
-    p::Array{Array{Int,1},1}
-    children::Array{mcKayTreeNode}
-    parent::mcKayTreeNode
-
-    function mcKayTreeNode(u::Integer,p::Vector{Vector{Int}}, parent::mcKayTreeNode)
-        new(u, p, [], parent)
-    end
-    function mcKayTreeNode(u::Integer,p::Vector{Vector{Int}})
-        new(u, p, [] )
-    end
-end
-
-function setParent!(child::mcKayTreeNode, parent::mcKayTreeNode)
-    child.parent = parent
-end
-
-function addChild!(parent::mcKayTreeNode, child::mcKayTreeNode)
-    push!(parent.children, child)
+    return [size(g.adjList[i],1) for i in 1:g.n]
 end
 
 
 function relDegs(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer})
     rdegs = zeros(Int, length(U))
     for i in 1:length(U), j in V
-        if has_edge(g, U[i],j)
-            rdegs[i]+=1
+        if has_edge(g, U[i], j)
+            rdegs[i] += 1
         end
     end
     return rdegs
 end
 
 
-#Apply the mcKay Algorithm in order to determine all possible permutations of the vertices which give a canonical isomorphism class representant.
-function mcKay(g::TriangulatedPolygon)
-    # renamed from sigma
-    function σ(p::Vector{Vector{Int}})
-        sigpi = zeros(Int, length(p))
-        for i = 1:length(p)
-            sigpi[p[i][1]] = i
-        end
-        return sigpi
-    end
+"""
+    mcKay(g::TriangulatedPolygon)
 
+Apply McKay's canonical graph labeling algorithm in order to determine all possible permutations 
+of the vertices which give a canonical isomorphism class representant.
+"""
+function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
+    # renamed from sigma
+
+    #split V into partitions according to their degrees from smallest to biggest
     function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
-        sV = Array{Array{Int,1},1}()
+        sV = Vector{Vector{Int}}()
         deg = 0 
         k = length(V)
         while k > 0
-            W = Array{Int,1}()
-            for i in 1:length(degs)
+            W = Vector{Int}()
+            for i in eachindex(degs)
                 if degs[i] == deg
                     push!(W, V[i])
                     k -= 1
@@ -208,13 +185,15 @@ function mcKay(g::TriangulatedPolygon)
         return sV
     end
 
-    function makeEquitable!(tNode::mcKayTreeNode, g::TriangulatedPolygon)
-        p = tNode.p
+    #replace partitions by partitions as long as there are 2 elements in the same partition ...
+    #...that may be differentiated by their relative degrees to another partition
+    function makeEquitable!(p::Vector{Vector{T}}, g::TriangulatedPolygon) where T<:Integer
         i = 1; j = 1
         while i <= length(p)
             rDegs = relDegs(g, p[i], p[j])
-            if !all(x->x==rDegs[1],rDegs) 
+            if !all(x -> x==rDegs[1], rDegs) 
                 newVs = split(p[i], rDegs)
+                #replace the old partition by the new ones
                 popat!(p,i)
                 for V in reverse(newVs)
                     insert!(p, i, V)
@@ -232,45 +211,37 @@ function mcKay(g::TriangulatedPolygon)
     end
 
     p = split(collect(1:g.n), degrees(g))
-    root = mcKayTreeNode(0, p)
-    makeEquitable!(root, g)
+    makeEquitable!(p, g)
 
-    if length(root.p) == g.n
-        return Array{Array{Int,1},1}([σ(root.p)])
+    if length(p) == g.n #there is only one canonical permutation
+        return Vector{Vector{Int}}([reduce(vcat, p)])
     end
-
-    queue = [root]::Array{mcKayTreeNode,1}
-    leafs = Array{mcKayTreeNode,1}()
+    
+    #split the first partition that has more than 2 elements 
+    queue = Vector{Vector{Vector{Int}}}([p])
+    leafs = Vector{Vector{Vector{Int}}}()
     while !isempty(queue)
-        tNode = popfirst!(queue)::mcKayTreeNode
+        p = popfirst!(queue)
         i = 1
-        while length(tNode.p[i]) == 1
+        while length(p[i]) == 1
             i += 1
         end
-        for j = 1:length(tNode.p[i])
-            child = deepcopy(tNode)
-            addChild!(tNode, child)
-            setParent!(child, tNode)
-            empty!(child.children)
-            V = popat!(child.p, i)
-            insert!(child.p, i, [V[j]])
+        for j = 1:length(p[i])
+            pp = deepcopy(p)
+            V = popat!(pp, i)
+            insert!(pp, i, [V[j]])
             popat!(V, j)
-            insert!(child.p, i+1, V)
-            makeEquitable!(child, g)
-            if length(child.p)!=g.n
-                push!(queue, child)
+            insert!(pp, i+1, V)
+            makeEquitable!(pp, g)
+            if length(pp) != g.n
+                push!(queue, pp)
             else
-                push!(leafs, child)
+                push!(leafs, pp)
             end
         end
     end
 
-    sigpis = Array{Array{Int,1},1}()
-    for leaf in leafs
-        push!(sigpis, σ(leaf.p))
-    end
-
-    return sigpis   
+    return [reduce(vcat, p) for p in leafs]   #sigma_pi's
 end
 
 

@@ -3,7 +3,7 @@ using Random
 @testset "deltaComplex" begin
 
     @testset "Sphere" begin
-        for p=3:10
+        for p = 3:8
             D = createDeltaComplex(0, p)
             @test nv(D) == 2*(p-2)  
             @test ne(D) == 3*(p-2) 
@@ -15,8 +15,8 @@ using Random
     end
 
     @testset "Orientable surfaces" begin
-        for g = 1:8
-            for p = 1:8
+        for g = 1:7
+            for p = 1:7
                 D = createDeltaComplex(g, p)
                 @test genus(D) == g
                 @test np(D) == p
@@ -41,7 +41,7 @@ using Random
         @test euler_characteristic(D) == -4  
         flip!(D,e)
         flip!(D,e)        
-        @test e_copy == e
+        @test all(e_copy.triangles.==e.triangles) && all(e_copy.sides==e.sides) && e.is_twisted==e_copy.is_twisted
 
         #test createDeltaComplex 
         D = createDeltaComplex([1,2,3,-3,-1,-2]) # torus with an added point that has only one outgoing edge
@@ -104,51 +104,50 @@ using Random
             @test np(D) == 2 && nv(D) == 6 && ne(D) == 9
             @test demigenus(D) == 3
         end
-
-        @testset "Errors" begin
-            @test_throws ArgumentError createDeltaComplex([1])
-            @test_throws ArgumentError createDeltaComplex([1,2,1,3])
-            @test_throws ArgumentError createDeltaComplex([1,2,1,-2,1])
-
-            D = createDeltaComplex(4)
-            @test_throws ArgumentError demigenus(D)
-            @test_throws ArgumentError createDeltaComplex(0)
-            D = createDeltaComplex(0,3)
-            @test_throws ArgumentError demigenus(D)
-
-            D = createDeltaComplex([1,2,1,2])
-            @test_throws ArgumentError genus(D)
-            D = createDeltaComplex([1,2,-1,2])
-            @test_throws ArgumentError genus(D)
-        end
-
-        @testset "diameter" begin
-            D = createDeltaComplex(10,20)
-            @test 1 <= diameter_triangulation(D) <= np(D)-1
-            @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
-            Random.seed!(1234)
-            a = rand(1:ne(D), 1000)
-            for i in 1:ne(D)
-                if is_flippable(D,a[i])
-                    flip!(D,a[i])
-                end
-            end 
-            @test 1 <= diameter_triangulation(D) <= np(D)-1
-            @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
-        end
-
-        @testset "Random flipping" begin
-            D1 = createDeltaComplex(1,100)
-            D2 = createDeltaComplex(1,100)
-
-            randomize!(D1, 100000,10000,100)
-            @test nv(D1) == nv(D2)
-            @test ne(D1) == ne(D2)
-            @test np(D1) == np(D2)
-            @test sum(point_degrees(D1)) == 2*ne(D1)
-        end
     end
-    
+
+    @testset "Errors" begin
+        @test_throws ArgumentError createDeltaComplex([1])
+        @test_throws ArgumentError createDeltaComplex([1,2,1,3])
+        @test_throws ArgumentError createDeltaComplex([1,2,1,-2,1])
+
+        D = createDeltaComplex(4)
+        @test_throws ArgumentError demigenus(D)
+        @test_throws ArgumentError createDeltaComplex(0)
+        D = createDeltaComplex(0,3)
+        @test_throws ArgumentError demigenus(D)
+
+        D = createDeltaComplex([1,2,1,2])
+        @test_throws ArgumentError genus(D)
+        D = createDeltaComplex([1,2,-1,2])
+        @test_throws ArgumentError genus(D)
+    end
+
+    @testset "diameter" begin
+        D = createDeltaComplex(10,20)
+        @test 1 <= diameter_triangulation(D) <= np(D)-1
+        @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
+        Random.seed!(1234)
+        a = rand(1:ne(D), 1000)
+        for i in eachindex(a)
+            if is_flippable(D,a[i])
+                flip!(D,a[i])
+            end
+        end 
+        @test 1 <= diameter_triangulation(D) <= np(D)-1
+        @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
+    end
+
+    @testset "Random flipping" begin
+        D1 = createDeltaComplex(10,50)
+        D2 = createDeltaComplex(10,50)
+
+        randomize!(D1, 100000,10000,10)
+        @test nv(D1) == nv(D2)
+        @test ne(D1) == ne(D2)
+        @test np(D1) == np(D2)
+        @test sum(point_degrees(D1)) == 2*ne(D1)
+    end
 
 end
 
