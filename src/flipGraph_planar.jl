@@ -1,8 +1,10 @@
 
 
-export FlipGraphPlanar, construct_FlipGraph
+export FlipGraphPlanar, construct_FlipGraph, construct_FlipGraph_planar
 export edges, has_edge, ne, nv, vertices
 export is_isomorph, diameter
+
+export rename_vertices #only temp to debugg
 
 """
     struct FlipGraphPlanar <: AbstractGraph{Int}
@@ -65,8 +67,6 @@ function remove_edge!(G::FlipGraphPlanar, e::Edge)
 end
 
 
-
-
 """
     construct_FlipGraph(g::TriGraph [, modular::Bool])
     
@@ -80,12 +80,12 @@ By default, `modular` is set to `true`
 function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
     G = FlipGraphPlanar()
     if modular
-        sigpi = mcKay(g)[1]
-        g = rename_vertices(g, sigpi)
+        p = mcKay(g)[1]
+        g = rename_vertices(g, p)
     end
     add_vertex!(G, g)
     
-    queue = Array{Tuple{TriangulatedPolygon,Int},1}()
+    queue = Vector{Tuple{TriangulatedPolygon, Int}}()
     push!(queue,(g,1))
     
     if modular
@@ -94,17 +94,17 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
             for e in edges(g)
                 if is_flippable(g,e)
                     gg = flip(g,e)
-                    sigma_pis = mcKay(gg)
+                    permutations = mcKay(gg)
                     newGraph = true
                     for i = 1:nv(G)
-                        if is_isomorph(G.V[i], gg, sigma_pis)
+                        if is_isomorph(G.V[i], gg, permutations)
                             add_edge!(G, ind_g, i)
                             newGraph = false
                             break
                         end
                     end
                     if newGraph
-                        add_vertex!(G, rename_vertices(gg, sigma_pis[1]))
+                        add_vertex!(G, rename_vertices(gg, permutations[1]))
                         add_edge!(G, ind_g, nv(G))
                         push!(queue, (G.V[end], nv(G)))
                     end
@@ -139,42 +139,41 @@ function construct_FlipGraph(g::TriangulatedPolygon, modular::Bool=true)
 end
 
 """
-    construct_FlipGraph(n::Int [, modular::Bool])
+construct_FlipGraph_planar(n::Int [, modular::Bool])
 
-Construct the FlipGraph of a convex n-gon. 
+Construct the `FlipGraph` of a convex n-gon. 
 
 By default, the FlipGraph is reduced to its modular form. To get the complete FlipGraph, set `modular` to false
 
 ```julia
-    construct_FlipGraph(5, false)
+    construct_FlipGraph_planar(5, false)
 ```
 """
-function construct_FlipGraph(n::Int, modular::Bool=true)
+function construct_FlipGraph_planar(n::Int, modular::Bool=true)
     return construct_FlipGraph(triangulatedPolygon(n), modular)
 end
 
-
 """
-    rename_vertices(g::TriGraph, sigma_pi::Array{Int,1})
+    rename_vertices(g::TriGraph, sigma_pi::Vector{Int})
 
 Rename the vertices of `g` by applying the permutation `sigma_pi`.
 """
-function rename_vertices(g::TriangulatedPolygon, sigma_pi::Vector{<:Integer})
-    gg = TriangulatedPolygon(g.n, Vector{Vector{Int}}([[] for i in 1:g.n]))
-    for e in edges(g)
-        add_edge!(gg,sigma_pi[e.src], sigma_pi[e.dst])
+function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
+    p_inv = invert_perm(p)
+    gg = TriangulatedPolygon(g.n)
+    for i in 1:g.n
+        gg.adjList[i] = p[g.adjList[p_inv[i]]]
     end
     return gg
 end
 
 """
-    is_isomorph(g1::TriGraph, g2::TriGraph, sigma_pis::Array{Array{Int,1},1})
+    is_isomorph(g1::TriGraph, g2::TriGraph, sigma_pis::Vector{Vector{Int}})
 
-Return true if g1 is identical to g2 up to a renaming of the vertices of g1 by one of the permutations in sigma_pis.
+Return true if `g1` is identical to `g2` up to a renaming of the vertices of `g1` by one of the permutations in `sigma_pis`.
 
-sigma_pis is 
 """
-function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, sigma_pis::Array{Array{Int,1},1})
+function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, sigma_pis::Vector{Vector{Int}})
     if sort(degrees(g1)) != sort(degrees(g2))
         return false
     end

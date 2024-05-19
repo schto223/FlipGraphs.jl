@@ -55,8 +55,8 @@ end
 
 function Base.show(io::IO, C::Crossing)
     print(io, string(
-        "Crossing(hole = ", C.hole_id,", edge = ", C.edge_id,", going_in = ", C.going_in,
-        ", previous = ", C.previous.key_holeposition,", next = ",C.next.key_holeposition,")"
+        "Crossing(hole: ", C.hole_id,", key: ", C.key_holeposition, ", edge: ", C.edge_id,", going_in: ", C.going_in,
+        ", previous: ", C.previous.key_holeposition,", next: ",C.next.key_holeposition,")"
         ))
 end
 
@@ -128,7 +128,6 @@ end
 Creates a **HoleyDeltaComplex** by choosing adding g `Hole` to the DeltaComplex.
 """
 function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaComplex
-
     function push_crossing!(H :: Hole,  C::Crossing)
         H.last_key += 1
         H.crossings[H.last_key] = C
@@ -139,11 +138,15 @@ function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaCom
         end
     end
 
-    D = createDeltaComplex(g) 
+    if g == 0
+        D = createDeltaComplex(0,3)
+    else  
+        D = createDeltaComplex(g)
+    end
+
     holes = Vector{Hole}([Hole(i) for i in 1:genus(D)])
     edgeCrossings = Vector{Vector{Crossing}}([[] for i in 1:ne(D)])
-
-    for i in 1:(g)
+    for i in 1:g
         if i <= g÷2 #holes on the upper side
             edges = [
                 (get_edge(D, 6+8*(i-1), 3), false),
@@ -182,6 +185,10 @@ function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaCom
 
     HD = HoleyDeltaComplex(D, holes, edgeCrossings)
 
+    if g == 0
+        num_points -= 2
+    end
+
     for i in 2:num_points
         subdivide!(HD, i-1)
     end
@@ -210,7 +217,9 @@ adjacency_matrix_triangulation(HD::HoleyDeltaComplex) = adjacency_matrix_triangu
 adjacency_matrix_deltaComplex(HD::HoleyDeltaComplex) = adjacency_matrix_deltaComplex(HD.D)
 is_anticlockwise(HD::HoleyDeltaComplex, t::Integer, side::Integer) :: Bool = is_anticlockwise(HD.D, t, side)
 
+
 flip(HD::HoleyDeltaComplex, d::DualEdge, left::Bool = true) = flip!(deepcopy(HD), d.id, left)
+flip(HD::HoleyDeltaComplex, e::Integer, left::Bool = true) = flip!(deepcopy(HD), e, left)
 flip!(HD::HoleyDeltaComplex, d::DualEdge, left::Bool = true) = flip!(HD, d.id, left)
 function flip!(HD::HoleyDeltaComplex, e::Integer, left::Bool = true)
     d = get_edge(HD, e)  
@@ -455,8 +464,8 @@ function rename_points!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     return HD
 end
 
-function rename_trifaces!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
-    rename_trifaces!(HD.D, p)
+function rename_vertices!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+    rename_vertices!(HD.D, p)
     return HD
 end
 
@@ -465,6 +474,6 @@ function rename_edges!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     for H in HD.holes
         foreach(c -> c.edge_id = p[c.edge_id], values(H.crossings))
     end
-    HD.edge_crossings = HD.edge_crossings[p]
+    HD.edge_crossings .= HD.edge_crossings[invert_perm(p)]
     return HD
 end

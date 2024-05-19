@@ -3,6 +3,7 @@ export edges, has_edge, ne, nv, vertices
 export diameter
 export mcKay_points, mcKay_triFaces, mcKay_dualEdges
 export is_isomorph, is_isomorph_to
+export invert_perm
 
 """
     struct FlipGraph <: AbstractGraph{Int}
@@ -16,7 +17,7 @@ struct FlipGraph <: AbstractGraph{Int}
     adjList::Vector{Vector{Int}}
 
     function FlipGraph()
-        new(Vector{TriangulatedPolygon,1}(), Vector{Vector{Int}}())
+        new(Vector{HoleyDeltaComplex}(), Vector{Vector{Int}}())
     end
 end
 
@@ -36,7 +37,8 @@ end
 
 edgetype(G::FlipGraph) = SimpleEdge{Int}
 has_edge(G::FlipGraph, e::Edge) = (dst(e) ∈ G.adjList[src(e)])
-has_edge(G::FlipGraph, s, d) = (d ∈ G.adjList[s])
+has_edge(G::FlipGraph, s::Integer, d::Integer) = (d ∈ G.adjList[s])
+has_edge(G::FlipGraph, HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex) = has_edge(G, findfirst(x->x==HD1, G.V), findfirst(x->x==HD2, G.V))
 has_vertex(G::FlipGraph, v) = (1 <= v <= nv(G))
 inneighbors(G::FlipGraph, v) = G.adjList[v]
 ne(G::FlipGraph) = sum(size(G.adjList[i],1) for i=1:length(G.adjList))÷2
@@ -55,7 +57,7 @@ function add_edge!(G::FlipGraph, v, w)
 end
 
 function add_vertex!(G::FlipGraph, HD::HoleyDeltaComplex) 
-    push!(G.V,g)
+    push!(G.V, HD)
     push!(G.adjList,[])
 end
 
@@ -63,8 +65,6 @@ function remove_edge!(G::FlipGraph, e::Edge)
     deleteat!(G.adjList[src(e)], findfirst(x->x==dst(e), G.adjList[src(e)]))
     deleteat!(G.adjList[dst(e)], findfirst(x->x==src(e), G.adjList[dst(e)]))
 end
-
-
 
 
 """
@@ -75,25 +75,23 @@ Construct the **FlipGraph** for the HoleyDeltaComplex `HD`.
 If `modular` is true, then vertices of the FlipGraph are the classes of isomorphisms up to renaming the vertices. Each class is represented by one of its elements.\\
 If `modular` is false, then each vertex is a different triangulation of the initial graph `g`.\\
 By default, `modular` is set to `true`
-
-
 """
-function construct_FlipGraph(HD::HoleyDeltaComplex, depth::Integer, fix_points::Bool=false)
+function construct_FlipGraph(HD::HoleyDeltaComplex, depth::Integer, fix_points::Bool = true)
     G = FlipGraph()
-    fix_points || HD = rename_points!(HD, mcKay_points(HD)[1])
+    if !fix_points
+        HD = rename_points!(HD, mcKay_points(HD)[1])
+    end
     add_vertex!(G, HD)
-    
     queue = Vector{Tuple{HoleyDeltaComplex, Int, Int}}()  #(HD, index, depth)
     push!(queue, (HD,1,0))
-    
     while !isempty(queue)
         HD, ind_HD, d = popfirst!(queue)
-        for e in edges(HD), left in (true,false) #TODO check if both flip directions are needed
+        for e in 1:ne(HD), left in (true) #TODO check if both flip directions are needed
             if is_flippable(HD, e)
                 new_HD = flip(HD, e, left)
                 is_new = true
-                for i = 1:length(G.V)
-                    if is_isomorph_to!(G.V[i], new_HD, fix_points)
+                for i in eachindex(G.V)
+                    if is_isomorph_to(G.V[i], new_HD, fix_points)
                         add_edge!(G, ind_HD, i)
                         is_new = false
                         break
@@ -101,13 +99,13 @@ function construct_FlipGraph(HD::HoleyDeltaComplex, depth::Integer, fix_points::
                 end
                 if is_new #add the new DeltaComplex to the Graph
                     fix_points || rename_points!(new_HD, mcKay_points(new_HD)[1])
-                    rename_trifaces!(new_HD, mcKay_triFaces(new_HD)[1])
-                    rename_edges!(new_HD, mcKay_edges(new_HD)[1])
-                    d += 1
+                    rename_vertices!(new_HD, mcKay_triFaces(new_HD)[1])
+                    rename_edges!(new_HD, mcKay_dualEdges(new_HD)[1])
+                    remove_holeloops!(new_HD)
                     add_vertex!(G, new_HD)
                     add_edge!(G, ind_HD, nv(G))
-                    if d <= depth
-                        push!(queue, (G.V[end], nv(G), d))
+                    if d < depth
+                        push!(queue, (G.V[end], nv(G), d+1))
                     end
                 end
             end
@@ -117,19 +115,6 @@ function construct_FlipGraph(HD::HoleyDeltaComplex, depth::Integer, fix_points::
 end
 
 
-#"""
-#    rename_vertices(g::TriGraph, sigma_pi::Array{Int,1})
-#
-#Rename the vertices of `g` by applying the permutation `sigma_pi`.
-#"""
-#function rename_vertices(g::TriangulatedPolygon, sigma_pi::Vector{<:Integer})
-#    gg = TriangulatedPolygon(g.n, Vector{Vector{Int}}([[] for i in 1:g.n]))
-#    for e in edges(g)
-#        add_edge!(gg,sigma_pi[e.src], sigma_pi[e.dst])
-#    end
-#    return gg
-#end
-
 """
     is_isomorph(HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex, fix_points::Bool = true)
 
@@ -138,9 +123,10 @@ Return `true` if HD1 is isomorph to HD2 up to a renaming of the vertices, edges 
 function is_isomorph(HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex, fix_points::Bool = true) :: Bool
     nv(HD1) == nv(HD2) && ne(HD1) == ne(HD2) && np(HD1) == np(HD2) || return false
     HD = deepcopy(HD1)
+    remove_holeloops!(HD)
     fix_points || rename_points!(HD, mcKay_points(HD)[1])
     rename_vertices!(HD, mcKay_triFaces(HD)[1])
-    rename_edges!(HD, mcKay_edges(HD)[1])
+    rename_edges!(HD, mcKay_dualEdges(HD)[1])
     return is_isomorph_to(HD, HD2, fix_points)
 end
 
@@ -157,104 +143,109 @@ If `fix_points`=true, points are considered to be fixed and unchangeable.
 See also [`is_isomorph`](@ref)
 """
 function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex, fix_points::Bool = true)
-    if !fix_points && sort(point_degrees(HD)) != sort(point_degrees(HD2)) || !fix_points && point_degrees(HD) != point_degrees(HD2)
+    numV = nv(HD); numE = ne(HD); numP = np(HD)
+    if numV != nv(HD2) || numE != ne(HD2) || numP != np(HD2) ||
+        !fix_points && sort(point_degrees(HD)) != sort(point_degrees(HD2))
         return false
     end
     #point mapping
     A_tri = adjacency_matrix_triangulation(HD.D)
     A_tri_2 = adjacency_matrix_triangulation(HD2.D)
     if !fix_points
-        sigma_pi_points = mcKay_points(HD2)
+        permutations_points = mcKay_points(HD2)
         i = 1
-        while i <= length(sigma_pi_points)
-            sig = sigma_pi_points[i]
+        while i <= length(permutations_points)
+            sig = invert_perm(permutations_points[i])
             if !all(A_tri.== A_tri_2[sig, sig])
-                deleteat!(sigma_pi_points, i)
+                deleteat!(permutations_points, i)
             else
                 i += 1
             end
         end
-        if isempty(sigma_pi_points)
+        if isempty(permutations_points)
             return false
         end
     else
         if !all(A_tri .== A_tri_2)
             return false
         end
-        sigma_pi_points = collect(1:np(HD2))
+        permutations_points = [collect(1:numP)]
     end
+    remove_holeloops!(HD2)
 
-
-    
-    for sigPi_points in sigma_pi_points
+    for perm_points in permutations_points
         HD2_c = deepcopy(HD2)
-        rename_points!(HD2_c, sigPi_points)
+        rename_points!(HD2_c, perm_points)
         
         #Triface mapping
         A_delta = adjacency_matrix_deltaComplex(HD)
         A_delta_2 = adjacency_matrix_deltaComplex(HD2_c)
-        sigma_pi_trifaces = mcKay_triFaces(HD2_c)
+        permutations_trifaces = mcKay_triFaces(HD2_c)
         i = 1
-        while i <= length(sigma_pi_trifaces)
-            sig = sigma_pi_trifaces[i]
-            if !all(A_delta .== A_delta_2[sig, sig])
-                deleteat!(sigma_pi_trifaces, i)
+        while i <= length(permutations_trifaces) #TODO I think this check is pointless as either they are all valid or none are
+            perm_trifaces = invert_perm(permutations_trifaces[i])
+            if !all(A_delta .== A_delta_2[perm_trifaces, perm_trifaces])
+                deleteat!(permutations_trifaces, i)
             else
                 i += 1
             end
         end
-        if isempty(sigma_pi_trifaces)
-            return false
+        if isempty(permutations_trifaces)
+            continue
         end
 
-        for sigPi_trifaces in sigma_pi_trifaces
+        for perm_trifaces in permutations_trifaces
             HD2_cc = deepcopy(HD2_c)
-            rename_trifaces!(HD2_cc, sigPi_trifaces)
+            rename_vertices!(HD2_cc, perm_trifaces)
 
             #DualEdge mapping
-            sigma_pi_edges = mcKay_dualEdges(HD2_cc)
+            permutations_edges = mcKay_dualEdges(HD2_cc)
             i = 1
-            while i <= length(sigma_pi_edges)
-                sigPi = sigma_pi_edges[i]
-                if !all(HD2_cc.D.E[sigPi[j]] ≌ HD2.D.E[j] , j in 1:ne(HD)) #TODO define ≌(DualEdge,DualEdge)
-                    deleteat!(sigma_pi_edges, i)
+            while i <= length(permutations_edges)
+                perm_edges = invert_perm(permutations_edges[i])
+                if !all(j -> length(HD2_cc.edge_crossings[perm_edges[j]]) == length(HD.edge_crossings[j]), 1:numE) ||
+                       !all(j -> is_similar(HD2_cc.D.E[perm_edges[j]], HD.D.E[j]), 1:numE)      
+                    deleteat!(permutations_edges, i)
                 else
                     i += 1
                 end
             end
-            if isempty(sigma_pi_edges)
-                return false
+            if isempty(permutations_edges)
+                continue
             end
-
-            for sigPi_edges in sigma_pi_edges
+            #Check if there is a permutation for which the hole crossings are identical
+            for perm_edges in permutations_edges
                 HD2_ccc = deepcopy(HD2_cc)
-                rename_edges!(HD2_ccc, sigPi_edges) 
-
+                rename_edges!(HD2_ccc, perm_edges) 
                 bo = true
                 i = 1
+                #Check if the crossings along the holes are identical
                 while i <= length(HD.holes) && bo
                     C = get_crossing(HD.holes[i])
-                    C2 = get_crossing(HD_ccc.holes[i])
+                    C2 = get_crossing(HD2_ccc.holes[i])
                     C2_start = C2
                     skipfirstcheck = true
                     bo = false
                     while (C2.key_holeposition != C2_start.key_holeposition || skipfirstcheck) && !bo
                         skipfirstcheck = false
-                        bo = C2_start.edge_id == C.edge_id
-                        if bo
-                            C2_next = C2_start.next
+                        bo = C2.edge_id == C.edge_id
+                        if bo #found a valid starting position to align the holes
+                            C2_next = C2.next
                             C_next = C.next
-                            while C2_next.key_holeposition != C2_start.key_holeposition && bo
+                            #check if all the following crossings align as well
+                            while C2_next.key_holeposition != C2_start.key_holeposition && bo 
                                 bo = C2_next.edge_id == C_next.edge_id
                                 C2_next = C2_next.next
                                 C_next = C_next.next
                             end
                         end
-                        if !bo
+                        if !bo #C2 cannot be aligned with C
                             C2 = C2.next
                         end
                     end
+                    i += 1
                 end
+                #check if the edge crossings match
                 if bo 
                     i = 1
                     while i <= length(HD.edge_crossings) && bo
@@ -266,6 +257,7 @@ function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex, fix_point
                             ec_holes == reverse(ec_holes_2) && all(ec_directions .!== reverse(ec_directions_2)))
                             bo = false
                         end
+                        i += 1
                     end
                 end
                 if bo 
@@ -299,12 +291,13 @@ Split V into partitions according to their degrees from smallest to biggest
 """
 function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
     sV = Vector{Vector{Int}}()
-    deg = 0 
+    unique_degs = sort!(unique(degs))
+    j = 1 
     k = length(V)
     while k > 0
         W = Vector{Int}()
         for i in eachindex(degs)
-            if degs[i] == deg
+            if degs[i] == unique_degs[j]
                 push!(W, V[i])
                 k -= 1
             end
@@ -312,7 +305,7 @@ function split(V::Vector{<:Integer}, degs::Vector{<:Integer})
         if !isempty(W)
             push!(sV, W)
         end
-        deg += 1
+        j += 1
     end
     return sV
 end
@@ -326,13 +319,15 @@ of the points which give a canonical isomorphism class representant.
 Return a vector of permutation vectors `p` such that Point 1 becomes Point p[1], Point 2 becomes Point p[2],...
 """
 function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
+    A = multi_adjacency_matrix_triangulation(HD.D)
+
     #replace partitions by partitions as long as there are 2 elements in the same partition ...
     #...that may be differentiated by their relative degrees to another partition
-    function makeEquitable!(p::Vector{Vector{T}}, D::DeltaComplex) where T<:Integer
+    function makeEquitable!(p::Vector{Vector{T}}) where T<:Integer
         i = 1; j = 1
         while i <= length(p)
-            rDegs = relative_point_degrees(D, p[i], p[j])
-            if !all(x -> x==rDegs[1], rDegs) 
+            rDegs = relative_degrees(A, p[i], p[j])
+            if !allequal(rDegs) 
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)
@@ -352,11 +347,11 @@ function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
     end
 
     n = np(HD)
-    p = split(collect(1:n), point_degrees(HD.D))
-    makeEquitable!(p, HD.D)
+    p = split(collect(1:n), degrees(A)) #TODO replace point_degrees by function using adjacency matrix
+    makeEquitable!(p)
 
     if length(p) == n #there is only one canonical permutation
-        return Vector{Vector{Int}}([reduce(vcat, p)])
+        return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
@@ -364,15 +359,14 @@ function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
     leafs = Vector{Vector{Vector{Int}}}()
     while !isempty(queue)
         p = popfirst!(queue)
-        i = 1
+        i = 1       
         while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
-        for j = 1:length(p[i]) #replace the i-th partition by isolating its j-th element 
+        for j in 1:length(p[i]) #replace the i-th partition by isolating its j-th element 
             pp = deepcopy(p)
             V = popat!(pp, i)
-            insert!(pp, i, [V[j]])
-            popat!(V, j)
+            insert!(pp, i, [popat!(V, j)])
             insert!(pp, i+1, V)
-            makeEquitable!(pp, HD.D)
+            makeEquitable!(pp)
             if length(pp) != n
                 push!(queue, pp)
             else
@@ -397,15 +391,13 @@ function mcKay_triFaces(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
     np2 = np1*np1
     A = adjacency_matrix_deltaComplex(HD.D)
 
-    relative_TriFace_degrees(U::Vector{<:Integer}, V::Vector{<:Integer}) = [sum(A[u,V]) for u in U]
-    
     #replace partitions by partitions as long as there are 2 elements in the same partition ...
     #...that may be differentiated by their relative degrees to another partition
     function makeEquitable!(p::Vector{Vector{T}}) where T<:Integer
         i = 1; j = 1
         while i <= length(p)
-            rDegs = relative_TriFace_degrees(p[i], p[j])
-            if !all(x -> x==rDegs[1], rDegs) 
+            rDegs = relative_degrees(A, p[i], p[j])
+            if !allequal(rDegs) 
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)
@@ -435,7 +427,7 @@ function mcKay_triFaces(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
     makeEquitable!(p)
 
     if length(p) == n #there is only one canonical permutation
-        return Vector{Vector{Int}}([reduce(vcat, p)])
+        return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
@@ -445,7 +437,7 @@ function mcKay_triFaces(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
         p = popfirst!(queue)
         i = 1
         while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
-        for j = 1:length(p[i]) #replace the i-th partition by isolating its j-th element 
+        for j in 1:length(p[i]) #replace the i-th partition by isolating its j-th element 
             pp = deepcopy(p)
             V = popat!(pp, i)
             insert!(pp, i, [V[j]])
@@ -483,13 +475,26 @@ function mcKay_dualEdges(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
         return min(t1+t2*b1, t2+t1*b1)*b2 + min(p1+p2*b1, p2+p1*b1)
     end
 
-    n = nv(HD)
-    p = split(collect(1:n), collect(edgeValue(d) for d in HD.D.E))
+    m = ne(HD)
+    p = split(collect(1:m), collect(edgeValue(d) for d in HD.D.E))
+    i = 1
+    while i <= length(p)
+        if length(p[i]) > 1
+            pp = popat!(p,i)
+            pps = split(pp, collect(length(HD.edge_crossings[pp[j]]) for j in eachindex(pp)))
+            for ppp in pps
+                insert!(p, i, ppp)
+                i += 1
+            end
+        else
+            i += 1
+        end
+    end
     #edges may only be in the same partition, if they share the same 2 endpoints and triangles
     #this is only possible for two edges at a time, they cannot be distinguished
 
-    if length(p) == n #there is only one canonical permutation
-        return Vector{Vector{Int}}([reduce(vcat, p)])
+    if length(p) == m #there is only one canonical permutation
+        return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
@@ -499,13 +504,12 @@ function mcKay_dualEdges(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
         p = popfirst!(queue)
         i = 1
         while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
-        for j = 1:length(p[i]) #replace the i-th partition by isolating its j-th element 
+        for j in eachindex(p[i]) #replace the i-th partition by isolating its j-th element 
             pp = deepcopy(p)
             V = popat!(pp, i)
-            insert!(pp, i, [V[j]])
-            popat!(V, j)
+            insert!(pp, i, [popat!(V, j)])
             insert!(pp, i+1, V)
-            if length(pp) != n
+            if length(pp) != m
                 push!(queue, pp)
             else
                 push!(leafs, pp)

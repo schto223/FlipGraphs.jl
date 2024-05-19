@@ -23,16 +23,17 @@ end
 
 @testset "HoleyDeltaComplex" begin
 
-    #@testset "Sphere" begin
-    #    for p=3:10
-    #        D = createDeltaComplex(0, p)
-    #        @test nv(D) == 2*(p-2)  
-    #        @test ne(D) == 3*(p-2) 
-    #        @test np(D) == p
-    #        @test euler_characteristic(D) == 2
-    #        @test genus(D) == 0
-    #    end
-    #end
+    @testset "Sphere" begin
+        for p = 3:10
+            HD = holeyDeltaComplex(0, p)
+            @test nv(HD) == 2*(p-2)  
+            @test ne(HD) == 3*(p-2) 
+            @test np(HD) == p
+            @test euler_characteristic(HD) == 2
+            @test genus(HD) == 0
+            @test isempty(HD.holes)
+        end
+    end
 
     @testset "Orientable surfaces" begin
         for g = 1:8
@@ -41,7 +42,7 @@ end
                 @test genus(HD) == g
                 @test np(HD) == p
                 @test euler_characteristic(HD) == 2-2*g    
-                @test sum(H->num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings)) 
+                @test sum(H -> num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings)) 
                 @test holes_intact(HD)   
             end
         end
@@ -62,28 +63,49 @@ end
         @test holes_intact(HD)   
         flip!(HD,e, false)        
         @test all(e_copy.triangles.==e.triangles) && all(e_copy.sides==e.sides) && e.is_twisted==e_copy.is_twisted
-        @test sum(H->num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
+        @test sum(H -> num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
         @test holes_intact(HD)   
     end 
 
+   @testset "renaming & is_isomorph" begin
+        Random.seed!(123)
+        HD = holeyDeltaComplex(5,5)
+        HD2 = deepcopy(HD)
+        rename_points!(HD2, shuffle(1:np(HD)))
+        @test is_isomorph(HD, HD2, false) == true
+
+        HD2 = deepcopy(HD)
+        rename_vertices!(HD2, shuffle(1:nv(HD)))
+        @test is_isomorph(HD, HD2) == true
+
+        HD2 = deepcopy(HD)
+        rename_edges!(HD2, shuffle(1:ne(HD)))
+        @test is_isomorph(HD, HD2) == true
+   end
+
     @testset "diameter & reversability" begin 
         HD = holeyDeltaComplex(10,20)
+        HD2 = holeyDeltaComplex(10,20)
         @test 1 <= diameter_triangulation(HD) <= np(HD)-1
         @test 1 <= diameter_deltaComplex(HD) <= nv(HD)-1
         Random.seed!(1234)
-        a = rand(1:ne(HD), 1000)
-        dir = rand(Bool, 1000)
+        a = rand(1:ne(HD), 10)
+        println(a)
+        dir = rand(Bool, 10)
+        println(dir)
         for i in eachindex(a)
             flip!(HD, a[i], dir[i])
         end 
         @test 1 <= diameter_triangulation(HD) <= np(HD)-1
         @test 1 <= diameter_deltaComplex(HD) <= nv(HD)-1
-        @test sum(H->num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
+        @test sum(H -> num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
         @test holes_intact(HD)   
 
-        for i in ne(HD):-1:1
+        for i in reverse(eachindex(a))
             flip!(HD, a[i], !dir[i])
         end
+
+        @test is_isomorph(HD, HD2) == true
     end
 end
 

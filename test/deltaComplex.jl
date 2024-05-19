@@ -106,6 +106,26 @@ using Random
         end
     end
 
+    @testset "functions" begin
+        @test is_similar(DualEdge(3,1,4,2,false), DualEdge(3,1,4,2,false)) == true
+        @test is_similar(DualEdge(3,3,4,2,false), DualEdge(3,1,4,1,false)) == true
+        @test is_similar(DualEdge(4,3,3,2,false), DualEdge(3,1,4,1,false)) == true
+        @test is_similar(DualEdge(4,3,3,2,true), DualEdge(3,1,4,1,true)) == true
+        @test is_similar(DualEdge(4,3,3,2,false), DualEdge(3,1,4,1,true)) == false
+        @test is_similar(DualEdge(3,3,3,2,true), DualEdge(3,1,4,1,true)) == false
+
+        @test other_endpoint(DualEdge(3,3,3,2,false), 3,3) == (3,2)
+        @test other_endpoint(DualEdge(1,3,3,1,false), 3,1) == (1,3)
+        @test other_endpoint(DualEdge(2,1,2,2,false), 2,1) == (2,2)
+
+        io = IOBuffer()
+        D = createDeltaComplex(3,4)
+        show(io,"text/plain",D)
+        show(io,"text/plain",D.V[1])
+        show(io,"text/plain",D.E[2])
+
+    end 
+
     @testset "Errors" begin
         @test_throws ArgumentError createDeltaComplex([1])
         @test_throws ArgumentError createDeltaComplex([1,2,1,3])

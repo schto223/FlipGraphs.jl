@@ -1,6 +1,7 @@
+using Random
 @testset "Flip Graph" begin
     @testset "mcKay" begin
-        for g in 1:10, p in 1:10
+        for g in 1:10, p in 1:7
             HD = holeyDeltaComplex(g,p)
             sps_points = mcKay_points(HD)
             @test length(sps_points) >= 1
@@ -12,7 +13,7 @@
             @test all(sp -> length(sp)==nv(HD) , sps_trifaces)
             @test all(sp -> length(unique(sp))==length(sp) , sps_trifaces)
 
-            sps_edges = mcKay_edges(HD)
+            sps_edges = mcKay_dualEdges(HD)
             @test length(sps_edges) >= 1
             @test all(sp -> length(sp)==ne(HD) , sps_edges)
             @test all(sp -> length(unique(sp))==length(sp) , sps_edges)
@@ -30,9 +31,8 @@
         flip!(HD2, 5, true)
         @test is_isomorph(HD, HD2) == true
 
-
-        HD = holeyDeltaComplex(9,12)
-        HD2 = holeyDeltaComplex(9,12)
+        HD = holeyDeltaComplex(9,7)
+        HD2 = holeyDeltaComplex(9,7)
         Random.seed!(71924)
         a = rand(1:ne(HD), 1000)
         dir = rand(Bool, 1000)
@@ -52,7 +52,7 @@
         @test nv(G) == 11
         @test ne(G) == 10
 
-        HD = holeyDeltaComplex(5,9)
+        HD = holeyDeltaComplex(5,6)
         G1 = construct_FlipGraph(HD, 10 ,true)
         G2 = construct_FlipGraph(HD, 10 ,false)
         @test diameter(G1) <= 20

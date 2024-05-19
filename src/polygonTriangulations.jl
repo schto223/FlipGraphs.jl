@@ -10,7 +10,7 @@ A structure representing a triangulation of a convex polygon.
 """
 struct TriangulatedPolygon <: AbstractGraph{Integer}    
     n::Int
-    adjList::Array{Array{Int,1},1}
+    adjList::Vector{Vector{Int}}
 
     function TriangulatedPolygon(n::Integer)
         new(n, Vector{Vector{Int}}([[] for i=1:n]))
@@ -101,7 +101,7 @@ end
 
 Flip the edge `e` in `g`.
 """
-flip!(g::TriangulatedPolygon, i::Integer) = flip!(g, edges(g)[i])
+flip!(g::TriangulatedPolygon, v1::Integer, v2::Integer) = flip!(g, Edge(v1,v2))
 function flip!(g::TriangulatedPolygon, e::Edge)
     neigh1 = outneighbors(g, src(e))
     neigh2 = outneighbors(g, dst(e))
@@ -160,6 +160,8 @@ end
 
 Apply McKay's canonical graph labeling algorithm in order to determine all possible permutations 
 of the vertices which give a canonical isomorphism class representant.
+
+Return a list of all possible canonical point relabeling permutations p such that the i-th Point should be relabeled as the p[i]-th point
 """
 function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
     # renamed from sigma
@@ -214,7 +216,7 @@ function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
     makeEquitable!(p, g)
 
     if length(p) == g.n #there is only one canonical permutation
-        return Vector{Vector{Int}}([reduce(vcat, p)])
+        return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
@@ -241,7 +243,7 @@ function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
         end
     end
 
-    return [reduce(vcat, p) for p in leafs]   #sigma_pi's
+    return [invert_perm(reduce(vcat, sigpi)) for sigpi in leafs]   #permutations
 end
 
 
