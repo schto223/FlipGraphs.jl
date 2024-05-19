@@ -204,7 +204,7 @@ function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex, fix_point
             while i <= length(permutations_edges)
                 perm_edges = invert_perm(permutations_edges[i])
                 if !all(j -> length(HD2_cc.edge_crossings[perm_edges[j]]) == length(HD.edge_crossings[j]), 1:numE) ||
-                       !all(j -> is_similar(HD2_cc.D.E[perm_edges[j]], HD.D.E[j]), 1:numE)      
+                       !all(j -> _is_similar(HD2_cc.D.E[perm_edges[j]], HD.D.E[j]), 1:numE)      
                     deleteat!(permutations_edges, i)
                 else
                     i += 1
@@ -327,7 +327,7 @@ function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
         i = 1; j = 1
         while i <= length(p)
             rDegs = relative_degrees(A, p[i], p[j])
-            if !allequal(rDegs) 
+            if !all(rDegs.==rDegs[1]) 
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)
@@ -397,7 +397,7 @@ function mcKay_triFaces(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
         i = 1; j = 1
         while i <= length(p)
             rDegs = relative_degrees(A, p[i], p[j])
-            if !allequal(rDegs) 
+            if !all(rDegs.==rDegs[1]) 
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)

@@ -10,21 +10,20 @@ end
 @testset "polygonTriangulations" begin
 	
     for i = 3:10
-        g = triangulatedPolygon(i)
+        g = triangulated_polygon(i)
 
 	    @test ne(g) == i+(i-3)
         @test nv(g) == i
-
     end
 
-    g = triangulatedPolygon(10)
+    g = triangulated_polygon(10)
     for e in edges(g)
         remove_edge!(g, e)  
     end  
     @test ne(g) == 0
     @test nv(g) == 10
 
-    g = triangulatedPolygon(5)
+    g = triangulated_polygon(5)
     remove_edge!(g,1,2)
     @test ne(g) == 6
     @test isBiDirectional(g)
@@ -32,7 +31,7 @@ end
     @test ne(g) == 7
     @test isBiDirectional(g)
 
-    g = triangulatedPolygon(10)
+    g = triangulated_polygon(10)
     FE = filter(e->is_flippable(g,e), edges(g))
     @test length(FE) == 7
     flip!(g, FE[3])

@@ -1,18 +1,27 @@
 using StaticArrays
 import Base.reverse, Base.reverse!
 
-export DeltaComplex, createDeltaComplex, DualEdge, TriFace
+export DeltaComplex, delta_complex, DualEdge, TriFace
 export ne,np,nv
 export get_edge, get_point, get_vertex, vertices, edges, points, edges_id, get_edge_id, id
 export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees, relative_point_degrees
 export euler_characteristic, genus, demigenus, diameter_triangulation, diameter_deltaComplex
 export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltaComplex
 export subdivide!, twist_edges!
-export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoint
+export rename_edges!, rename_points!, rename_vertices!, _is_similar, other_endpoint
 
+"""
+    struct DualEdge
+
+Representation of an edge in a DeltaComplex (i.e. the dual graph of a triangulation).
+
+A DualEdge connects two TriFaces through specific sides.
+"""
 mutable struct DualEdge
-    id::Integer
-    triangles :: MVector{2,Int}  #edge in dual of a triangulation
+    id :: Integer
+    "The id's of the triangles incident to the DualEdge"
+    triangles :: MVector{2, Int}
+    "The respective sides on which the two triangles touch"
     sides :: MVector{2,Int8}  #the indices of the sides of the triangles through which the edge passes.
     is_twisted :: Bool     #true if the one has to flip one of the triangular faces.
 
@@ -24,6 +33,15 @@ mutable struct DualEdge
     end
 end
 
+"""
+    struct TriFace
+
+A `TriFace` represents a triangle in the triangulization of a surface. 
+
+The TriFace's form the vertices of a DeltaComplex.
+Each TriFace is formed between 3 points and is connected to 3 Trifaces through DualEdges.
+The points and neighboring triangles do not have to be unique. 
+"""
 struct TriFace
     id :: Base.RefValue{Int}  # the unique index number of this face in the DeltaComplex
     points :: MVector{3, Int} #corners x,y,z
@@ -36,8 +54,11 @@ end
 """
     struct DeltaComplex
     
-A Graph datastructure representing a triangulation of a surface. \\
-Vertices are triangular faces. Every vertex has three edges incident to it.
+A Graph datastructure representing a triangulation of a surface.
+
+The DeltaComplex may be thought of as the dual of a triangulation.
+
+Vertices are triangular faces (TriFace). Every vertex has three edges (DualEdge) incident to it.
 """
 struct DeltaComplex
     V :: Vector{TriFace}
@@ -80,12 +101,6 @@ function Base.show(io::IO, mime::MIME"text/plain", D::DeltaComplex)
     end  
 end
 
-
-function is_similar(d1::DualEdge, d2::DualEdge)
-    return d1.is_twisted == d2.is_twisted && (all(d1.triangles.==d2.triangles) || all(d1.triangles.==reverse(d2.triangles)))       
-end
-
-
 vertices(d::DualEdge) = d.triangles[1], d.triangles[2]
 get_vertex(d::DualEdge, i::Integer) = d.triangles[i]
 sides(d::DualEdge) = d.sides[1], d.sides[2]
@@ -94,6 +109,10 @@ set_twisted!(d:: DualEdge, is_twisted::Bool) = (d.is_twisted = is_twisted)
 is_twisted(d::DualEdge) = d.is_twisted
 id(d::DualEdge) = d.id
 
+
+function _is_similar(d1::DualEdge, d2::DualEdge) :: Bool
+    return d1.is_twisted == d2.is_twisted && (all(d1.triangles.==d2.triangles) || all(d1.triangles.==reverse(d2.triangles)))       
+end
 
 reverse(d::DualEdge) = DualEdge(reverse(d.triangles), reverse(d.sides), d.is_twisted)
 function reverse!(d::DualEdge) 
@@ -127,8 +146,8 @@ end
 
 
 has_point(T::TriFace, x::Integer) = (x in T.points) :: Bool
-points(T::TriFace) = return Tuple(T.points) :: Tuple{Int, Int, Int}
-get_point(T::TriFace, corner::Integer) = T.points[corner]
+points(T::TriFace) = Tuple(T.points) :: Tuple{Int, Int, Int}
+get_point(T::TriFace, corner::Integer) = T.points[corner] :: Int
 set_edge!(T::TriFace, side::Integer, edge::DualEdge) = (T.edges[side] = edge)
 get_edge(T::TriFace, side::Integer) = T.edges[side] :: DualEdge
 get_edge_id(T::TriFace, side::Integer) = T.edges[side].id :: Integer
@@ -145,7 +164,12 @@ function get_neighbor(T::TriFace, side::Integer) ::Int
     end 
 end
 
-function triangle_edge(T::TriFace, side::Integer)
+"""
+    triangle_edge(T::TriFace, side::Integer) :: Tuple{Int, Int}
+
+Return the two points incident to the respective side in the triangle `T`.
+"""
+function triangle_edge(T::TriFace, side::Integer) :: Tuple{Int, Int}
     return (T.points[side], T.points[(side%3) + 1])
 end
 
@@ -154,7 +178,6 @@ function is_anticlockwise(T::TriFace, side::Integer) :: Bool
     d = get_edge(T, side)
     return (id(T) == get_vertex(d, 1) && get_side(d,1) == side)
 end
-
 
 add_vertex!(D::DeltaComplex, v::TriFace) = push!(D.V, v)
 get_vertex(D::DeltaComplex, i::Integer)::TriFace = D.V[i]
@@ -174,7 +197,7 @@ right_side(side::Integer) = side%3 + 1
 """
     left_edge(D::DeltaComplex, t::Integer, side::Integer) :: (DualEdge, Int, Int8)
 
-Return the edge to the left of the side `side` in the `t`-th triangle-vertex of `D`, \\
+Return the edge to the left of the side `side` in the `t`-th triangle-vertex of `D`,\\
 the other endpoint and \\
 its side in the other endpoint. \\
 """
@@ -296,8 +319,7 @@ Compute the diameter of the DeltaComplex `D`.\\
 The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
 """
 function diameter_deltaComplex(D::DeltaComplex)  
-    A = adjacency_matrix_deltaComplex(D)
-    return diameter(A)
+    return diameter(adjacency_matrix_deltaComplex(D))
 end
 
 
@@ -309,27 +331,22 @@ Compute the diameter of the triangulation defined by the DeltaComplex `D`.\\
 The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
 """
 function diameter_triangulation(D::DeltaComplex)  
-    A = adjacency_matrix_triangulation(D)
-    return diameter(A)
+    return diameter(adjacency_matrix_triangulation(D))
 end
 
 
 """
-    glue_faces_along_edge!(D::DeltaComplex, t1:: TriFace, edge_index_1::Int, t2:: TriFace, edge_index_2::Int)
+    glue_faces_along_edge!(D::DeltaComplex, t1:: TriFace, e1::Int, t2:: TriFace, e2::Int, twist::Bool=false)
+    glue_faces_along_edge!(D::DeltaComplex, T1:: TriFace, e1::Integer, T2:: TriFace, e2::Integer, twist::Bool=false) 
 
 Glue two triangle faces together along their shared edge. Only works if it is along the same edge in our triangulation.
 """
-function glue_faces_along_edge!(D::DeltaComplex, t1:: Integer, edge_index_1::Integer, t2:: Integer, edge_index_2::Integer, twist::Bool=false)  
-    return glue_faces_along_edge!(D, get_vertex(D, t1), edge_index_1, get_vertex(D, t2), edge_index_2, twist)
+function glue_faces_along_edge!(D::DeltaComplex, t1:: Integer, e1::Integer, t2:: Integer, e2::Integer, twist::Bool=false)  
+    return glue_faces_along_edge!(D, get_vertex(D, t1), e1, get_vertex(D, t2), e2, twist)
 end
-
-function glue_faces_along_edge!(D::DeltaComplex, T1:: TriFace, edge_index_1::Integer, T2:: TriFace, edge_index_2::Integer, twist::Bool=false) 
-
-    #set_neighbor!(T1, edge_index_1, t2)
-    #set_neighbor!(T2, edge_index_2, t1)
-
-    x1,y1 = triangle_edge(T1, edge_index_1)
-    x2,y2 = triangle_edge(T2, edge_index_2)
+function glue_faces_along_edge!(D::DeltaComplex, T1:: TriFace, e1::Integer, T2:: TriFace, e2::Integer, twist::Bool=false) 
+    x1,y1 = triangle_edge(T1, e1)
+    x2,y2 = triangle_edge(T2, e2)
 
     if !twist
         x2,y2 = y2,x2
@@ -348,24 +365,30 @@ function glue_faces_along_edge!(D::DeltaComplex, T1:: TriFace, edge_index_1::Int
         merge_points!(D, y1, y2)
     end
 
-    e = DualEdge(id(T1), edge_index_1, id(T2), edge_index_2, twist)
-    add_edge!(D,e)
-    set_edge!(T1, edge_index_1, e)
-    set_edge!(T2, edge_index_2, e)
+    d = DualEdge(id(T1), e1, id(T2), e2, twist)
+    add_edge!(D, d)
+    set_edge!(T1, e1, d)
+    set_edge!(T2, e2, d)
 end
 
+"""
+    merge_points!(D::DeltaComplex, x::Integer, y::Integer)
 
+Rename all references of the points `x` and `y` by their minimum.
+"""
 function merge_points!(D::DeltaComplex, x::Integer, y::Integer)
     if x > y
         x, y = y, x
     end
-    if x!=y
+    if x != y
         set_num_points!(D, np(D)-1)
     end
     return rename_point!(D, y, x)
 end
 
-
+"""
+    rename_point!(D::DeltaComplex, x_old::Integer, x_new::Integer)
+"""
 function rename_point!(D::DeltaComplex, x_old::Integer, x_new::Integer)
     foreach(T -> replace!(T.points, x_old => x_new), D.V)
     return D
@@ -373,12 +396,13 @@ end
 
 
 """
-    createDeltaComplex(genus [, num_points])
+    delta_complex(genus , num_points = 1)
 
-Create a triangulation of an orientable surface with `num_points` points on it. \\
+Create a triangulation of an orientable surface with `num_points` points on it. 
+
 By default `num_points` is set to 1.
 """
-function createDeltaComplex(genus :: Integer, num_points :: Integer = 1)
+function delta_complex(genus :: Integer, num_points :: Integer = 1)
     genus >= 0 || throw(ArgumentError(string("Cannot create a surface with a negative genus. Got: genus = ",genus)))
     genus != 0 || num_points >= 3 || throw(ArgumentError(string("To triangulate a spehere one needs at least 3 points.  Got: num_points = ", num_points))) 
     num_points>=1 || throw(ArgumentError(string("To triangulate a surface one needs at least 1 point.  Got: num_points = ", num_points))) 
@@ -389,7 +413,7 @@ function createDeltaComplex(genus :: Integer, num_points :: Integer = 1)
         n = 4*genus
         s = [(-1)^div(k-1, 2) * (2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
     end
-    D = createDeltaComplex(s)
+    D = delta_complex(s)
     for i in 2:num_points
         subdivide!(D, i-1)
     end
@@ -397,7 +421,7 @@ function createDeltaComplex(genus :: Integer, num_points :: Integer = 1)
 end
 
 """
-    createDeltaComplex(s :: Array{<:Integer,1})
+    delta_complex(s :: Array{<:Integer,1})
 
 Create a triangulation of an orientable surface with a single point, by gluing corresponding edges together.\\
 
@@ -408,15 +432,15 @@ If `s[i]` and `s[j]` have the same absolute value, they are glued together while
 #Examples
 The following results in the triangulation of a torus with one point:
 ```julia-rep
-julia> createDeltaComplex([1,2,-1,-2])
+julia> delta_complex([1,2,-1,-2])
 ```
 
 The following results in the triangulation of a Klein bottle with one point:
 ```julia-rep
-julia> createDeltaComplex([1,2,-1,-2])
+julia> delta_complex([1,2,-1,-2])
 ```
 """
-function createDeltaComplex(s :: Array{<:Integer,1})
+function delta_complex(s :: Array{<:Integer,1})
     n = length(s)
 
     function get_TriFace_and_rel_edge(D::DeltaComplex, i::Integer) :: Tuple{TriFace, Int8}
@@ -446,7 +470,7 @@ function createDeltaComplex(s :: Array{<:Integer,1})
         end
     end
 
-    D = createDeltaScaffold(size(s,1))
+    D = delta_scaffold(size(s,1))
     #glue respective sides of scaffold together
     for a in s_abs_unique
         i,j = findall(σ -> σ==a , s_abs)
@@ -473,7 +497,7 @@ function createDeltaComplex(s :: Array{<:Integer,1})
 end
 
 
-function createDeltaScaffold(num_vertices :: Integer)
+function delta_scaffold(num_vertices :: Integer)
     num_vertices%2 == 0 || throw(ArgumentError(
         string("num_vertices has to be a multiple of 2. Got: num_vertices=", num_vertices)))
     num_vertices>0 || throw(ArgumentError(
@@ -497,7 +521,6 @@ function createDeltaScaffold(num_vertices :: Integer)
         add_vertex!(D, T2)
         glue_faces_along_edge!(D, T1, 2, T2, 3, false)
     end
-
     return D
 end
 
@@ -546,6 +569,32 @@ function subdivide!(D::DeltaComplex, t::Integer)#twist
     return D
 end
 
+"""
+    twist_edges!(D::DeltaComplex, t::Integer)
+    twist_edges!(T::TriFace)
+
+Twist or untwist all 3 edges in a TriFace, and reverse the side order.
+
+This action gives an equivalent representation ot the same triangulation.
+It is usefull in the case that you would like to untwist a certain edge.
+
+# Examples
+```julia-repl
+julia> D = delta_complex([1,2,-1,2]);
+julia> T = get_vertex(D,1);
+julia> edges(T)
+3-element Array{DualEdge,1}:
+ DualEdge 2 : (Δ1)-(1)-------(2)-(Δ2)
+ DualEdge 1 : (Δ1)-(2)-------(3)-(Δ2)
+ DualEdge 3 : (Δ2)-(1)---↺---(3)-(Δ1)
+ julia> twist_edges!(T);
+ julia> edges(T)
+ 3-element Array{DualEdge,1}:
+ DualEdge 3 : (Δ2)-(1)-------(1)-(Δ1)
+ DualEdge 1 : (Δ1)-(2)---↺---(3)-(Δ2)
+ DualEdge 2 : (Δ1)-(3)---↺---(2)-(Δ2)
+```
+"""
 twist_edges!(D::DeltaComplex, t::Integer) = twist_edges!(get_vertex(D,t))
 function twist_edges!(T::TriFace)
     update_endpoint!(get_edge(T,1), id(T), 1, id(T), 3)
@@ -560,7 +609,8 @@ end
     is_flippable(D::DeltaComplex, e::Integer)
     is_flippable(d::DualEdge)
 
-Return true if the given edge is can be flipped.\\ 
+Return true if the given edge is can be flipped.
+
 This is only the case if the edge does not connect a triangle face to itself.
 """
 is_flippable(D::DeltaComplex, e::Integer) = is_flippable(get_edge(D,e))
@@ -572,7 +622,7 @@ end
     flip!(D::DeltaComplex, e::Integer)
     flip!(D::DeltaComplex, e::DualEdge)
 
-Flip the given edge in `D`
+Flip, if possible, the given edge in `D`.
 """
 flip!(D::DeltaComplex, e::Integer, left::Bool = true) = flip!(D, get_edge(D, e), left)
 function flip!(D::DeltaComplex, e::DualEdge, left::Bool = true) :: Bool
@@ -614,11 +664,6 @@ function flip!(D::DeltaComplex, e::DualEdge, left::Bool = true) :: Bool
     end
 
     #The flip itself
-    #if !left
-    #    T1 = get_vertex(D, e.triangles[2])
-    #    T2 = get_vertex(D, e.triangles[1])
-    #end
-
     if left
         if e.sides[1] == 1
             T1.edges .= e,b,c
@@ -678,7 +723,9 @@ function flip!(D::DeltaComplex, e::DualEdge, left::Bool = true) :: Bool
 end
 
 """
-    quadrilateral_edges(D::DeltaComplex, diagonal::DualEdge) ::Tuple{Integer, Integer, Integer, Integer}
+    quadrilateral_edges(D::DeltaComplex, diagonal::DualEdge) -> Tuple{DualEdge, DualEdge, DualEdge, DualEdge}
+
+Return the 4 edges who form a quadrilateral with th egiven `diagonal`.
 """
 function quadrilateral_edges(D::DeltaComplex, diagonal::DualEdge) ::Tuple{DualEdge, DualEdge, DualEdge, DualEdge}
     t1,t2 = vertices(diagonal)
@@ -705,7 +752,7 @@ function is_orientable(D::DeltaComplex)
         for i in 1:3
             if color[get_neighbor(D.V[v], i)] == 0
                 if  get_edge(D.V[v],i).is_twisted
-                    color[get_neighbor(D.V[v], i)] = - color[v]
+                    color[get_neighbor(D.V[v], i)] = -color[v]
                 else
                     color[get_neighbor(D.V[v], i)] = color[v]
                 end
@@ -728,37 +775,67 @@ function random_flips!(D::DeltaComplex, n::Integer)
     return D
 end
 
+"""
+    randomize!(D::DeltaComplex; kwargs...)
 
-function randomize!(D::DeltaComplex, n_flips_initial::Integer, n_flips_step::Integer, variance_interval_size::Integer)
+Randomly flip edges in `D` until `D` is sufficiently generic.
+
+The measure by which we determin if `D` is sufficiently generic is through its diameter.
+This Method repeatedly flips a certain number of times.
+After each flip sequence the diameter is computed.
+Once this was repeated a certain number of times, the variance of all these past diameter measurements gets computed.
+
+In theory, the variance should diminish over time. However, as we are flipping randomly, it will never truly converge to 0.
+A certain flutter in the variance is expected, this will at some point cause the variance to increase every so often.
+The algorithm stops once the last measured variance is bigger than the past few measurements.
+
+# Arguments
+- `num_initial_flips::Integer=1000000` : the number of flips to do before even start taking measurements.
+- `num_flips_per_step::Integer=10000` : the number of flips to do before computing the diameter each step.
+- `variance_interval_size::Integer=10` : the number of diameters to store, before computing their variance. 
+- `lookback_size::Integer=2` : how far back to compare the current variance to, in order to decide when to stop. 
+
+# Examples
+```julia-repl
+julia> D = delta_complex(30,30);
+julia> randomize!(D, num_initial_flips=10000, num_flips_per_step = 1000, variance_interval_size=10, lookback_size = 5);
+There have been approximately 160000 flips
+```
+"""
+function randomize!(D::DeltaComplex; num_initial_flips = 10000000, num_flips_per_step = 10000, variance_interval_size = 10, lookback_size = 2)
     function variance(x::Vector{<:Integer})
         mean = sum(x)//length(x)
         y = x.-mean 
         return sum(y.*y)//length(x)
     end
-    
+    n_flips = num_initial_flips +  variance_interval_size*num_flips_per_step
+    pastvariances = [typemax(Int)//1 for i in 1:lookback_size]
     diameters = zeros(Int, variance_interval_size)
-    random_flips!(D,n_flips_initial)
+    random_flips!(D, num_initial_flips)
     diameters[1] = diameter_triangulation(D)
     
     for i in 2:variance_interval_size
-        random_flips!(D,n_flips_step)
+        random_flips!(D,num_flips_per_step)
         diameters[i] = diameter_triangulation(D)
     end
     cur_variance = variance(diameters)
-    last_variance = cur_variance + 1
-    while cur_variance < last_variance
-        last_variance = cur_variance
+    k = 1
+    while !all(cur_variance .>= pastvariances)
+        pastvariances[k] = cur_variance
+        k = k % lookback_size + 1
         for i in 1:variance_interval_size
-            random_flips!(D,n_flips_step)
+            random_flips!(D, num_flips_per_step)
             diameters[i] = diameter_triangulation(D)
         end
+        n_flips += variance_interval_size*num_flips_per_step
         cur_variance = variance(diameters)
     end
+    println("There have been approximately ", n_flips," flips")
     return D
 end
 
 """
-    point_degrees(D::DeltaComplex)
+    point_degrees(D::DeltaComplex) -> Vector{<:Integer}
 
 Return a vector containing the respective degree of each point in the triangulation.
 """
@@ -768,6 +845,11 @@ function point_degrees(D::DeltaComplex) ::Vector{<:Integer}
     return pd
 end
 
+"""
+    degrees(A::Matrix{<:Integer}) -> Vector{<:Integer}
+
+Return a vector containing the degrees of every vertex given an adjacency matrix `A`.
+"""
 function degrees(A::Matrix{<:Integer}) ::Vector{<:Integer}
     return reshape(sum(A, dims=2), size(A,1))
 end
@@ -790,6 +872,13 @@ function rename_points!(D::DeltaComplex, p::Vector{<:Integer})
     return D
 end
 
+"""
+    rename_vertices!(D::DeltaComplex, p::Vector{<:Integer})
+
+Rename every vertex(TriFace) in `D`, according to the permutation `p`.
+
+TriFace 1 => TriFace p[1]
+"""
 function rename_vertices!(D::DeltaComplex, p::Vector{<:Integer})
     D.V .= D.V[invert_perm(p)]
     foreach(T -> T.id.x = p[id(T)], D.V)
@@ -797,6 +886,13 @@ function rename_vertices!(D::DeltaComplex, p::Vector{<:Integer})
     return D
 end
 
+"""
+    rename_edges!(D::DeltaComplex, p::Vector{<:Integer})
+
+Rename every vertex(TriFace) in `D`, according to the permutation `p`.
+
+TriFace 1 => TriFace p[1]
+"""
 function rename_edges!(D::DeltaComplex, p::Vector{<:Integer})
     D.E .= D.E[invert_perm(p)]
     foreach(d -> d.id = p[d.id], D.E)

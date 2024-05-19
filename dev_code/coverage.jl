@@ -2,7 +2,7 @@ using Coverage
 using Pkg
 
 
-clean_folder("local_code")
+clean_folder("dev_code")
 clean_folder("src")
 clean_folder("test")
 
@@ -23,7 +23,7 @@ covered_lines, total_lines = get_summary(coverage)
 # Or process a single file
 @show get_summary(process_file(joinpath("src", "FlipGraphs.jl")))
 
-LCOV.writefile("local_code/lcov.info", coverage)
+LCOV.writefile("dev_code/lcov.info", coverage)
 
 clean_folder("src")
 clean_folder("test")

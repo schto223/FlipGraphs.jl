@@ -139,9 +139,9 @@ function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaCom
     end
 
     if g == 0
-        D = createDeltaComplex(0,3)
+        D = delta_complex(0,3)
     else  
-        D = createDeltaComplex(g)
+        D = delta_complex(g)
     end
 
     holes = Vector{Hole}([Hole(i) for i in 1:genus(D)])
