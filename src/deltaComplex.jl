@@ -173,6 +173,10 @@ function triangle_edge(T::TriFace, side::Integer) :: Tuple{Int, Int}
     return (T.points[side], T.points[(side%3) + 1])
 end
 
+function triangle_edge(D::DeltaComplex, d::DualEdge)
+    return triangle_edge(D.V[d.triangles[1]], d.sides[1])
+end
+
 is_anticlockwise(D::DeltaComplex, t::Integer, side::Integer) :: Bool = is_anticlockwise(D.V[t], side)
 function is_anticlockwise(T::TriFace, side::Integer) :: Bool
     d = get_edge(T, side)

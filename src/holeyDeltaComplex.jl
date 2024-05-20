@@ -1,5 +1,5 @@
-export HoleyDeltaComplex, holeyDeltaComplex
-export num_crossings, flip!, edge_crossings, remove_holeloops!, get_crossing, subdivide!
+export HoleyDeltaComplex, Hole, Crossing, holey_delta_complex
+export num_crossings, edge_crossings, remove_holeloops!, get_crossing
 
 """
     struct Crossing
@@ -94,11 +94,11 @@ function Base.show(io::IO, mime::MIME"text/plain", H::Hole)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", HD::HoleyDeltaComplex)
-    print(io, string("HoleyDeltaComplex on orientable surface of genus ", genus(HD), " with :" ))
+    print(io, string("HoleyDeltaComplex on orientable surface of genus ", genus(HD), " with: " ))
     print(io, string(np(HD), " Point", (np(HD)==1 ? "" : "s"),"; " ))
+    println(io, string(nv(HD), " TriFaces","; " ))    
     print(io, string(ne(HD), " DualEdges","; " ))
-    println(io, string(nv(HD), " TriFaces","; " ))
-    println(io, string(genus(HD), " Holes:"))
+    println(io, string(genus(HD), " Hole",(length(HD.holes)==1 ? "" : "s"),":"))
     for H in HD.holes
         show(io, mime, H); println(io)
     end
@@ -117,12 +117,12 @@ function insert_after!(H :: Hole, C_previous::Crossing, C::Crossing)
 end
 
 """
-    holeyDeltaComplex(g::Integer) :: HoleyDeltaComplex
+    holeyDeltaComplex(g::Integer, num_points::Integer = 1) -> HoleyDeltaComplex
 
-Creates a **HoleyDeltaComplex** by choosing adding g `Hole` to the DeltaComplex.
+Create a **HoleyDeltaComplex** of genus `g`.
 """
-function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaComplex
-    function push_crossing!(H :: Hole,  C::Crossing)
+function holey_delta_complex(g::Integer, num_points::Integer = 1) :: HoleyDeltaComplex
+    function push_crossing!(H::Hole, C::Crossing)
         H.last_key += 1
         H.crossings[H.last_key] = C
         C.key_holeposition = H.last_key
@@ -178,15 +178,12 @@ function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaCom
     end
 
     HD = HoleyDeltaComplex(D, holes, edgeCrossings)
-
     if g == 0
         num_points -= 2
     end
-
     for i in 2:num_points
         subdivide!(HD, i-1)
     end
-
     return HD
 end
 
@@ -210,7 +207,7 @@ diameter_deltaComplex(HD::HoleyDeltaComplex) = diameter_deltaComplex(HD.D)
 adjacency_matrix_triangulation(HD::HoleyDeltaComplex) = adjacency_matrix_triangulation(HD.D)
 adjacency_matrix_deltaComplex(HD::HoleyDeltaComplex) = adjacency_matrix_deltaComplex(HD.D)
 is_anticlockwise(HD::HoleyDeltaComplex, t::Integer, side::Integer) :: Bool = is_anticlockwise(HD.D, t, side)
-
+triangle_edge(HD::HoleyDeltaComplex, d::DualEdge) = triangle_edge(HD.D, d)
 
 flip(HD::HoleyDeltaComplex, d::DualEdge, left::Bool = true) = flip!(deepcopy(HD), d.id, left)
 flip(HD::HoleyDeltaComplex, e::Integer, left::Bool = true) = flip!(deepcopy(HD), e, left)
@@ -264,7 +261,6 @@ function flip!(HD::HoleyDeltaComplex, e::Integer, left::Bool = true)
         end
     end
 
-    
     flip!(HD.D, e, left)
     
     # add crossing for edges that were parallel to e
@@ -318,11 +314,24 @@ function flip!(HD::HoleyDeltaComplex, e::Integer, left::Bool = true)
     return HD
 end
 
-function edge_crossings(HD::HoleyDeltaComplex, e_id::Integer)
-    return HD.edge_crossings[e_id]
+"""
+    edge_crossings(HD::HoleyDeltaComplex, e::Integer) -> Vector{Crossing}
+
+Return an array of all the `Crossing`s involving the `e`-th edge.
+
+The Crossings are ordered along the direction of `e`.
+"""
+function edge_crossings(HD::HoleyDeltaComplex, e::Integer) :: Vector{Crossing}
+    return HD.edge_crossings[e]
 end
 
-function hole_goes_left(HD::HoleyDeltaComplex, c::Crossing)
+"""
+    hole_goes_left(HD::HoleyDeltaComplex, c::Crossing) -> Bool
+    
+Return `true` if the next edge crossing the hole is through the left side 
+(relative to the entry point `c`) of the triangle.
+"""
+function hole_goes_left(HD::HoleyDeltaComplex, c::Crossing) :: Bool
     eNext_id = c.next.edge_id
     e = get_edge(HD, c.edge_id)
     side = c.going_in ? 2 : 1
@@ -336,6 +345,7 @@ function hole_goes_left(HD::HoleyDeltaComplex, c::Crossing)
     return false
 end
 
+
 function remove!(HD::HoleyDeltaComplex, c::Crossing)
     remove!(HD.holes[c.hole_id], c)
     filter!(cros -> c != cros, HD.edge_crossings[c.edge_id])
@@ -347,6 +357,11 @@ function remove!(H::Hole, c::Crossing)
     delete!(H.crossings, c.key_holeposition)
 end
 
+"""
+    remove_holeloops!(HD::HoleyDeltaComplex)
+
+Remove all pairs of crossings where an edge enters a hole, and imeadiately comes out again.
+"""
 function remove_holeloops!(HD::HoleyDeltaComplex)
     foundLoop = false
     for H in HD.holes
@@ -377,6 +392,13 @@ function remove_holeloops!(HD::HoleyDeltaComplex)
     return HD
 end
 
+"""
+    get_crossing(H::Hole) -> Crossing
+
+Return any `Crossing` of the hole `H`.
+
+Usually the `Crossing` which is returned, was the last one added to the `Hole`.
+"""
 function get_crossing(H::Hole) :: Crossing
     i = H.last_key
     while !(i in keys(H.crossings))
@@ -385,7 +407,9 @@ function get_crossing(H::Hole) :: Crossing
     return H.crossings[i]
 end
 
-
+"""
+    subdivide!(HD ::HoleyDeltaComplex, t ::Integer)
+"""
 function subdivide!(HD ::HoleyDeltaComplex, t ::Integer)
     e1,e2,e3 = edges_id(HD, t)  
     e4,e5,e6 = ne(HD)+1, ne(HD)+2, ne(HD)+3 #new edges that will be added in the inside of t
@@ -441,8 +465,12 @@ function subdivide!(HD ::HoleyDeltaComplex, t ::Integer)
     return HD
 end
 
+"""
+    num_crossings(H::Hole)
 
-function num_crossings(H :: Hole)
+Return the number of `Crossing` that occur at `H`.
+"""
+function num_crossings(H::Hole) :: Integer
     c_first = get_crossing(H)
     c = c_first.next
     n = 1
@@ -453,16 +481,25 @@ function num_crossings(H :: Hole)
     return n
 end
 
+"""
+    rename_points!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+"""
 function rename_points!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     rename_points!(HD.D, p)
     return HD
 end
 
+"""
+    rename_vertices!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+"""
 function rename_vertices!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     rename_vertices!(HD.D, p)
     return HD
 end
 
+"""
+    rename_edges!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+"""
 function rename_edges!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     rename_edges!(HD.D, p)
     for H in HD.holes

@@ -1,4 +1,4 @@
-using Documenter, FlipGraphs
+using Documenter, FlipGraphs, Graphs
 
 makedocs(
     sitename="FlipGraphs Documentation", 
@@ -6,8 +6,9 @@ makedocs(
     doctest = false, #remove later
     pages = [
         "About" => "index.md",
-        "Convex Polygons" => ["polygonTriangulation.md", "flipGraph_planar.md", "plotting.md"],
-        "Closed Surfaces" => ["deltaComplex.md"]
+        "Convex Polygons" => ["polygonTriangulation.md", "flipGraph_planar.md"],
+        "Closed Surfaces" => ["deltaComplex.md", "holeyDeltaComplex.md", "flipGraph.md"]#,
+        #"Plotting" => ["plotting.md"]
     ],
     checkdocs = :exports # remove later or replace by :exports
 )

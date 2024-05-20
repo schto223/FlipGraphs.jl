@@ -167,11 +167,11 @@ function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
 end
 
 """
-    is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{Int}})
+    is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{Integer}})
 
 Return true if `g1` is identical to `g2` up to a renaming of the vertices of `g1` by one of the given permutations.
 """
-function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{Int}})
+function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{Integer}})
     if sort(degrees(g1)) != sort(degrees(g2))
         return false
     end

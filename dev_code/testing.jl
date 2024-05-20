@@ -1,11 +1,6 @@
 
 using FlipGraphs, Random
 
-
-HD = holeyDeltaComplex(5, 6)
-
-@time ps = mcKay_triFaces(HD)
-@time rename_vertices!(HD, ps[1])
-
-#construct_FlipGraph(HD, 1 ,true)
-#@time construct_FlipGraph(HD, 3 ,false)
+HD = holey_delta_complex(1,2)
+G1 = flip_graph(HD, 0, false)
+diameter(G1)

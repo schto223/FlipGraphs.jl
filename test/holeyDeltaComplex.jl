@@ -25,7 +25,7 @@ end
 
     @testset "Sphere" begin
         for p = 3:10
-            HD = holeyDeltaComplex(0, p)
+            HD = holey_delta_complex(0, p)
             @test nv(HD) == 2*(p-2)  
             @test ne(HD) == 3*(p-2) 
             @test np(HD) == p
@@ -38,7 +38,7 @@ end
     @testset "Orientable surfaces" begin
         for g = 1:8
             for p = 1:8
-                HD = holeyDeltaComplex(g, p)
+                HD = holey_delta_complex(g, p)
                 @test genus(HD) == g
                 @test np(HD) == p
                 @test euler_characteristic(HD) == 2-2*g    
@@ -48,7 +48,7 @@ end
         end
 
         #test flip
-        HD = holeyDeltaComplex(3,7)
+        HD = holey_delta_complex(3,7)
         @test sum(point_degrees(HD)) == 2*ne(HD)
         e = get_edge(HD,1)
         e_copy = deepcopy(e)
@@ -69,10 +69,10 @@ end
 
    @testset "renaming & is_isomorph" begin
         Random.seed!(123)
-        HD = holeyDeltaComplex(5,5)
+        HD = holey_delta_complex(5,5)
         HD2 = deepcopy(HD)
         rename_points!(HD2, shuffle(1:np(HD)))
-        @test is_isomorph(HD, HD2, false) == true
+        @test is_isomorph(HD, HD2, true) == true
 
         HD2 = deepcopy(HD)
         rename_vertices!(HD2, shuffle(1:nv(HD)))
@@ -84,15 +84,13 @@ end
    end
 
     @testset "diameter & reversability" begin 
-        HD = holeyDeltaComplex(10,20)
-        HD2 = holeyDeltaComplex(10,20)
+        HD = holey_delta_complex(10,20)
+        HD2 = holey_delta_complex(10,20)
         @test 1 <= diameter_triangulation(HD) <= np(HD)-1
         @test 1 <= diameter_deltaComplex(HD) <= nv(HD)-1
         Random.seed!(1234)
         a = rand(1:ne(HD), 10)
-        println(a)
         dir = rand(Bool, 10)
-        println(dir)
         for i in eachindex(a)
             flip!(HD, a[i], dir[i])
         end 

@@ -77,14 +77,51 @@ function edges(g::TriangulatedPolygon) :: Vector{Edge}
 end 
 
 edgetype(g::TriangulatedPolygon) = SimpleEdge{Int}
+
+"""
+    has_edge(g::TriangulatedPolygon, e::Edge)
+"""
 has_edge(g::TriangulatedPolygon, e::Edge) = (dst(e) ∈ g.adjList[src(e)])
+"""
+    has_edge(g::TriangulatedPolygon, s, d)
+"""
 has_edge(g::TriangulatedPolygon, s, d) = (d ∈ g.adjList[s])
+
+"""
+    ne(g::TriangulatedPolygon)
+
+Return the number of edges in `g`.
+"""
 has_vertex(g::TriangulatedPolygon, v) = (1 <= v <= g.n)
+
+"""
+    neighbors(g::TriangulatedPolygon, v)
+
+Return a list of all the vertices in `g` that are adjacent to `v`.
+"""
 neighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 inneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 outneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
+
+"""
+    ne(g::TriangulatedPolygon)
+
+Return the number of edges in `g`.
+"""
 ne(g::TriangulatedPolygon) = sum(size(g.adjList[i], 1) for i in 1:nv(g)) ÷ 2
+
+"""
+    nv(g::TriangulatedPolygon)
+
+Return the number of vertices in `g`.
+"""
 nv(g::TriangulatedPolygon) = g.n
+
+"""
+    vertices(g::TriangulatedPolygon)
+
+Return a list of all the vertices in `g`.
+"""
 vertices(g::TriangulatedPolygon) = collect(1:g.n)
 is_directed(g::TriangulatedPolygon) = false
 is_directed(::Type{TriangulatedPolygon}) = false
@@ -111,12 +148,16 @@ Return the triangulated polygon obtained by flipping the edge `e` in `g`.
 flip(g::TriangulatedPolygon, e::Edge) = flip!(deepcopy(g), e) 
 
 """
-    flip!(g::TriangulatedPolygon, e::Edge)
     flip!(g::TriangulatedPolygon, src::Integer, dst::Integer)
 
-Flip the given edge in `g`.
+Flip the the edge incident to `src` and `dst` in `g`.
 """
 flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) = flip!(g, Edge(src, dst))
+"""
+    flip!(g::TriangulatedPolygon, e::Edge)
+
+Flip `e` in `g`.
+"""
 function flip!(g::TriangulatedPolygon, e::Edge)
     neigh1 = outneighbors(g, src(e))
     neigh2 = outneighbors(g, dst(e))
@@ -129,13 +170,15 @@ end
 
 """
     is_flippable(g::TriangulatedPolygon, e::Edge) -> Bool
+"""
+is_flippable(g::TriangulatedPolygon, e::Edge) = is_flippable(g, e.src, e.dst)
+"""
     is_flippable(g::TriangulatedPolygon, src::Integer, dst::Integer) -> Bool
 
 Return whether or not the edge can be flipped.
 
-Note that for a triangulation of a convex polygon inner edges are always flippable, while outer edges cannot be flipped.
+Note that for a triangulation of a convex polygon inner edges are always flippable, while outer edges cannot be flipped.    
 """
-is_flippable(g::TriangulatedPolygon, e::Edge) = is_flippable(g, e.src, e.dst)
 function is_flippable(g::TriangulatedPolygon, src::Integer, dst::Integer) :: Bool
     return length(intersect(outneighbors(g, src), outneighbors(g, dst))) >= 2
 end
