@@ -83,12 +83,12 @@ function construct_FlipGraph(HD::HoleyDeltaComplex, depth::Integer, fix_points::
     end
     add_vertex!(G, HD)
     queue = Vector{Tuple{HoleyDeltaComplex, Int, Int}}()  #(HD, index, depth)
-    push!(queue, (HD,1,0))
+    push!(queue, (HD, 1, 0))
     while !isempty(queue)
         HD, ind_HD, d = popfirst!(queue)
-        for e in 1:ne(HD), left in (true) #TODO check if both flip directions are needed
+        for e in 1:ne(HD)
             if is_flippable(HD, e)
-                new_HD = flip(HD, e, left)
+                new_HD = flip(HD, e)
                 is_new = true
                 for i in eachindex(G.V)
                     if is_isomorph_to(G.V[i], new_HD, fix_points)
@@ -318,7 +318,7 @@ of the points which give a canonical isomorphism class representant.
 
 Return a vector of permutation vectors `p` such that Point 1 becomes Point p[1], Point 2 becomes Point p[2],...
 """
-function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
+function mcKay_points(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
     A = multi_adjacency_matrix_triangulation(HD.D)
 
     #replace partitions by partitions as long as there are 2 elements in the same partition ...
@@ -327,7 +327,7 @@ function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
         i = 1; j = 1
         while i <= length(p)
             rDegs = relative_degrees(A, p[i], p[j])
-            if !all(rDegs.==rDegs[1]) 
+            if !all(rDegs .== rDegs[1]) 
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)
@@ -343,14 +343,64 @@ function mcKay_points(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
                     i += 1
                 end
             end
-        end    
+        end
+    end
+
+    function split_by_adjacent_holes!(p::Vector{Vector{T}}) where T<:Integer
+        #compares the two arrays in a lexicographic sense returns true if u <= v (lexicographically)
+        function is_less(u,v)
+            for i in eachindex(u)
+                if u < v
+                    return true
+                elseif u > v
+                    return false
+                end
+            end
+            return true
+        end
+        #points = collect()#reduce(vcat, collect((length(p[i])>1 ? p[i] : [])  for i in 1:length(p)))
+        holecounts = [zeros(Int, length(HD.holes)) for i in 1:HD.D.num_points]
+        for d in edges(HD)
+            x, y = triangle_edge(HD.D, d)
+            for c in HD.edge_crossings[id(d)]
+                holecounts[x][c.hole_id] += 1
+                holecounts[y][c.hole_id] += 1
+            end
+        end
+        i = 1
+        while i <= length(p)
+            if length(p[i]) > 1
+                bigger_than = zeros(Int, length(p[i]))
+                for j in eachindex(p[i])
+                    for k in 1:j-1
+                        if is_less(holecounts[p[i][j]], holecounts[p[i][k]])
+                            bigger_than[k] += 1
+                        else
+                            bigger_than[j] += 1
+                        end
+                    end
+                end
+                newVs = split(p[i], bigger_than)
+                #replace the old partition by the new ones
+                popat!(p,i)
+                for V in newVs
+                    insert!(p, i, V)
+                    i += 1
+                end
+            end
+        end
     end
 
     n = np(HD)
-    p = split(collect(1:n), degrees(A)) #TODO replace point_degrees by function using adjacency matrix
+    p = split(collect(1:n), degrees(A))
     makeEquitable!(p)
 
     if length(p) == n #there is only one canonical permutation
+        return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
+    else
+        split_by_adjacent_holes!(p)
+    end
+    if length(p) == n || only_one#there is only one canonical permutation
         return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     
@@ -386,7 +436,7 @@ of the triFaces which give a canonical isomorphism class representant.
 
 Return a vector of permutation vectors `p` such that TriFace 1 becomes TriFace p[1], TriFace 2 becomes TriFace p[2],...
 """
-function mcKay_triFaces(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
+function mcKay_triFaces(HD::HoleyDeltaComplex; only_one::Bool=false) ::Vector{Vector{Int}}
     np1 = np(HD)
     np2 = np1*np1
     A = adjacency_matrix_deltaComplex(HD.D)
@@ -426,7 +476,7 @@ function mcKay_triFaces(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
     p = split(collect(1:n), collect(pointValue(T) for T in HD.D.V))
     makeEquitable!(p)
 
-    if length(p) == n #there is only one canonical permutation
+    if length(p) == n || only_one#there is only one canonical permutation
         return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     
@@ -464,7 +514,7 @@ of the triFaces which give a canonical isomorphism class representant.
 
 Return a vector of permutation vectors `p` such that DualEdge 1 becomes DualEdge p[1], DualEdge 2 becomes DualEdge p[2],...
 """
-function mcKay_dualEdges(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
+function mcKay_dualEdges(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
     b1 = max(np(HD), nv(HD))
     b2 = b1*b1
 
@@ -493,7 +543,7 @@ function mcKay_dualEdges(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
     #edges may only be in the same partition, if they share the same 2 endpoints and triangles
     #this is only possible for two edges at a time, they cannot be distinguished
 
-    if length(p) == m #there is only one canonical permutation
+    if length(p) == m || only_one#there is only one canonical permutation
         return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
     end
     

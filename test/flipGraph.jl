@@ -46,18 +46,18 @@ using Random
         @test is_isomorph(HD, HD2)
     end
 
-    #@testset "flipGraph" begin
-    #    HD = holeyDeltaComplex(1)
-    #    G = construct_FlipGraph(HD, 10 ,true)
-    #    @test nv(G) == 11
-    #    @test ne(G) == 10
-#
-    #    HD = holeyDeltaComplex(5,6)
-    #    G1 = construct_FlipGraph(HD, 10 ,true)
-    #    G2 = construct_FlipGraph(HD, 10 ,false)
-    #    @test diameter(G1) <= 20
-    #    @test nv(G1) >= nv(G2)
-    #    @test ne(G1) >= ne(G2)
-    #end
+    @testset "flipGraph" begin
+        HD = holeyDeltaComplex(1)
+        G = construct_FlipGraph(HD, 6 ,true)
+        @test nv(G) >= 11
+        @test ne(G) >= 10
+
+        HD = holeyDeltaComplex(5,6)
+        G1 = construct_FlipGraph(HD, 6 ,true)
+        G2 = construct_FlipGraph(HD, 6 ,false)
+        @test diameter(G1) <= 12
+        @test nv(G1) >= nv(G2)
+        @test ne(G1) >= ne(G2)
+    end
 
 end

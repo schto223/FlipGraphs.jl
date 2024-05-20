@@ -776,9 +776,11 @@ function random_flips!(D::DeltaComplex, n::Integer)
 end
 
 """
-    randomize!(D::DeltaComplex; kwargs...)
+    randomize!(D::DeltaComplex; kwargs...) -> Int
 
 Randomly flip edges in `D` until `D` is sufficiently generic.
+
+Return the number of attempted flips.
 
 The measure by which we determin if `D` is sufficiently generic is through its diameter.
 This Method repeatedly flips a certain number of times.
@@ -798,11 +800,11 @@ The algorithm stops once the last measured variance is bigger than the past few 
 # Examples
 ```julia-repl
 julia> D = delta_complex(30,30);
-julia> randomize!(D, num_initial_flips=10000, num_flips_per_step = 1000, variance_interval_size=10, lookback_size = 5);
-There have been approximately 160000 flips
+julia> randomize!(D, num_initial_flips=10000, num_flips_per_step = 1000, variance_interval_size=10, lookback_size = 5)
+160000
 ```
 """
-function randomize!(D::DeltaComplex; num_initial_flips = 10000000, num_flips_per_step = 10000, variance_interval_size = 10, lookback_size = 2)
+function randomize!(D::DeltaComplex; num_initial_flips = 10000000, num_flips_per_step = 10000, variance_interval_size = 10, lookback_size = 2) :: Int
     function variance(x::Vector{<:Integer})
         mean = sum(x)//length(x)
         y = x.-mean 
@@ -830,8 +832,7 @@ function randomize!(D::DeltaComplex; num_initial_flips = 10000000, num_flips_per
         n_flips += variance_interval_size*num_flips_per_step
         cur_variance = variance(diameters)
     end
-    println("There have been approximately ", n_flips," flips")
-    return D
+    return n_flips
 end
 
 """

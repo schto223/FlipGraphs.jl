@@ -7,6 +7,5 @@
         "coverage.xml",
         "jacoco.xml",
         "coverage.cobertura.xml"
-    ],
-    "julia.environmentPath": "c:\\Master_Thesis\\FlipGraphs"
+    ]
 }

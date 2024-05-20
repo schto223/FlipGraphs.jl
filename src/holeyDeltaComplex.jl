@@ -1,6 +1,11 @@
 export HoleyDeltaComplex, holeyDeltaComplex
 export num_crossings, flip!, edge_crossings, remove_holeloops!, get_crossing, subdivide!
 
+"""
+    struct Crossing
+
+A structure representing an edge passing through a hole.
+"""
 mutable struct Crossing
     hole_id::Int
     edge_id::Int
@@ -37,6 +42,14 @@ mutable struct Hole
     end
 end
 
+"""
+    struct HoleyDeltaComplex
+
+An extension of `DeltaComplex`, keeping track of which edges pass through which holes.
+
+Many operations become slower compared to a `DeltaComplex`. 
+However this structure is needed, if one wants to compare two different DeltaComplex'.
+"""
 struct HoleyDeltaComplex
     D::DeltaComplex
     holes::Vector{Hole}
@@ -91,25 +104,6 @@ function Base.show(io::IO, mime::MIME"text/plain", HD::HoleyDeltaComplex)
     end
 end
 
-
-#function Base.:(==)(c1::Crossing, c2::Crossing)
-#    return c1.edge_id ==c2.edge_id && c1.hole_id == c2.hole_id && c1.going_in == c2.going_in
-#end
-#
-#function Base.:(==)(HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex)
-#    if HD1.D != HD2.D 
-#        return false
-#    end 
-#    for i in 1:length(HD1.holes)
-#        H1 = HD1.holes[i]
-#        H2 = HD2.holes[i]
-#        if length(H1) != length(H2)
-#            return false
-#        else
-#
-#        end
-#    end
-#end
 
 
 function insert_after!(H :: Hole, C_previous::Crossing, C::Crossing)
@@ -196,7 +190,7 @@ function holeyDeltaComplex(g::Integer, num_points::Integer = 1) :: HoleyDeltaCom
     return HD
 end
 
-genus(HD::HoleyDeltaComplex) = genus(HD.D)
+genus(HD::HoleyDeltaComplex) = length(HD.holes)
 nv(HD::HoleyDeltaComplex) = nv(HD.D)
 ne(HD::HoleyDeltaComplex) = ne(HD.D)
 np(HD::HoleyDeltaComplex) = np(HD.D)

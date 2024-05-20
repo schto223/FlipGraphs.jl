@@ -24,7 +24,7 @@ include("deltaComplex.jl")
 include("holeyDeltaComplex.jl")
 include("flipGraph.jl")
 include("graphFunctions.jl")
-include("plotting.jl")
+#include("plotting.jl")
 
 
 end # module
