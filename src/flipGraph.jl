@@ -1,5 +1,5 @@
 export FlipGraph, flip_graph
-export edges, has_edge, vertices
+export edges, has_edge, ne, nv, vertices
 export diameter
 export mcKay_points, mcKay_vertices, mcKay_edges
 export is_isomorph, is_isomorph_to
@@ -70,7 +70,7 @@ end
 
 
 """
-    flip_graph(HD::HoleyDeltaComplex, depth::Integer; modular::Bool = false) :: FlipGraph
+    flip_graph(HD::HoleyDeltaComplex, depth::Integer, modular::Bool=true)
     
 Construct the **FlipGraph** for the HoleyDeltaComplex `HD`.  
 
@@ -78,7 +78,7 @@ If `modular` is `true`, then vertices of the FlipGraph are the classes of isomor
 If `modular` is `false`, then each vertex is a different triangulation of the initial graph `g`.\\
 By default, `modular` is set to `true`.
 """
-function flip_graph(HD::HoleyDeltaComplex, depth::Integer, modular::Bool = false) :: FlipGraph
+function flip_graph(HD::HoleyDeltaComplex, depth::Integer, fix_points::Bool = true)
     G = FlipGraph()
     if modular
         HD = rename_points!(HD, mcKay_points(HD, only_one=true)[1])
