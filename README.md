@@ -5,7 +5,7 @@
 |:-------------------------------------------------------------------------:|:-----------------------------------------------------:|
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][ga-img]][ga-url] [![][codecov-img]][codecov-url] |
 -->
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://schto223.github.io/FlipGraphs.jl/stable)
+<!--[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://schto223.github.io/FlipGraphs.jl/stable)-->
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://schto223.github.io/FlipGraphs.jl/dev)
 
 This package is part of my master's thesis on FlipGraphs. It is still unfinished and in active developpment.
