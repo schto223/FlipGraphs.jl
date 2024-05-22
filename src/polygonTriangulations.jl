@@ -1,15 +1,10 @@
-
-export TriangulatedPolygon, triangulated_polygon
-export edges, vertices, has_edge, has_vertex, neighbors, ne, nv, degrees
-export flip, flip!, is_flippable
-
 """
     struct TriangulatedPolygon <: AbstractGraph{Integer} 
 
 A structure representing a triangulation of a convex polygon.
 """
-struct TriangulatedPolygon <: AbstractGraph{Integer}    
-    n ::Int
+struct TriangulatedPolygon <: AbstractGraph{Int}
+    n :: Int
     adjList ::Vector{Vector{Int}}
 
     function TriangulatedPolygon(n::Integer)
@@ -27,7 +22,7 @@ function Base.show(io::IO, mime::MIME"text/plain", g::TriangulatedPolygon)
 end
 
 """
-    triangulated_polygon(n::Int) -> TriangulatedPolygon
+    triangulated_polygon(n::Integer) -> TriangulatedPolygon
 
 Create a triangulated convex n-gon. 
 
@@ -38,7 +33,7 @@ function triangulated_polygon(n::Integer) :: TriangulatedPolygon
     n>=0 || throw(ArgumentError(string("The number of vertices(n) cannot be negative. Got: n = ",n)))
     
     g = TriangulatedPolygon(n)
-    for i = 1:n-1
+    for i in 1:n-1
         add_edge!(g, i, i+1)
     end
     if n > 1
@@ -95,11 +90,11 @@ Return the number of edges in `g`.
 has_vertex(g::TriangulatedPolygon, v) = (1 <= v <= g.n)
 
 """
-    neighbors(g::TriangulatedPolygon, v)
+    neighbors(g::TriangulatedPolygon, v::Integer)
 
 Return a list of all the vertices in `g` that are adjacent to `v`.
 """
-neighbors(g::TriangulatedPolygon, v) = g.adjList[v]
+neighbors(g::TriangulatedPolygon, v::Integer) = g.adjList[v]
 inneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 outneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 
@@ -126,14 +121,14 @@ vertices(g::TriangulatedPolygon) = collect(1:g.n)
 is_directed(g::TriangulatedPolygon) = false
 is_directed(::Type{TriangulatedPolygon}) = false
 
-function add_edge!(g::TriangulatedPolygon, v, w) 
+function add_edge!(g::TriangulatedPolygon, v, w)
     if !has_edge(g, v, w)
         push!(g.adjList[v],w)
         push!(g.adjList[w],v)
     end
 end
 
-remove_edge!(g::TriangulatedPolygon, e::Edge) = remove_edge!(g,src(e),dst(e))
+remove_edge!(g::TriangulatedPolygon, e::Edge) = remove_edge!(g, src(e), dst(e))
 function remove_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer)
     deleteat!(g.adjList[src], findfirst(x -> x==dst, g.adjList[src]))
     deleteat!(g.adjList[dst], findfirst(x -> x==src, g.adjList[dst]))
@@ -191,4 +186,14 @@ Return a list of the degrees of every single vertex in `g`
 """
 function degrees(g::TriangulatedPolygon) :: Vector{Int}
     return [length(g.adjList[i]) for i in 1:g.n]
+end
+
+
+"""
+    adjacency_matrix(g::TriangulatedPolygon)
+
+Compute the adjacency matrix for the triangulated graph `g`. 
+"""
+function adjacency_matrix(g::TriangulatedPolygon)
+    return adjacency_matrix(g.adjList)
 end

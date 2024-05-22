@@ -12,7 +12,7 @@ function holes_intact(HD::HoleyDeltaComplex)
             end
             d_prev = get_edge(HD, c.previous.edge_id)
             d = get_edge(HD, c.edge_id)
-            if !(d.triangles[1] in vertices(d_prev) || d.triangles[2] in vertices(d_prev))
+            if !(d.triangles[1] in vertices_id(d_prev) || d.triangles[2] in vertices_id(d_prev))
                 return false
             end
             c = c.next
@@ -50,19 +50,19 @@ end
         #test flip
         HD = holey_delta_complex(3,7)
         @test sum(point_degrees(HD)) == 2*ne(HD)
-        e = get_edge(HD,1)
-        e_copy = deepcopy(e)
-        t1,t2 = vertices(e)
+        d = get_edge(HD,1)
+        e_copy = deepcopy(d)
+        t1,t2 = vertices_id(d)
         T1 = deepcopy(get_vertex(HD, t1))
         T2 = deepcopy(get_vertex(HD, t2))
-        flip!(HD,e)
+        flip!(HD,d)
         @test genus(HD) == 3
         @test np(HD) == 7
         @test euler_characteristic(HD) == -4  
-        @test sum(H->num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
+        @test sum(H -> num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
         @test holes_intact(HD)   
-        flip!(HD,e, false)        
-        @test all(e_copy.triangles.==e.triangles) && all(e_copy.sides==e.sides) && e.is_twisted==e_copy.is_twisted
+        flip!(HD, d; left=false)        
+        @test all(e_copy.triangles.==d.triangles) && all(e_copy.sides==d.sides) && d.is_twisted==e_copy.is_twisted
         @test sum(H -> num_crossings(H), HD.holes) == length(reduce(vcat, HD.edge_crossings))  
         @test holes_intact(HD)   
     end 
@@ -72,7 +72,7 @@ end
         HD = holey_delta_complex(5,5)
         HD2 = deepcopy(HD)
         rename_points!(HD2, shuffle(1:np(HD)))
-        @test is_isomorph(HD, HD2, true) == true
+        @test is_isomorph(HD, HD2; modular=true) == true
 
         HD2 = deepcopy(HD)
         rename_vertices!(HD2, shuffle(1:nv(HD)))
@@ -92,7 +92,7 @@ end
         a = rand(1:ne(HD), 10)
         dir = rand(Bool, 10)
         for i in eachindex(a)
-            flip!(HD, a[i], dir[i])
+            flip!(HD, a[i]; left=dir[i])
         end 
         @test 1 <= diameter_triangulation(HD) <= np(HD)-1
         @test 1 <= diameter_deltaComplex(HD) <= nv(HD)-1
@@ -100,7 +100,7 @@ end
         @test holes_intact(HD)   
 
         for i in reverse(eachindex(a))
-            flip!(HD, a[i], !dir[i])
+            flip!(HD, a[i]; left=!dir[i])
         end
 
         @test is_isomorph(HD, HD2) == true

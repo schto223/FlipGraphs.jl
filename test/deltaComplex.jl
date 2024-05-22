@@ -30,7 +30,7 @@ using Random
         @test sum(point_degrees(D)) == 2*ne(D)
         e = get_edge(D,1)
         e_copy = deepcopy(e)
-        t1,t2 = vertices(e)
+        t1,t2 = vertices_id(e)
         T1 = deepcopy(get_vertex(D, t1))
         T2 = deepcopy(get_vertex(D, t2))
         flip!(D,e)
@@ -107,12 +107,12 @@ using Random
     end
 
     @testset "functions" begin
-        @test _is_similar(DualEdge(3,1,4,2,false), DualEdge(3,1,4,2,false)) == true
-        @test _is_similar(DualEdge(3,3,4,2,false), DualEdge(3,1,4,1,false)) == true
-        @test _is_similar(DualEdge(4,3,3,2,false), DualEdge(3,1,4,1,false)) == true
-        @test _is_similar(DualEdge(4,3,3,2,true), DualEdge(3,1,4,1,true)) == true
-        @test _is_similar(DualEdge(4,3,3,2,false), DualEdge(3,1,4,1,true)) == false
-        @test _is_similar(DualEdge(3,3,3,2,true), DualEdge(3,1,4,1,true)) == false
+        @test is_similar(DualEdge(3,1,4,2,false), DualEdge(3,1,4,2,false)) == true
+        @test is_similar(DualEdge(3,3,4,2,false), DualEdge(3,1,4,1,false)) == true
+        @test is_similar(DualEdge(4,3,3,2,false), DualEdge(3,1,4,1,false)) == true
+        @test is_similar(DualEdge(4,3,3,2,true), DualEdge(3,1,4,1,true)) == true
+        @test is_similar(DualEdge(4,3,3,2,false), DualEdge(3,1,4,1,true)) == false
+        @test is_similar(DualEdge(3,3,3,2,true), DualEdge(3,1,4,1,true)) == false
 
         @test other_endpoint(DualEdge(3,3,3,2,false), 3,3) == (3,2)
         @test other_endpoint(DualEdge(1,3,3,1,false), 3,1) == (1,3)

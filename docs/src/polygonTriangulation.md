@@ -22,8 +22,14 @@ Vertices are not explicity stored in TriangulatedPolygon. Only the total number 
 
 Edges are stored as an adjacency list of which vertices are connected to another.
 
+## Constructors 
 ```@docs
     triangulated_polygon
+```
+
+## Graph Methods 
+
+```@docs
     nv(::TriangulatedPolygon)
     ne(::TriangulatedPolygon)
     vertices(::TriangulatedPolygon)
@@ -31,13 +37,19 @@ Edges are stored as an adjacency list of which vertices are connected to another
     has_vertex(::TriangulatedPolygon, v)
     has_edge(::TriangulatedPolygon, e::Edge)
     has_edge(::TriangulatedPolygon, s, d)
-    neighbors(::TriangulatedPolygon, v)
-    degrees(::TriangulatedPolygon)    
+    neighbors(::TriangulatedPolygon, ::Integer)
+    degrees(::TriangulatedPolygon)
+    is_isomorph(::TriangulatedPolygon, ::TriangulatedPolygon, ::Vector{Vector{Integer}})
+    rename_vertices(::TriangulatedPolygon, ::Vector{Integer})
+    adjacency_matrix(::TriangulatedPolygon)
+```
+
+## Flipping
+
+```@docs    
     is_flippable(::TriangulatedPolygon, ::Integer, ::Integer)
     is_flippable(::TriangulatedPolygon, ::Edge)
     flip!(::TriangulatedPolygon, ::Integer, ::Integer)
     flip!(::TriangulatedPolygon, ::Edge)
     flip(::TriangulatedPolygon, ::Edge)
-    is_isomorph(::TriangulatedPolygon, ::TriangulatedPolygon, ::Vector{Vector{Integer}})
-    rename_vertices(::TriangulatedPolygon, ::Vector{Integer})
 ```

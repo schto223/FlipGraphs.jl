@@ -1,6 +1,18 @@
 
-#using FlipGraphs, Random
+using FlipGraphs, Random
 
-HD = holey_delta_complex(1,2)
-G1 = flip_graph(HD, 0, false)
-diameter(G1)
+function square(A)
+    return A*A
+end
+
+g = triangulated_polygon(20)
+
+A = adjacency_matrix(g)
+B = Matrix{Int32}(A)
+
+d = diameter(B)
+
+#@time FlipGraphs.diameter(A)
+#@time FlipGraphs.diameter(A)
+#@time FlipGraphs.diameter(B)
+#@time FlipGraphs.diameter(B)

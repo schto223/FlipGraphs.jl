@@ -1,10 +1,5 @@
-export FlipGraphPlanar, flipgraph, flipgraph_planar
-export edges, vertices, has_edge, has_vertex, ne, nv, neighbors
-export is_isomorph, diameter, rename_vertices
-
-
 """
-    struct FlipGraphPlanar <: AbstractGraph{Int}
+    struct FlipGraphPlanar <: AbstractGraph{Int32}
 
 A Graph representing the FlipGraph of a convex polygon. 
 
@@ -12,12 +7,12 @@ Vertices are different triangulations of the same convex polygon.
 
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
-struct FlipGraphPlanar <: AbstractGraph{Int}    
+struct FlipGraphPlanar <: AbstractGraph{Int32}
     V ::Vector{TriangulatedPolygon}
-    adjList ::Vector{Vector{Int}}
+    adjList ::Vector{Vector{Int32}}
 
     function FlipGraphPlanar()
-        new(Vector{TriangulatedPolygon}(), Vector{Vector{Int}}())
+        new(Vector{TriangulatedPolygon}(), Vector{Vector{Int32}}())
     end
 end
 
@@ -32,18 +27,60 @@ Construct an array containing all the edges in `G`.
 """
 function edges(G::FlipGraphPlanar) ::Vector{Edge}
     E = collect(Edge(i,j) for i in eachindex(G.V) for j in G.adjList[i])
-    return filter!(e->(src(e)>dst(e)), E)
+    return filter!(e -> (src(e) > dst(e)), E)
 end 
 
-edgetype(G::FlipGraphPlanar) = SimpleEdge{Int}
+edgetype(G::FlipGraphPlanar) = SimpleEdge{Int32}
+
+"""
+    has_edge(G::FlipGraphPlanar, e::Edge)
+
+Return `true` if `e` is an edge in `G`.
+"""
 has_edge(G::FlipGraphPlanar, e::Edge) = (dst(e) ∈ G.adjList[src(e)])
+
+"""
+    has_edge(G::FlipGraphPlanar, s, d)
+
+Return `true` if there is an edge between `s` and `d` in `G`.
+"""
 has_edge(G::FlipGraphPlanar, s, d) = (d ∈ G.adjList[s])
+
+"""
+    has_vertex(G::FlipGraphPlanar, v)
+
+Return `true` if `v` is a valid index of a vertex in `G`.
+"""
 has_vertex(G::FlipGraphPlanar, v) = (1 <= v <= nv(G))
-neighbors(G::FlipGraphPlanar, v) = G.adjList[v]
+
+"""
+    neighbors(G::FlipGraphPlanar, v::Integer) -> Vector{Int32}
+
+Return a list of all the indices of vertices in `G`, that are adjacent to `v`.
+"""
+neighbors(G::FlipGraphPlanar, v::Integer) = G.adjList[v] :: Vector{Int32}
 inneighbors(G::FlipGraphPlanar, v) = G.adjList[v]
 outneighbors(G::FlipGraphPlanar,v) = G.adjList[v]
-ne(G::FlipGraphPlanar) = sum(size(G.adjList[i],1) for i in eachindex(G.adjList))÷2
+
+"""
+    ne(G::FlipGraphPlanar)
+
+Return the number of edges in `G`.
+"""
+ne(G::FlipGraphPlanar) = sum(size(G.adjList[i], 1) for i in eachindex(G.adjList))÷2
+
+"""
+    nv(G::FlipGraphPlanar)
+
+Return the number of vertices in `G`.
+"""
 nv(G::FlipGraphPlanar) = length(G.V)
+
+"""
+    vertices(G::FlipGraphPlanar)
+
+Return the List of all vertices in `G`.
+"""
 vertices(G::FlipGraphPlanar) = G.V
 is_directed(G::FlipGraphPlanar) = false
 is_directed(::Type{FlipGraphPlanar}) = false
@@ -84,7 +121,7 @@ function flipgraph(g::TriangulatedPolygon, modular::Bool = false)
     end
     add_vertex!(G, g)
     
-    queue = Vector{Tuple{TriangulatedPolygon, Int}}()
+    queue = Vector{Tuple{TriangulatedPolygon, Int32}}()
     push!(queue,(g,1))
     
     if modular
@@ -171,7 +208,7 @@ end
 
 Return true if `g1` is identical to `g2` up to a renaming of the vertices of `g1` by one of the given permutations.
 """
-function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{Integer}})
+function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
     if sort(degrees(g1)) != sort(degrees(g2))
         return false
     end
@@ -191,11 +228,11 @@ Compute the diameter of `G`.
 diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 
 """
-    relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) -> Vector{Int}
+    relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) -> Vector{<:Integer}
 
 Count for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
 """
-function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer})::Vector{Int}
+function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
     rdegs = zeros(Int, length(U))
     for i in eachindex(U), j in V
         if has_edge(g, U[i], j)
@@ -207,14 +244,14 @@ end
 
 
 """
-    mcKay(g::TriangulatedPolygon) -> Vector{Vector{Int}}
+    mcKay(g::TriangulatedPolygon) -> Vector{Vector{<:Integer}}
 
 Apply *McKay's canonical graph labeling algorithm* in order to determine all possible permutations 
 of the vertices which give a canonical isomorphism class representant.
 
 Return a list of all possible canonical point relabeling permutations `p` such that the i-th point should be relabeled as the `p[i]`-th point
 """
-function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
+function mcKay(g::TriangulatedPolygon) :: Vector{Vector{Int}}
     # renamed from sigma
 
     #split V into partitions according to their degrees from smallest to biggest
@@ -248,10 +285,11 @@ function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)
-                for V in reverse(newVs)
-                    insert!(p, i, V)
-                end
                 j = i
+                for V in newVs
+                    insert!(p, i, V)
+                    i += 1
+                end
                 i = 1
             else 
                 j += 1
@@ -266,7 +304,7 @@ function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
     p = split(collect(1:g.n), degrees(g))
     makeEquitable!(p, g)
     if length(p) == g.n #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_perm(reduce(vcat, p))])
+        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
@@ -292,5 +330,5 @@ function mcKay(g::TriangulatedPolygon)::Vector{Vector{Int}}
         end
     end
 
-    return [invert_perm(reduce(vcat, sigpi)) for sigpi in leafs]   #permutations
+    return [invert_permutation(reduce(vcat, sigpi)) for sigpi in leafs]   #permutations
 end

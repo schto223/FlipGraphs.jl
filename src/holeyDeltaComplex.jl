@@ -1,5 +1,3 @@
-export HoleyDeltaComplex, Hole, Crossing, holey_delta_complex
-export num_crossings, edge_crossings, remove_holeloops!, get_crossing
 
 """
     struct Crossing
@@ -105,7 +103,6 @@ function Base.show(io::IO, mime::MIME"text/plain", HD::HoleyDeltaComplex)
 end
 
 
-
 function insert_after!(H :: Hole, C_previous::Crossing, C::Crossing)
     H.last_key += 1
     H.crossings[H.last_key] = C
@@ -187,32 +184,212 @@ function holey_delta_complex(g::Integer, num_points::Integer = 1) :: HoleyDeltaC
     return HD
 end
 
-genus(HD::HoleyDeltaComplex) = length(HD.holes)
-nv(HD::HoleyDeltaComplex) = nv(HD.D)
-ne(HD::HoleyDeltaComplex) = ne(HD.D)
+"""
+    np(HD::HoleyDeltaComplex)
+
+Return the number of points in the triangulation defined by `HD`.
+"""
 np(HD::HoleyDeltaComplex) = np(HD.D)
-euler_characteristic(HD::HoleyDeltaComplex) = euler_characteristic(HD.D)
-get_edge(HD::HoleyDeltaComplex, i::Integer) = get_edge(HD.D, i)
-get_vertex(HD::HoleyDeltaComplex, i::Integer) = get_vertex(HD.D, i)
+
+"""
+    nv(HD::HoleyDeltaComplex)
+
+Return the number of vertices(i.e. triangular faces) in `HD`.
+"""
+nv(HD::HoleyDeltaComplex) = nv(HD.D)
+
+"""
+    ne(HD::HoleyDeltaComplex)
+
+Return the number of edges in the DeltaComplex `HD`.
+
+This is equal to the number of edges in the triangulation itself.
+"""
+ne(HD::HoleyDeltaComplex) = ne(HD.D)
+
+"""
+    genus(HD::HoleyDeltaComplex) -> Int
+
+Compute the genus of the HoleyDeltaComplex `HD`.
+"""
+genus(HD::HoleyDeltaComplex) ::Int = length(HD.holes)
+
+"""
+    euler_characteristic(HD::HoleyDeltaComplex) -> Int
+
+Compute the euler characteristic of the HoleyDeltaComplex `HD`:\\
+`` X = #vertices - #edges + #faces ``
+"""
+euler_characteristic(HD::HoleyDeltaComplex) :: Int = euler_characteristic(HD.D)
+
+"""
+    get_edge(HD::HoleyDeltaComplex, e::Integer) -> DualEdge
+"""
+get_edge(HD::HoleyDeltaComplex, e::Integer) = get_edge(HD.D, e)
+
+"""
+    get_edge(HD::HoleyDeltaComplex, t::Integer, side::Integer) -> DualEdge
+
+Return the edge that forms the respective side in the given triangle `t`.
+"""
+get_edge(HD::HoleyDeltaComplex, t::Integer, side::Integer) = get_edge(HD.D, t, side)
+
+"""
+    get_vertex(HD::HoleyDeltaComplex, t::Integer) -> TriFace
+"""
+get_vertex(HD::HoleyDeltaComplex, t::Integer) = get_vertex(HD.D, t)
+
+"""
+    vertices(HD::HoleyDeltaComplex) -> Vector{TriFace}
+
+Return the list of all vertices in `HD`.
+"""
 vertices(HD::HoleyDeltaComplex) = vertices(HD.D)
+
+"""
+    vertices(HD::HoleyDeltaComplex, d::DualEdge) -> Tuple{TriFace, TriFace}
+
+Return both vertices adjacent to `d`.
+
+The first TriFace is on the left of the edge, and the second one on the right of the edge.
+"""
+vertices(HD::HoleyDeltaComplex, d::DualEdge) :: Tuple{TriFace, TriFace} = vertices(HD.D, d)
+
+"""
+    edges(HD::HoleyDeltaComplex) -> Vector{DualEdge}
+
+Return the list of all edges in `HD`. 
+"""
 edges(HD::HoleyDeltaComplex) = edges(HD.D)
+
+"""
+    edges(HD::HoleyDeltaComplex, t::Integer) -> Vector{DualEdge}
+
+Return the list of all 3 edges that are incident to the `t`-th Triface in `HD`. 
+"""
 edges(HD::HoleyDeltaComplex, t::Integer) = edges(HD.D, t)
+
+"""
+    edges_id(HD::HoleyDeltaComplex, t::Integer) -> Tuple{Int, Int, Int}
+
+Return the indices of all 3 edges that are incident to the `t`-th vertex. 
+"""
 edges_id(HD::HoleyDeltaComplex, t::Integer) = edges_id(HD.D, t)
-points(HD::HoleyDeltaComplex) = points(HD.D)
-is_flippable(HD::HoleyDeltaComplex, i::Integer) = is_flippable(HD.D, i)
+
+"""
+    points(HD::HoleyDeltaComplex, d::DualEdge) -> Tuple{Int, Int}
+
+Return both endpoints of `d` in the triangulation.
+"""
+points(HD::HoleyDeltaComplex, d::DualEdge) = points(HD.D, d)
+
+
 #is_orientable(HD::HoleyDeltaComplex) = is_orientable(HD.D)
-point_degrees(HD::HoleyDeltaComplex) = point_degrees(HD.D)
-diameter_triangulation(HD::HoleyDeltaComplex) = diameter_triangulation(HD.D)
+
+"""
+    point_degrees(HD::HoleyDeltaComplex) -> Vector{Int}
+
+Return a vector containing the respective degree of each point in the triangulation.
+"""
+point_degrees(HD::HoleyDeltaComplex) ::Vector{Int} = point_degrees(HD.D)
+
+"""
+    diameter_triangulation(HD::HoleyDeltaComplex) -> Int
+
+Compute the diameter of the triangulation defined by the HoleyDeltaComplex `HD`.\\
+
+The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
+"""
+diameter_triangulation(HD::HoleyDeltaComplex) :: Int = diameter_triangulation(HD.D)
+
+"""
+    diameter_deltaComplex(HD::HoleyDeltaComplex)
+
+Compute the diameter of the HoleyDeltaComplex `HD`.
+
+The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
+
+See also [`diameter_triangulation`](@ref)
+"""
 diameter_deltaComplex(HD::HoleyDeltaComplex) = diameter_deltaComplex(HD.D)
-adjacency_matrix_triangulation(HD::HoleyDeltaComplex) = adjacency_matrix_triangulation(HD.D)
+
+"""
+    adjacency_matrix_deltaComplex(HD::HoleyDeltaComplex) :: Matrix{Int}
+
+Compute the adjacency matrix of the delta complex `HD`.
+"""
 adjacency_matrix_deltaComplex(HD::HoleyDeltaComplex) = adjacency_matrix_deltaComplex(HD.D)
+
+"""
+    adjacency_matrix_triangulation(HD::HoleyDeltaComplex) :: Matrix{Int}
+
+Compute the simple adjacency matrix of the triangulation defined by `HD`.
+
+All entries are either 0 or 1.
+
+See also [`multi_adjacency_matrix_triangulation`](@ref)
+"""
+adjacency_matrix_triangulation(HD::HoleyDeltaComplex) :: Matrix{Int} = adjacency_matrix_triangulation(HD.D)
+
+"""
+    multi_adjacency_matrix_triangulation(HD::HoleyDeltaComplex) :: Matrix{Int}
+
+Compute the adjacency matrix of the multigraph of the triangulation defined by `HD`.
+
+The ``i,j``-th entry not only notes if both points are connected, 
+but also the number of edges that connect these two points.
+
+See also [`adjacency_matrix_triangulation`](@ref)
+"""
+multi_adjacency_matrix_triangulation(HD::HoleyDeltaComplex) :: Matrix{Int} = multi_adjacency_matrix_triangulation(HD.D)
+
 is_anticlockwise(HD::HoleyDeltaComplex, t::Integer, side::Integer) :: Bool = is_anticlockwise(HD.D, t, side)
+
+"""
+    triangle_edge(HD::HoleyDeltaComplex, d::DualEdge) -> Tuple{Int, Int}
+
+Return the two points at either end of `d`.
+"""
 triangle_edge(HD::HoleyDeltaComplex, d::DualEdge) = triangle_edge(HD.D, d)
 
-flip(HD::HoleyDeltaComplex, d::DualEdge, left::Bool = true) = flip!(deepcopy(HD), d.id, left)
-flip(HD::HoleyDeltaComplex, e::Integer, left::Bool = true) = flip!(deepcopy(HD), e, left)
-flip!(HD::HoleyDeltaComplex, d::DualEdge, left::Bool = true) = flip!(HD, d.id, left)
-function flip!(HD::HoleyDeltaComplex, e::Integer, left::Bool = true)
+"""
+    is_flippable(HD::HoleyDeltaComplex, e::Integer) -> Bool
+
+Return true if the `e`-th edge can be flipped.
+
+This is always the case if the edge does not connect a `TriFace` to itself.
+"""
+is_flippable(HD::HoleyDeltaComplex, e::Integer) :: Bool = is_flippable(HD.D, e)
+
+"""
+    flip(HD::HoleyDeltaComplex, d::DualEdge)
+
+Return a copy of `HD` where the edge `d` has been flipped.
+"""
+function flip(HD::HoleyDeltaComplex, d::DualEdge; left::Bool = true) 
+    return flip!(deepcopy(HD), d.id; left=left)
+end
+
+"""
+    flip(HD::HoleyDeltaComplex, e::Integer)
+
+Return a copy of `HD` where the `e`-th edge has been flipped.
+"""
+flip(HD::HoleyDeltaComplex, e::Integer; left::Bool = true) = flip!(deepcopy(HD), e, left=left)
+
+"""
+    flip!(HD::HoleyDeltaComplex, d::DualEdge)
+
+Flip, if possible, the given edge in `HD`.
+"""
+flip!(HD::HoleyDeltaComplex, d::DualEdge; left::Bool = true) = flip!(HD, d.id, left=left)
+
+"""
+    flip!(HD::HoleyDeltaComplex, e::Integer)
+
+Flip, if possible, the given edge in `HD`.
+"""
+function flip!(HD::HoleyDeltaComplex, e::Integer; left::Bool = true)
     d = get_edge(HD, e)  
 
     T1, T2 = vertices(HD.D, d)
@@ -261,7 +438,7 @@ function flip!(HD::HoleyDeltaComplex, e::Integer, left::Bool = true)
         end
     end
 
-    flip!(HD.D, e, left)
+    flip!(HD.D, e; left=left)
     
     # add crossing for edges that were parallel to e
     for c in (xy ? HD.edge_crossings[ea] : reverse(HD.edge_crossings[ea]))
@@ -409,6 +586,8 @@ end
 
 """
     subdivide!(HD ::HoleyDeltaComplex, t ::Integer)
+
+Add a point to the inside of the `t`-th `TriFace` and connect it to each corner.
 """
 function subdivide!(HD ::HoleyDeltaComplex, t ::Integer)
     e1,e2,e3 = edges_id(HD, t)  
@@ -483,6 +662,8 @@ end
 
 """
     rename_points!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+
+Rename all the points in `D` according to the permutation `p`.
 """
 function rename_points!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     rename_points!(HD.D, p)
@@ -491,6 +672,10 @@ end
 
 """
     rename_vertices!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+
+Rename every vertex(TriFace) in `D`, according to the permutation `p`.
+
+TriFace 1 => TriFace p[1]
 """
 function rename_vertices!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     rename_vertices!(HD.D, p)
@@ -499,12 +684,37 @@ end
 
 """
     rename_edges!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
+    
+Rename every vertex(TriFace) in `HD`, according to the permutation `p`.
+
+TriFace 1 => TriFace p[1]
 """
 function rename_edges!(HD::HoleyDeltaComplex, p::Vector{<:Integer})
     rename_edges!(HD.D, p)
     for H in HD.holes
         foreach(c -> c.edge_id = p[c.edge_id], values(H.crossings))
     end
-    HD.edge_crossings .= HD.edge_crossings[invert_perm(p)]
+    HD.edge_crossings .= HD.edge_crossings[invert_permutation(p)]
     return HD
+end
+
+
+"""
+    relative_point_degrees(HD::HoleyDeltaComplex, U::Vector{<:Integer}, V::Vector{<:Integer})
+
+Return a vector containing the degree to `V` for each point in `U`.
+"""
+function relative_point_degrees(HD::HoleyDeltaComplex, U::Vector{<:Integer}, V::Vector{<:Integer})
+    return relative_degrees(adjacency_matrix_triangulation(HD.D), U, V)
+end
+
+
+"""
+    random_flips!(HD::HoleyDeltaComplex, n::Integer)
+
+Randomly pick an edge, and flip it if possible. Repeat this `n` times.
+"""
+function random_flips!(HD::HoleyDeltaComplex, n::Integer)
+    foreach(e-> flip!(HD, e), rand(HD.D.E, n))
+    return D
 end

@@ -9,15 +9,23 @@ if it is possible to get from one triangulation to the other by flipping a singl
 ```
 `FlipGraphPlanar` implements the AbstractGraph interface from Graphs.jl. It is therefore possible to use it with other packages that work with Graphs.jl. This is very helpfull for plotting the graph.
 
+## Constructors
+
 ```@docs
     flipgraph(::TriangulatedPolygon)
     flipgraph_planar
+```
+
+## Graph methods
+
+```@docs
     nv(::FlipGraphPlanar)
     ne(::FlipGraphPlanar)
     vertices(::FlipGraphPlanar)
     edges(::FlipGraphPlanar)
-    has_vertex(::FlipGraphPlanar)
-    has_edge(::FlipGraphPlanar)
-    neighbors(::FlipGraphPlanar)
+    has_vertex(::FlipGraphPlanar,v)
+    has_edge(::FlipGraphPlanar,s,d)
+    has_edge(::FlipGraphPlanar,::Edge)
+    neighbors(::FlipGraphPlanar, ::Integer)
     diameter(::FlipGraphPlanar)
 ```

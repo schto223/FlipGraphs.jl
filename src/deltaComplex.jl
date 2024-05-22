@@ -1,15 +1,6 @@
 using StaticArrays
 import Base.reverse, Base.reverse!
 
-export DeltaComplex, delta_complex, DualEdge, TriFace
-export ne,np,nv
-export get_edge, get_point, get_vertex, vertices, edges, points, edges_id, get_edge_id, id
-export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees, relative_point_degrees
-export euler_characteristic, genus, demigenus, diameter_triangulation, diameter_deltaComplex
-export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltaComplex
-export subdivide!, twist_edges!
-export rename_edges!, rename_points!, rename_vertices!, _is_similar, other_endpoint
-
 """
     struct DualEdge
 
@@ -40,7 +31,12 @@ A `TriFace` represents a triangle in the triangulization of a surface.
 
 The TriFace's form the vertices of a DeltaComplex.
 Each TriFace is formed between 3 points and is connected to 3 Trifaces through DualEdges.
-The points and neighboring triangles do not have to be unique. 
+The points and neighboring triangles do not have to be unique.
+
+The points and edges are stored in an anticlockwise order.\\
+The first edge/side is between the first and second point.\\
+The second edge/side is between the second and third point.\\
+The third edge/side is between the third and first point.\\
 """
 struct TriFace
     id :: Base.RefValue{Int}  # the unique index number of this face in the DeltaComplex
@@ -101,16 +97,59 @@ function Base.show(io::IO, mime::MIME"text/plain", D::DeltaComplex)
     end  
 end
 
-vertices(d::DualEdge) = d.triangles[1], d.triangles[2]
-get_vertex(d::DualEdge, i::Integer) = d.triangles[i]
-sides(d::DualEdge) = d.sides[1], d.sides[2]
-get_side(d::DualEdge, i::Integer) = d.sides[i]
+"""
+    vertices_id(d::DualEdge) -> Tuple{Int, Int}
+
+Return the indices of both vertices (`TriFace`s) adjacent to `d`.
+"""
+vertices_id(d::DualEdge) :: Tuple{Int, Int} = d.triangles[1], d.triangles[2]
+
+"""
+    get_vertex_id(d::DualEdge, side::Integer) -> Int
+ 
+Return the index of the vertex (`TriFace``) to the left of `d`.
+"""
+get_vertex_id(d::DualEdge, side::Integer) :: Int = d.triangles[side]
+
+"""
+    sides(d::DualEdge) -> Tuple{Int8, Int8}
+
+Return the respective sides through which `d` connects the TriFaces.
+"""
+sides(d::DualEdge) ::Tuple{Int8, Int8} = d.sides[1], d.sides[2]
+
+"""
+    get_side(d::DualEdge, side::Integer) -> Int8
+
+Return the respective side that `d` forms on the TriFace on the given `side`.
+"""
+get_side(d::DualEdge, side::Integer) :: Int8 = d.sides[side]
 set_twisted!(d:: DualEdge, is_twisted::Bool) = (d.is_twisted = is_twisted)
-is_twisted(d::DualEdge) = d.is_twisted
-id(d::DualEdge) = d.id
 
+"""
+    is_twisted(d::DualEdge) -> Bool
 
-function _is_similar(d1::DualEdge, d2::DualEdge) :: Bool
+Return whether or not the given edge is twisted. 
+
+If `d` is twisted, then everything on the other side gets regarded as its mirror image. 
+"""
+is_twisted(d::DualEdge) ::Bool = d.is_twisted
+
+"""
+    id(d::DualEdge) -> Int
+
+Return the index of `d` in its `DeltaComplex`.
+"""
+id(d::DualEdge) :: Int = d.id
+
+"""
+    is_similar(d1::DualEdge, d2::DualEdge) -> Bool
+
+Return `true` if d1 and d2 have the same twist and are connected to the same triangles.
+
+This is only the case if `d1` and `d2` are the same edge, or if they are incident to a point of degree 2.
+"""
+function is_similar(d1::DualEdge, d2::DualEdge) :: Bool
     return d1.is_twisted == d2.is_twisted && (all(d1.triangles.==d2.triangles) || all(d1.triangles.==reverse(d2.triangles)))       
 end
 
@@ -134,28 +173,83 @@ function update_endpoint!(d::DualEdge, t_old::Integer, side_old::Integer, t_new:
     end
 end
 
-function other_endpoint(e::DualEdge, t::Integer, side::Integer) :: Tuple{Int, Int8}
-    if e.triangles[1] == t && e.sides[1] == side
-        return e.triangles[2], e.sides[2]
-    elseif e.triangles[2] == t && e.sides[2] == side
-        return e.triangles[1], e.sides[1]
+"""
+    other_endpoint(d::DualEdge, t::Integer, side::Integer) -> Tuple{Int, Int8}
+
+Return the index of the other TriFace and its respective side, that is incident to `d` 
+"""
+function other_endpoint(d::DualEdge, t::Integer, side::Integer) :: Tuple{Int, Int8}
+    if d.triangles[1] == t && d.sides[1] == side
+        return d.triangles[2], d.sides[2]
+    elseif d.triangles[2] == t && d.sides[2] == side
+        return d.triangles[1], d.sides[1]
     else
-        throw(ArgumentError(string("(t, side) = (", t,", ",side,") is not an endpoint of e = ",e)))
+        throw(ArgumentError(string("(t, side) = (", t,", ",side,") is not an endpoint of e = ",d)))
     end
 end
 
 
 has_point(T::TriFace, x::Integer) = (x in T.points) :: Bool
+
+"""
+    points(T::TriFace) -> Tuple{Int, Int, Int}
+
+Return a tuple of the three points, that form the corners of `T`.
+"""
 points(T::TriFace) = Tuple(T.points) :: Tuple{Int, Int, Int}
+
+"""
+    get_point(T::TriFace, corner::Integer) -> Int
+"""
 get_point(T::TriFace, corner::Integer) = T.points[corner] :: Int
-set_edge!(T::TriFace, side::Integer, edge::DualEdge) = (T.edges[side] = edge)
+
+set_edge!(T::TriFace, side::Integer, d::DualEdge) = (T.edges[side] = d)
+
+"""
+    get_edge(T::TriFace, side::Integer) -> DualEdge
+"""
 get_edge(T::TriFace, side::Integer) = T.edges[side] :: DualEdge
+
+"""
+    get_edge_id(T::TriFace, side::Integer) -> Integer
+
+Return the index of the edge on the respective side in `T`.
+"""
 get_edge_id(T::TriFace, side::Integer) = T.edges[side].id :: Integer
+
+"""
+    edges(T::TriFace) -> Vector{DualEdge}
+
+Return the list of all 3 edges that are incident to `T`. 
+"""
 edges(T::TriFace) = T.edges :: Vector{DualEdge}
+
+"""
+    edges(D::DeltaComplex, t::Integer) -> Vector{DualEdge}
+
+Return the list of all 3 edges that are incident to the `t`-th Triface in `D`. 
+"""
 edges(D::DeltaComplex, t::Integer) = D.V[t].edges :: Vector{DualEdge}
+
+"""
+    edges_id(T::TriFace) -> Tuple{Int, Int, Int}
+
+Return the indices of all 3 edges that are incident to `T`. 
+"""
 edges_id(D::DeltaComplex, t::Integer) = (get_edge_id(D.V[t],1), get_edge_id(D.V[t],2), get_edge_id(D.V[t],3)) :: Tuple{Int, Int, Int}
+
+"""
+    id(T::TriFace)
+
+Return the index of `T` in its DeltaComplex. 
+"""
 id(T::TriFace) = T.id.x
 
+"""
+    get_neighbor(T::TriFace, side::Integer) -> Int
+
+Return the index of the TriFace adjacent to `T` on the given `side`.
+"""
 function get_neighbor(T::TriFace, side::Integer) ::Int
     if T.edges[side].triangles[1] == id(T)
         return T.edges[side].triangles[2]
@@ -165,7 +259,7 @@ function get_neighbor(T::TriFace, side::Integer) ::Int
 end
 
 """
-    triangle_edge(T::TriFace, side::Integer) :: Tuple{Int, Int}
+    triangle_edge(T::TriFace, side::Integer) -> Tuple{Int, Int}
 
 Return the two points incident to the respective side in the triangle `T`.
 """
@@ -173,26 +267,73 @@ function triangle_edge(T::TriFace, side::Integer) :: Tuple{Int, Int}
     return (T.points[side], T.points[(side%3) + 1])
 end
 
-function triangle_edge(D::DeltaComplex, d::DualEdge)
+"""
+    triangle_edge(D::DeltaComplex, d::DualEdge) -> Tuple{Int, Int}
+
+Return the two points at either end of `d`.
+"""
+function triangle_edge(D::DeltaComplex, d::DualEdge) :: Tuple{Int, Int}
     return triangle_edge(D.V[d.triangles[1]], d.sides[1])
 end
 
 is_anticlockwise(D::DeltaComplex, t::Integer, side::Integer) :: Bool = is_anticlockwise(D.V[t], side)
 function is_anticlockwise(T::TriFace, side::Integer) :: Bool
     d = get_edge(T, side)
-    return (id(T) == get_vertex(d, 1) && get_side(d,1) == side)
+    return (id(T) == get_vertex_id(d, 1) && get_side(d,1) == side)
 end
 
 add_vertex!(D::DeltaComplex, v::TriFace) = push!(D.V, v)
-get_vertex(D::DeltaComplex, i::Integer)::TriFace = D.V[i]
+
+"""
+    get_vertex(D::DeltaComplex, t::Integer) -> TriFace
+"""
+get_vertex(D::DeltaComplex, t::Integer)::TriFace = D.V[t]
+
+"""
+    vertices(D::DeltaComplex) -> Vector{TriFace}
+
+Return the list of all vertices in `D`.
+"""
 vertices(D::DeltaComplex)::Vector{TriFace} = D.V 
-vertices(D::DeltaComplex, d::DualEdge) :: Tuple{TriFace, TriFace} = (D.V[get_vertex(d,1)], D.V[get_vertex(d,2)])
+
+"""
+    vertices(D::DeltaComplex, d::DualEdge) -> Tuple{TriFace, TriFace}
+
+Return both vertices adjacent to `d`.
+
+The first TriFace is on the left of the edge, and the second one on the right of the edge.
+"""
+vertices(D::DeltaComplex, d::DualEdge) :: Tuple{TriFace, TriFace} = (D.V[get_vertex_id(d,1)], D.V[get_vertex_id(d,2)])
+
 add_edge!(D::DeltaComplex, d::DualEdge) = push!(D.E, d)
-get_edge(D::DeltaComplex, i::Integer) = D.E[i]
+
+"""
+    get_edge(D::DeltaComplex, e::Integer) -> DualEdge
+"""
+get_edge(D::DeltaComplex, e::Integer) :: DualEdge = D.E[e] 
+
+"""
+    get_edge(D::DeltaComplex, t::Integer, side::Integer) -> DualEdge
+
+Return the edge that forms the respective side in the given triangle `t`.
+"""
 get_edge(D::DeltaComplex, t::Integer, side::Integer) = D.V[t].edges[side]
-edges(D::DeltaComplex) = D.E
+
+"""
+    edges(D::DeltaComplex) -> Vector{DualEdge}
+
+Return the list of all the `DualEdge`s in `D`.
+"""
+edges(D::DeltaComplex) :: Vector{DualEdge} = D.E
+
 remove_edge!(D::DeltaComplex, d::DualEdge) = remove!(D.E, d)
 set_num_points!(D::DeltaComplex, num_points) = setindex!(D.num_points, num_points)
+
+"""
+    points(D::DeltaComplex, d::DualEdge) -> Tuple{Int, Int}
+
+Return both endpoints of `d` in the triangulation.
+"""
 points(D::DeltaComplex, d::DualEdge) = triangle_edge(D.V[d.triangles[1]], d.sides[1])
 
 left_side(side::Integer) = (side+1)%3+1
@@ -222,7 +363,7 @@ end
 """
     np(D::DeltaComplex)
 
-Return the number of points in the triangulation defined by `D`
+Return the number of points in the triangulation defined by `D`.
 """
 np(D::DeltaComplex) = getindex(D.num_points) :: Int
 
@@ -241,7 +382,6 @@ Return the number of edges in the DeltaComplex `D`.
 This is equal to the number of edges in the triangulation itself.
 """
 ne(D::DeltaComplex) = length(D.E) :: Integer
-
 
 
 """
@@ -284,18 +424,22 @@ end
 
 Compute the adjacency matrix of the delta complex `D`.
 """
-function adjacency_matrix_deltaComplex(D::DeltaComplex) :: Matrix{<:Integer}
+function adjacency_matrix_deltaComplex(D::DeltaComplex) :: Matrix{Int}
     A = zeros(Int, nv(D), nv(D))
     foreach(e-> (A[e.triangles[1], e.triangles[2]] = 1; A[e.triangles[2], e.triangles[1]] = 1), edges(D))
     return A
 end
 
 """
-    adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{<:Integer}
+    adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int}
 
-Compute the adjacency matrix of the triangulation defined by `D`.
+Compute the simple adjacency matrix of the triangulation defined by `D`.
+
+All entries are either 0 or 1.
+
+See also [`multi_adjacency_matrix_triangulation`](@ref)
 """
-function adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{<:Integer}
+function adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int}
     A = zeros(Int, np(D), np(D))
     foreach(t-> (
         A[t.points[1], t.points[2]] = 1; A[t.points[2], t.points[1]] = 1;
@@ -305,7 +449,17 @@ function adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{<:Integer}
     return A
 end
 
-function multi_adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{<:Integer}
+"""
+    multi_adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int}
+
+Compute the adjacency matrix of the multigraph of the triangulation defined by `D`.
+
+The i,j-th entry not only notes if both points are connected, 
+but also the number of edges that connect these two points.
+
+See also [`adjacency_matrix_triangulation`](@ref)
+"""
+function multi_adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int}
     A = zeros(Int, np(D), np(D))
     foreach(t-> (
         A[t.points[1], t.points[2]] += 1; A[t.points[2], t.points[1]] += 1;
@@ -321,6 +475,8 @@ end
 Compute the diameter of the DeltaComplex `D`.\\
 
 The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
+
+See also [`diameter_triangulation`](@ref)
 """
 function diameter_deltaComplex(D::DeltaComplex)  
     return diameter(adjacency_matrix_deltaComplex(D))
@@ -330,9 +486,11 @@ end
 """
     diameter_triangulation(D::DeltaComplex)
 
-Compute the diameter of the triangulation defined by the DeltaComplex `D`.\\
+Compute the diameter of the triangulation defined by the DeltaComplex `D`.
 
 The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
+
+See also [`diameter_deltaComplex`](@ref)
 """
 function diameter_triangulation(D::DeltaComplex)  
     return diameter(adjacency_matrix_triangulation(D))
@@ -549,9 +707,9 @@ function subdivide!(D::DeltaComplex, t::Integer)#twist
     D.V[t] = T1
     push!(D.V, T2, T3)
     
-    d1_inside = (get_vertex(d1, 1) == id(T) && get_side(d1, 1) == 1) ? 1 : 2
-    d2_inside = (get_vertex(d2, 1) == id(T) && get_side(d2, 1) == 2) ? 1 : 2
-    d3_inside = (get_vertex(d3, 1) == id(T) && get_side(d3, 1) == 3) ? 1 : 2
+    d1_inside = (get_vertex_id(d1, 1) == id(T) && get_side(d1, 1) == 1) ? 1 : 2
+    d2_inside = (get_vertex_id(d2, 1) == id(T) && get_side(d2, 1) == 2) ? 1 : 2
+    d3_inside = (get_vertex_id(d3, 1) == id(T) && get_side(d3, 1) == 3) ? 1 : 2
     d1.sides[d1_inside] = 1
     d2.sides[d2_inside] = 1
     d3.sides[d3_inside] = 1
@@ -609,27 +767,42 @@ function twist_edges!(T::TriFace)
     return T
 end
 
+
 """
     is_flippable(D::DeltaComplex, e::Integer)
+
+Return true if the given edge can be flipped.
+
+This is always the case if the edge does not connect a `TriFace` to itself.
+"""
+function is_flippable(D::DeltaComplex, e::Integer) 
+    return is_flippable(get_edge(D,e))
+end
+
+"""
     is_flippable(d::DualEdge)
 
 Return true if the given edge is can be flipped.
 
-This is only the case if the edge does not connect a triangle face to itself.
+This is always the case if the edge does not connect a `TriFace` to itself.
 """
-is_flippable(D::DeltaComplex, e::Integer) = is_flippable(get_edge(D,e))
 function is_flippable(d::DualEdge)
     return d.triangles[1] != d.triangles[2]
 end
 
 """
     flip!(D::DeltaComplex, e::Integer)
-    flip!(D::DeltaComplex, e::DualEdge)
 
 Flip, if possible, the given edge in `D`.
 """
-flip!(D::DeltaComplex, e::Integer, left::Bool = true) = flip!(D, get_edge(D, e), left)
-function flip!(D::DeltaComplex, e::DualEdge, left::Bool = true) :: Bool
+flip!(D::DeltaComplex, e::Integer; left::Bool = true) = flip!(D, get_edge(D, e), left=left)
+
+"""
+    flip!(D::DeltaComplex, d::DualEdge)
+
+Flip, if possible, the given edge in `D`.
+"""
+function flip!(D::DeltaComplex, e::DualEdge; left::Bool = true)
     is_flippable(e) || return false
     T1 = get_vertex(D, e.triangles[1])
     T2 = get_vertex(D, e.triangles[2])
@@ -723,7 +896,7 @@ function flip!(D::DeltaComplex, e::DualEdge, left::Bool = true) :: Bool
         update_endpoint!(c, id(T2), 2 + rot2, id(T2), (3+rot2-1)%3+1)
         update_endpoint!(d, id(T2), (3+rot2-1)%3 + 1, id(T1), 2+rot1)
     end
-    return true
+    return D
 end
 
 """
@@ -732,7 +905,7 @@ end
 Return the 4 edges who form a quadrilateral with th egiven `diagonal`.
 """
 function quadrilateral_edges(D::DeltaComplex, diagonal::DualEdge) ::Tuple{DualEdge, DualEdge, DualEdge, DualEdge}
-    t1,t2 = vertices(diagonal)
+    t1,t2 = vertices_id(diagonal)
     return (
         get_edge(get_vertex(D,t1), right_side(diagonal.sides[1])),#a
         get_edge(get_vertex(D,t1), left_side(diagonal.sides[1])), #b
@@ -808,7 +981,7 @@ julia> randomize!(D, num_initial_flips=10000, num_flips_per_step = 1000, varianc
 160000
 ```
 """
-function randomize!(D::DeltaComplex; num_initial_flips = 10000000, num_flips_per_step = 10000, variance_interval_size = 10, lookback_size = 2) :: Int
+function randomize!(D::DeltaComplex; num_initial_flips::Integer = 10000000, num_flips_per_step::Integer = 10000, variance_interval_size::Integer = 10, lookback_size::Integer = 2) :: Int
     function variance(x::Vector{<:Integer})
         mean = sum(x)//length(x)
         y = x.-mean 
@@ -851,15 +1024,6 @@ function point_degrees(D::DeltaComplex) ::Vector{<:Integer}
 end
 
 """
-    degrees(A::Matrix{<:Integer}) -> Vector{<:Integer}
-
-Return a vector containing the degrees of every vertex given an adjacency matrix `A`.
-"""
-function degrees(A::Matrix{<:Integer}) ::Vector{<:Integer}
-    return reshape(sum(A, dims=2), size(A,1))
-end
-
-"""
     relative_point_degrees(D::DeltaComplex, U::Vector{<:Integer}, V::Vector{<:Integer})
 
 Return a vector containing the degree to `V` for each point in `U`.
@@ -868,10 +1032,20 @@ function relative_point_degrees(D::DeltaComplex, U::Vector{<:Integer}, V::Vector
     return relative_degrees(adjacency_matrix_triangulation(D), U, V)
 end
 
-function relative_degrees(A :: Matrix{<:Integer}, U::Vector{<:Integer}, V::Vector{<:Integer})
+"""
+relative_degrees(A::Matrix{<:Integer}, U::Vector{<:Integer}, V::Vector{<:Integer}) -> Vector{Int}
+
+    Compute the relative degrees of points in `U` onto the subset of points `V`.
+"""
+function relative_degrees(A::Matrix{<:Integer}, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int}
     return [sum(A[u,V]) for u in U]
 end
 
+"""
+    rename_points!(D::DeltaComplex, p::Vector{<:Integer})
+
+Rename all the points in `D` according to the permutation `p`.
+"""
 function rename_points!(D::DeltaComplex, p::Vector{<:Integer})
     foreach(T -> T.points .= p[T.points], D.V)
     return D
@@ -885,7 +1059,7 @@ Rename every vertex(TriFace) in `D`, according to the permutation `p`.
 TriFace 1 => TriFace p[1]
 """
 function rename_vertices!(D::DeltaComplex, p::Vector{<:Integer})
-    D.V .= D.V[invert_perm(p)]
+    D.V .= D.V[invert_permutation(p)]
     foreach(T -> T.id.x = p[id(T)], D.V)
     foreach(d -> d.triangles .= p[d.triangles], D.E)
     return D
@@ -899,7 +1073,7 @@ Rename every vertex(TriFace) in `D`, according to the permutation `p`.
 TriFace 1 => TriFace p[1]
 """
 function rename_edges!(D::DeltaComplex, p::Vector{<:Integer})
-    D.E .= D.E[invert_perm(p)]
+    D.E .= D.E[invert_permutation(p)]
     foreach(d -> d.id = p[d.id], D.E)
     return D
 end
