@@ -4,10 +4,9 @@ authors = ["Tom Schmit <tom.schmit.007@student.uni.lu>"]
 version = "0.1.0"
 
 [deps]
-Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
-Fontconfig = "186bb1d3-e1f7-5a2c-a377-96d770f13627"
-Compose = "a81c6b42-2e10-5240-aca2-a61377ecd94b"
-GraphPlot = "a2cc645c-3eea-5389-862e-a155d0052231"
+Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+ProfileView = "c46f51b8-102a-5cf2-8d2c-8597cb0e0da7"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
