@@ -28,15 +28,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
         run: julia --project=docs/ docs/make.jl
-      - name: Install Dependencies
-        run: julia --project=/ -e 'using Pkg; Pkg.instantiate();'
-      - name: Run tests and collect coverage #from here on down is experimental
-        run: julia --project=/ -e 'using Pkg; Pkg.test(coverage=true);' #run: julia --code-coverage app ${{ env.CODECOV_ATS_TESTS }}
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-#                  julia --color=yes --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
+
 #
 #
 #  test:
