@@ -1,0 +1,25 @@
+name: Julia CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Julia
+      uses: julia-actions/setup-julia@latest
+      with:
+        version: '1.6'
+    - name: Install Dependencies
+      run: julia --project=/ -e 'using Pkg; Pkg.instantiate();'
+    - name: Run Tests with Coverage
+      run: julia --project=/ -e 'using Pkg; Pkg.test(coverage=true);'
+    - name: Upload coverage to Codecov
+      run: julia --project=/ -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
