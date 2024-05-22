@@ -18,9 +18,7 @@ makedocs(
     modules= [FlipGraphs],
     doctest = false, #remove later
     pages = [
-        "About" => "index.md",
-        "Installation" => "install.md",
-        "Quick Start" => "quickStart.md",
+        "Home" => ["index.md", "install.md", "quickStart.md"],
         "Convex Polygons" => ["polygonTriangulation.md", "flipGraph_planar.md"],
         "Closed Surfaces" => ["deltaComplex.md", "holeyDeltaComplex.md", "flipGraph.md"],
         "General Utilities" => "generalUtilities.md"
