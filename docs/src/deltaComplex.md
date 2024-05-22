@@ -24,7 +24,7 @@ This Module comes with some handy and easy to use tools to construct a triangula
 ```
 ### Common Graph-like methods
 
-`DeltaComplex` is not an implementation of [`Graphs.AbstractGraph`](@extref). However, as it is similar to a simple graph, I used the same notation and function names for simplicity
+`DeltaComplex` is not an implementation of Graphs.AbstractGraph. <!--[`Graphs.AbstractGraph`](@extref).--> However, as it is similar to a simple graph, I used the same notation and function names for simplicity
 
 ```@docs 
     np(::DeltaComplex)
