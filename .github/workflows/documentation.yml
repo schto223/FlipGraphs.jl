@@ -3,8 +3,8 @@ name: Documentation
 on:
   push:
     branches:
-      - main
-      - dev
+      - 'main'
+      - 'dev'
     tags: '*'
   pull_request:
 
@@ -35,26 +35,26 @@ jobs:
 #        with:
 #        token: ${{ secrets.CODECOV_TOKEN }}
 #                  julia --color=yes --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
-
-
-#  test:
-#    runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        julia-version:
-#          - '1.5'
-#          - '1.6'
-#          - '1.10'
-#        os:
-#          - ubuntu-latest
-#        include:
-#          # Add a few windows and macOS jobs (not too many, the number we can run in parallel is limited)
-#          - julia-version: '1.10'
-#            os: macOS-latest
-#          - julia-version: '1.10'
-#            os: windows-latest
 #
+#
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version:
+          - '1.5'
+          - '1.6'
+          - '1.10'
+        os:
+          - ubuntu-latest
+        include:
+          # Add a few windows and macOS jobs (not too many, the number we can run in parallel is limited)
+          - julia-version: '1.10'
+            os: macOS-latest
+          - julia-version: '1.10'
+            os: windows-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
