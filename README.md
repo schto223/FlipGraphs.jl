@@ -29,4 +29,6 @@ You can get help for a function by putting a question mark in front.
 
 ## Documentation
 
-For more information on how to use the package, please have a look at the [Documentation](TODO):
+For more information on how to use the package, please have a look at the Documentation:
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://schto223.github.io/FlipGraphs.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://schto223.github.io/FlipGraphs.jl/dev)
