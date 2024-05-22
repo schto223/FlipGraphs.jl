@@ -1,10 +1,10 @@
 # FlipGraphs
 *A julia programm for triangulations on closed surfaces and their resulting flip-graphs.*
-
+<!--
 | **Documentation**                                                         | **Build Status**                                      |
 |:-------------------------------------------------------------------------:|:-----------------------------------------------------:|
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][ga-img]][ga-url] [![][codecov-img]][codecov-url] |
-
+-->
 This package is part of my master's thesis on FlipGraphs. It is still unfinished and in active developpment.
 
 ## Installation
