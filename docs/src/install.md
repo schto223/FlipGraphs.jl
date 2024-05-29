@@ -5,7 +5,7 @@ After starting Julia, type the following:
 
 ```julia-repl
 julia> using Pkg 
-julia> Pkg.add(url="https://github.com/schto223/FlipGraphs.jl")
+julia> Pkg.add("FlipGraphs")
 ```
 
 You can start using the package as follows:
