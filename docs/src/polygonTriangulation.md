@@ -2,7 +2,7 @@
 
 In order to better understand triangulations, flips and flipgraphs, it can be helpfull to start simple.
 If you take any number of points, and iteratively connect them with staight edges that do not cross each other, 
-until you can no longer add an edge that does not cross any other edge, what you'll get is a triangulation.
+until you can no longer add an edge that does not cross any other edge, what you'll get is a (geometric) triangulation.
 
 To get from one triangulation of these points to another, you may choose an inner edge, and flip it. 
 If you look at any inner edge, the two triangles adjacent to it form a quadrilateral with the edge as one of its diagonals.
@@ -10,8 +10,8 @@ By flipping an edge, all we have to do is replace it by the other diagonal. As w
 a flip can only be done, if the quadrilateral is convex, and no three of its corners lie on the same line.
 As we are interested in taking this theory to closed surfaces, where we will no longer restrict the edges to being straight, we will only consider triangulations of points in convex general position. In this case, a triangulation in the geometric sense is equivalent to a triangulation in the graph sense.
 
-In graph theory, we do not care, if edges are straight or curved. In this case, a triangulation is simply a maximal(in regards to the number of edges) planar graph with a fixed number of points.
-Here, we do not care where the points are located, however, in order keep in line with the geometric sense and have a simple visualization,we will consider these points to be the vertices of a convex polygon (i.e. points in convex position). 
+In graph theory, we do not care, if edges are straight or curved. In this case, a triangulation of a polygon is simply a maximal (in regards to the number of edges) planar graph with a fixed number of points which lie on the border of a disc.
+Here, we do not care where exactly the points are located, however, in order keep in line with the geometric sense and have a simple visualization, we will consider these points to be the vertices of a convex polygon (i.e. points in convex position). 
 
 ```@docs
     TriangulatedPolygon

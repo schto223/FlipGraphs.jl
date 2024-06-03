@@ -82,6 +82,9 @@ nv(G::FlipGraphPlanar) = length(G.V)
 Return the List of all vertices in `G`.
 """
 vertices(G::FlipGraphPlanar) = G.V
+
+
+get_vertex(G::FlipGraphPlanar, i::Integer) = G.V[i]
 is_directed(G::FlipGraphPlanar) = false
 is_directed(::Type{FlipGraphPlanar}) = false
 
