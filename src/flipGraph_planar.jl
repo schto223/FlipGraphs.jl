@@ -26,7 +26,7 @@ end
 Construct an array containing all the edges in `G`.
 """
 function edges(G::FlipGraphPlanar) ::Vector{Edge}
-    E = collect(Edge(i,j) for i in eachindex(G.V) for j in G.adjList[i])
+    E = collect(Edge(Int32(i),j) for i in eachindex(G.V) for j in G.adjList[i])
     return filter!(e -> (src(e) > dst(e)), E)
 end 
 
@@ -82,6 +82,9 @@ nv(G::FlipGraphPlanar) = length(G.V)
 Return the List of all vertices in `G`.
 """
 vertices(G::FlipGraphPlanar) = G.V
+
+
+get_vertex(G::FlipGraphPlanar, i::Integer) = G.V[i]
 is_directed(G::FlipGraphPlanar) = false
 is_directed(::Type{FlipGraphPlanar}) = false
 

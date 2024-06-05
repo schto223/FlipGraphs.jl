@@ -1,5 +1,9 @@
 # FlipGraph
 
+!!! warning "Warning"
+    The flip graph code uses holeyDeltaComplex in order to differentiate between different triangulations.
+    I've noticed an oversight, which makes renders the code to build flip graphs to produce flip graphs where certain vertices have been falsely glued together.
+
 Contrary to flipgraphs of planar triangulations like that of a convex polygon, the flipgraph of a closed surface is generally infinitely large.
 Therefore, it is impossible to construct the whole flipgraph. However, one can construct a local image of the flipgraph.
 

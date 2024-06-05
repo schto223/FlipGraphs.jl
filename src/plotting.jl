@@ -24,7 +24,7 @@ end
 
 
 """
-    drawPNG(G::FlipGraphPlanar, fileName::String = "flipGraph" , drawLabels::Bool = false)
+    drawPNG(G::FlipGraph, fileName::String = "flipGraph" , drawLabels::Bool = false)
 
 Create a PNG image of the FlipGraph `G`.
 

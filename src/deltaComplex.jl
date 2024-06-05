@@ -1,6 +1,8 @@
 using StaticArrays
 import Base.reverse, Base.reverse!
 
+export delta_complex_non_orientable
+
 """
     struct DualEdge
 
@@ -578,6 +580,29 @@ function delta_complex(genus :: Integer, num_points :: Integer = 1)
     D = delta_complex(s)
     for i in 2:num_points
         subdivide!(D, i-1)
+    end
+    return D
+end
+
+"""
+    delta_complex_non_orientable(demigenus , num_points = demigenus+1)
+
+Create a triangulation of a non-orientable surface with `num_points` points on it. 
+
+By default `num_points` is set to 1.
+"""
+function delta_complex_non_orientable(demigenus ::Integer, num_points:: Integer = demigenus+1)
+    demigenus > 0 || throw(ArgumentError(string("Cannot create a surface with a negative genus. Got: demigenus = ",demigenus)))
+    num_points>=1 || throw(ArgumentError(string("To triangulate a surface one needs at least 1 point.  Got: num_points = ", num_points))) 
+    
+    num_points > demigenus || throw(ArgumentError(string("Cannot yet create a triangulated non-orientable surface with num_points < demigenus.  Got: num_points = ", num_points))) 
+    
+    n = 4*demigenus
+    s = [(2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
+
+    D = delta_complex(s)
+    for i in 1:(num_points-demigenus-1)
+        subdivide!(D, i)
     end
     return D
 end

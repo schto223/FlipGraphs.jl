@@ -26,7 +26,8 @@ You can start using the package as follows:
 
 ```julia-repl
 julia> using FlipGraphs
-julia> createDeltaComplex(4,10)
+julia> flipgraph_planar(10)
+FlipGraphPlanar with 1430 vertices and 5005 edges
 ```
 
 You can get help for a function by putting a question mark in front.
