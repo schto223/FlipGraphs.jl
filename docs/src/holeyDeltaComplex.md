@@ -1,5 +1,9 @@
 # HoleyDeltaComplex
 
+!!! warning "Warning"
+    This extension of a deltaComplex does not achieve its goal of allowing to accurately deduce if two triangulations are the same.
+    Although it is more accurate than the simple deltaComplex, there are still many cases, where two triangulations are deemed to be identical when they are in fact different
+
 The [`DeltaComplex`](@ref) structure is usefull for many applications. However, it has a slight issue that two different triangulations of the same surface, may result in the same DeltaComplex. In other words, a DeltaComplex misses some information about the underlying triangulation and can therefore not be used if one would, for example, like to construct the flipgraph (or rather a portion of latter) of the triangulations on a given surface.
 
 The [`HoleyDeltaComplex`](@ref) structure solves this issue, by keeping track of the holes through which every single edge passes, and the orders thereof. This comes of course with a decrease in efficiency. It is therefore advised to use the simpler [`DeltaComplex`](@ref) if this bonus information is not needed. Another drawback is, that the `HoleyDeltaComplex` structure currently does not work for non-orientable surfaces.
