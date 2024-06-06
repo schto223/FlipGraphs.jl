@@ -107,16 +107,16 @@ end
 
 
 """
-    flipgraph(g::TriangulatedPolygon , modular=false)
+    flipgraph(g::TriangulatedPolygon; kwargs..)
     
 Construct the **FlipGraph** for the TriangulatedPolygon `g`.
 
-If `modular` is true, then vertices of the FlipGraph are the classes of isomorphisms up to renaming the vertices. 
-Each class is represented by one of its elements.\\
-If `modular` is false, then each vertex is a different triangulation of the initial graph `g`.\\
-By default, `modular` is set to `false`.
+# Arguments
+- 'modular::Bool = false' : by default the whole flip graph is constructed. If modular is set to true, then only the modular flip graph is constructed.
+In a modular flip graph, vertices of the FlipGraph are classes of isomorphisms up to renaming the vertices. 
+Each class is then represented by one of its elements.
 """
-function flipgraph(g::TriangulatedPolygon, modular::Bool = false)
+function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
     G = FlipGraphPlanar()
     if modular
         p = mcKay(g)[1]
@@ -177,7 +177,7 @@ function flipgraph(g::TriangulatedPolygon, modular::Bool = false)
 end
 
 """
-    flipgraph_planar(n::Integer, modular=false)
+    flipgraph_planar(n::Integer; modular=false)
 
 Construct the `FlipGraph` of a convex `n`-gon. 
 
@@ -185,12 +185,12 @@ If `modular=true`, the FlipGraph is reduced to its modular form.
 
 # Examples
 ```julia-repl
-julia> flipgraph_planar(6, false)
+julia> flipgraph_planar(6)
 FlipGraphPlanar with 14 vertices and 21 edges
 ```
 """
-function flipgraph_planar(n::Integer, modular::Bool = false)
-    return flipgraph(triangulated_polygon(n), modular)
+function flipgraph_planar(n::Integer; modular::Bool = false)
+    return flipgraph(triangulated_polygon(n); modular = modular)
 end
 
 """
