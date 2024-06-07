@@ -32,10 +32,10 @@ export flip, flip!, is_flippable
 
 #flipGraph_planar
 export FlipGraphPlanar, flipgraph, flipgraph_planar
-export is_isomorph, rename_vertices
+export is_isomorphic, rename_vertices
 
 #deltaComplex
-export DeltaComplex, delta_complex, DualEdge, TriFace
+export DeltaComplex, deltacomplex, deltacomplex_non_orientable, DualEdge, TriFace
 export np
 export get_edge, get_point, get_vertex, get_vertex_id, vertices_id, vertices, edges, points, edges_id, get_edge_id, id
 export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees, relative_point_degrees
@@ -45,21 +45,21 @@ export subdivide!, twist_edges!
 export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoint
 
 #holeyDeltaComplex
-export HoleyDeltaComplex, Hole, Crossing, holey_delta_complex
-export num_crossings, edge_crossings, remove_holeloops!, get_crossing
+#export HoleyDeltaComplex, Hole, Crossing, holey_delta_complex
+#export num_crossings, edge_crossings, remove_holeloops!, get_crossing
 
 #flipGraph
-export FlipGraph, flip_graph
+export FlipGraph, flipgraph_modular
 export mcKay_points, mcKay_vertices, mcKay_edges
-export is_isomorph, is_isomorph_to
+export is_isomorphic, is_isomorphic_to
 
 
 include("generalUtilities.jl")
 include("polygonTriangulations.jl")
 include("flipGraph_planar.jl")
 include("deltaComplex.jl")
-include("holeyDeltaComplex.jl")
+#include("holeyDeltaComplex.jl")
 include("flipGraph.jl")
-
+include("exporting.jl")
 
 end # module

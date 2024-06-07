@@ -1,3 +1,23 @@
+struct FGVertex
+    D::DeltaComplex
+
+    num_point_perms :: Int
+    num_vertex_perms :: Int
+    num_edge_perms :: Int
+
+    function FGVertex(D::DeltaComplex, fix_points::Bool)
+        point_perms = mcKay_points(D)
+        if !fix_points
+            rename_points!(D, point_perms[1])
+        end
+        vertex_perms = mcKay_vertices(D)
+        rename_vertices!(D, vertex_perms[1])
+        edge_perms = mcKay_edges(D)
+        rename_edges!(D, edge_perms[1])
+        new(D, length(point_perms), length(vertex_perms), length(edge_perms))
+    end
+end
+
 """
     struct FlipGraph <: AbstractGraph{Int}
 
@@ -7,11 +27,12 @@ Vertices are different triangulations of the same surface.\\
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraph <: AbstractGraph{Int}    
-    V::Vector{HoleyDeltaComplex}
+    V::Vector{FGVertex}
     adjList::Vector{Vector{Int}}
+    fix_points::Bool
 
-    function FlipGraph()
-        new(Vector{HoleyDeltaComplex}(), Vector{Vector{Int}}())
+    function FlipGraph(fix_points::Bool)
+        new(Vector{FGVertex}(), Vector{Vector{Int}}(), fix_points)
     end
 end
 
@@ -42,10 +63,10 @@ has_edge(G::FlipGraph, e::Edge)::Bool = (dst(e) ∈ G.adjList[src(e)])
 has_edge(G::FlipGraph, s::Integer, d::Integer)::Bool = (d ∈ G.adjList[s])
 
 """
-    has_edge(G::FlipGraph, HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex) -> Bool
+    has_edge(G::FlipGraph, D1::DeltaComplex, D2::DeltaComplex) -> Bool
 """
-function has_edge(G::FlipGraph, HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex)::Bool 
-    return has_edge(G, findfirst(x->x==HD1, G.V), findfirst(x->x==HD2, G.V))
+function has_edge(G::FlipGraph, D1::DeltaComplex, D2::DeltaComplex)::Bool 
+    return has_edge(G, findfirst(x->x==D1, G.V), findfirst(x->x==D2, G.V))
 end
 
 """
@@ -79,11 +100,11 @@ Return the number of vertices in `G`.
 nv(G::FlipGraph) ::Int = length(G.V)
 
 """
-    vertices(G::FlipGraph) -> Vector{HoleyDeltaComplex}
+    vertices(G::FlipGraph) -> Vector{DeltaComplex}
 
 Return a list of all the vertices that have been constructed in `G`.
 """
-vertices(G::FlipGraph) :: Vector{HoleyDeltaComplex} = G.V
+vertices(G::FlipGraph) :: Vector{DeltaComplex} = G.V
 is_directed(G::FlipGraph) = false
 is_directed(::Type{FlipGraph}) = false
 
@@ -95,9 +116,11 @@ function add_edge!(G::FlipGraph, v, w)
     end
 end
 
-function add_vertex!(G::FlipGraph, HD::HoleyDeltaComplex) 
-    push!(G.V, HD)
+function add_vertex!(G::FlipGraph, D::DeltaComplex) 
+    fgv = FGVertex(D, G.fix_points)
+    push!(G.V, fgv)
     push!(G.adjList,[])
+    return fgv
 end
 
 function remove_edge!(G::FlipGraph, e::Edge)
@@ -107,45 +130,38 @@ end
 
 
 """
-    flip_graph(HD::HoleyDeltaComplex, depth::Integer; kwargs)
+    flipgraph_modular(D::DeltaComplex, depth::Integer; kwargs)
     
-Construct the **FlipGraph** for the HoleyDeltaComplex `HD`.  
-
-If `modular` is `true`, then vertices of the FlipGraph are the classes of isomorphisms up to renaming the vertices. Each class is represented by one of its elements.\\
-If `modular` is `false`, then each vertex is a different triangulation of the initial graph `g`.\\
-By default, `modular` is set to `true`.
+Construct the **FlipGraph** for the DeltaComplex `D`.  
 
 # Arguments
-- `modular::Bool=false` : If modular is set to `true`, then the isomorphism also includes a renaming of the points. 
+- `fix_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
 """
-function flip_graph(HD::HoleyDeltaComplex, depth::Integer; modular::Bool = false)
-    G = FlipGraph()
-    if modular
-        HD = rename_points!(HD, mcKay_points(HD, only_one=true)[1])
+function flipgraph_modular(D::DeltaComplex, depth::Integer; fix_points::Bool = true)
+    G = FlipGraph(fix_points)
+    if !fix_points
+        D = rename_points!(D, mcKay_points(D, only_one=true)[1])
     end
-    add_vertex!(G, HD)
-    queue = Vector{Tuple{HoleyDeltaComplex, Int, Int}}()  #(HD, index, depth)
-    push!(queue, (HD, 1, 0))
+    fgv = add_vertex!(G, D)
+    queue = Vector{Tuple{FGVertex, Int, Int}}()  #(D, index, depth)
+    push!(queue, (fgv, 1, 0))
     while !isempty(queue)
-        HD, ind_HD, d = popfirst!(queue)
-        for e in 1:ne(HD)
-            if is_flippable(HD, e)
-                new_HD = flip(HD, e)
+        fgv, ind_D, d = popfirst!(queue)
+        D = fgv.D
+        for e in 1:ne(D)
+            if is_flippable(D, e)
+                new_D = flip(D, e)
                 is_new = true
                 for i in eachindex(G.V)
-                    if is_isomorph_to(G.V[i], new_HD; modular=modular)
-                        add_edge!(G, ind_HD, i)
+                    if is_isomorphic(G.V[i], new_D; fix_points=fix_points)
+                        add_edge!(G, ind_D, i)
                         is_new = false
                         break
                     end
                 end
                 if is_new #add the new DeltaComplex to the Graph
-                    !modular || rename_points!(new_HD, mcKay_points(new_HD; only_one=true)[1])
-                    rename_vertices!(new_HD, mcKay_vertices(new_HD; only_one=true)[1])
-                    rename_edges!(new_HD, mcKay_edges(new_HD; only_one=true)[1])
-                    remove_holeloops!(new_HD)
-                    add_vertex!(G, new_HD)
-                    add_edge!(G, ind_HD, nv(G))
+                    add_vertex!(G, new_D)
+                    add_edge!(G, ind_D, nv(G))
                     if d + 1 < depth
                         push!(queue, (G.V[end], nv(G), d+1))
                     end
@@ -158,48 +174,45 @@ end
 
 
 """
-    is_isomorph(HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex; kwargs) -> Bool
+    is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; kwargs) -> Bool
 
-Return `true` if `HD1` is isomorph to `HD2` up to a renaming of the vertices, edges and if `modular=true` also points.
+Return `true` if `D1` is isomorph to `D2` up to a renaming of the vertices, edges and if `fix_points=false` also points.
     
 # Arguments
-- `modular::Bool=false` : If modular is set to `true`, then the isomorphism also includes a renaming of the points. 
-
-See also [`is_isomorph_to`](@ref)
+- `fix_points::Bool=true` : If fix_points is set to `false`, then the isomorphism also includes a renaming of the points. 
 """
-function is_isomorph(HD1::HoleyDeltaComplex, HD2::HoleyDeltaComplex; modular::Bool = false) :: Bool
-    nv(HD1) == nv(HD2) && ne(HD1) == ne(HD2) && np(HD1) == np(HD2) || return false
-    HD = deepcopy(HD1)
-    remove_holeloops!(HD)
-    !modular || rename_points!(HD, mcKay_points(HD; only_one=true)[1])
-    rename_vertices!(HD, mcKay_vertices(HD; only_one=true)[1])
-    rename_edges!(HD, mcKay_edges(HD; only_one=true)[1])
-    return is_isomorph_to(HD, HD2, modular=modular)
+function is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; fix_points::Bool = true) :: Bool
+    nv(D1) == nv(D2) && ne(D1) == ne(D2) && np(D1) == np(D2) || return false
+    D = deepcopy(D1)
+    fgv = FGVertex(D, fix_points)
+    return is_isomorphic(fgv, D2, fix_points=fix_points)
 end
 
 
 """
-    is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex; kwargs...) -> Bool
+    is_isomorphic(D::DeltaComplex, D2::DeltaComplex; kwargs...) -> Bool
 
-Return `true` if `HD` is identical to `HD2` up to a renaming of the points (if `modular=true`), edges and triFaces.
+Return `true` if `D` is identical to `D2` up to a renaming of the edges and triFaces (and points if fix_points=false).
 
-`HD` is supposed to be already renamed in a canonical way. 
+`D` is supposed to be already renamed in a canonical way. 
 
 # Arguments
-- `modular::Bool=false` : If modular is set to `true`, then the isomorphism also includes a renaming of the points. 
-
-See also [`is_isomorph`](@ref)
+- `fix_points::Bool=true` : If is set to `false`, then the isomorphism would also allow a renaming of the points. 
 """
-function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex; modular::Bool = false) :: Bool
-    numV = nv(HD); numE = ne(HD); numP = np(HD)
-    if numV != nv(HD2) || numE != ne(HD2) || numP != np(HD2) || sort(point_degrees(HD)) != sort(point_degrees(HD2))
+function is_isomorphic(fgv::FGVertex, D2::DeltaComplex; fix_points::Bool = true) :: Bool
+    D = fgv.D
+    numV = nv(D); numE = ne(D); numP = np(D)
+    if numV != nv(D2) || numE != ne(D2) || numP != np(D2) || sort(point_degrees(D)) != sort(point_degrees(D2))
         return false
     end
     #point mapping
-    A_tri = adjacency_matrix_triangulation(HD.D)
-    A_tri_2 = adjacency_matrix_triangulation(HD2.D)
-    if modular
-        permutations_points = mcKay_points(HD2)
+    A_tri = adjacency_matrix_triangulation(D)
+    A_tri_2 = adjacency_matrix_triangulation(D2)
+    if !fix_points
+        permutations_points = mcKay_points(D2)
+        if length(permutations_points) != fgv.num_point_perms
+            return false
+        end
         i = 1
         while i <= length(permutations_points)
             sig = invert_permutation(permutations_points[i])
@@ -218,16 +231,18 @@ function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex; modular::
         end
         permutations_points = [collect(1:numP)]
     end
-    remove_holeloops!(HD2)
 
     for perm_points in permutations_points
-        HD2_c = (length(permutations_points)>1 ? deepcopy(HD2) : HD2)
-        rename_points!(HD2_c, perm_points)
+        D2_c = (length(permutations_points)>1 ? deepcopy(D2) : D2)
+        rename_points!(D2_c, perm_points)
         
         #Triface mapping
-        A_delta = adjacency_matrix_deltaComplex(HD)
-        A_delta_2 = adjacency_matrix_deltaComplex(HD2_c)
-        permutations_trifaces = mcKay_vertices(HD2_c)
+        A_delta = adjacency_matrix_deltaComplex(D)
+        A_delta_2 = adjacency_matrix_deltaComplex(D2_c)
+        permutations_trifaces = mcKay_vertices(D2_c)
+        if length(permutations_trifaces) != fgv.num_vertex_perms
+            continue
+        end
         i = 1
         while i <= length(permutations_trifaces) #TODO I think this check is pointless as either they are all valid or none are
             perm_trifaces = invert_permutation(permutations_trifaces[i])
@@ -242,16 +257,18 @@ function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex; modular::
         end
 
         for perm_trifaces in permutations_trifaces
-            HD2_cc = (length(permutations_trifaces)>1 ? deepcopy(HD2_c) : HD2_c)
-            rename_vertices!(HD2_cc, perm_trifaces)
+            D2_cc = (length(permutations_trifaces)>1 ? deepcopy(D2_c) : D2_c)
+            rename_vertices!(D2_cc, perm_trifaces)
 
             #DualEdge mapping
-            permutations_edges = mcKay_edges(HD2_cc)
+            permutations_edges = mcKay_edges(D2_cc)
+            if length(permutations_edges) != fgv.num_edge_perms
+                continue
+            end
             i = 1
             while i <= length(permutations_edges)
                 perm_edges = invert_permutation(permutations_edges[i])
-                if !all(j -> length(HD2_cc.edge_crossings[perm_edges[j]]) == length(HD.edge_crossings[j]), 1:numE) ||
-                       !all(j -> is_similar(HD2_cc.D.E[perm_edges[j]], HD.D.E[j]), 1:numE)      
+                if !all(j -> is_similar(D2_cc.E[perm_edges[j]], D.E[j]), 1:numE)
                     deleteat!(permutations_edges, i)
                 else
                     i += 1
@@ -260,60 +277,36 @@ function is_isomorph_to(HD::HoleyDeltaComplex, HD2::HoleyDeltaComplex; modular::
             if isempty(permutations_edges)
                 continue
             end
-            #Check if there is a permutation for which the hole crossings are identical
             for perm_edges in permutations_edges
-                HD2_ccc = (length(permutations_edges)>1 ? deepcopy(HD2_cc) : HD2_cc)
-                rename_edges!(HD2_ccc, perm_edges) 
+                D2_ccc = (length(permutations_edges)>1 ? deepcopy(D2_cc) : D2_cc)
+                rename_edges!(D2_ccc, perm_edges) 
                 bo = true
-                i = 1
-                #Check if the crossings along the holes are identical
-                while i <= length(HD.holes) && bo
-                    C = get_crossing(HD.holes[i])
-                    C2 = get_crossing(HD2_ccc.holes[i])
-                    C2_start = C2
-                    skipfirstcheck = true
-                    bo = false
-                    while (C2.key_holeposition != C2_start.key_holeposition || skipfirstcheck) && !bo
-                        skipfirstcheck = false
-                        bo = C2.edge_id == C.edge_id
-                        if bo #found a valid starting position to align the holes
-                            C2_next = C2.next
-                            C_next = C.next
-                            #check if all the following crossings align as well
-                            while C2_next.key_holeposition != C2_start.key_holeposition && bo 
-                                bo = C2_next.edge_id == C_next.edge_id
-                                C2_next = C2_next.next
-                                C_next = C_next.next
-                            end
-                        end
-                        if !bo #C2 cannot be aligned with C
-                            C2 = C2.next
-                        end
-                    end
-                    i += 1
-                end
-                #check if the edge crossings match
-                if bo 
-                    i = 1
-                    while i <= length(HD.edge_crossings) && bo
-                        ec_holes = [c.hole_id for c in HD.edge_crossings[i]]
-                        ec_holes_2 = [c.hole_id for c in HD2_ccc.edge_crossings[i]]
-                        ec_directions = [c.going_in for c in HD.edge_crossings[i]]
-                        ec_directions_2 = [c.going_in for c in HD.edge_crossings[i]]
-                        if !(ec_holes == ec_holes_2 && ec_directions == ec_directions_2 ||
-                            ec_holes == reverse(ec_holes_2) && all(ec_directions .!== reverse(ec_directions_2)))
-                            bo = false
-                        end
-                        i += 1
+                for n in 1:numV
+                    if !is_equivalent(D.V[n],D2_ccc.V[n])
+                        return false
                     end
                 end
-                if bo 
-                    return true
-                end
+                return true
             end
         end
     end
     return false
+end
+
+function is_equivalent(T1::TriFace, T2::TriFace)
+    offset = -1
+    e1_ids = collect(edges_id(T1))
+    e2_ids = collect(edges_id(T2))
+    if all(e1_ids .== e2_ids)
+        offset = 0
+    elseif all(e1_ids .== e2_ids[[2,3,1]])
+        offset = 1
+    elseif all(e1_ids .== e2_ids[[3,1,2]])
+        offset = 2
+    else
+        return false
+    end
+    return all(i -> T1.points[i] == T2.points[(i+offset-1)%3 + 1] && e1_ids[i] == e2_ids[(i+offset-1)%3 + 1], 1:3) 
 end
 
 
@@ -354,7 +347,7 @@ function split(V::Vector{<:Integer}, degs::Vector{<:Integer})
 end
 
 """
-    mcKay_points(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+    mcKay_points(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
 
 Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
 of the points which give a canonical isomorphism class representant.
@@ -362,8 +355,8 @@ of the points which give a canonical isomorphism class representant.
 Return a vector of permutation vectors `p` such that Point 1 becomes Point `p[1]`, Point 2 becomes Point `p[2]`,...
 If `only_one=true`, the algorithm stops after finding one valid permutation.
 """
-function mcKay_points(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
-    A = multi_adjacency_matrix_triangulation(HD.D)
+function mcKay_points(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+    A = multi_adjacency_matrix_triangulation(D)
 
     #replace partitions by partitions as long as there are 2 elements in the same partition ...
     #...that may be differentiated by their relative degrees to another partition
@@ -403,10 +396,10 @@ function mcKay_points(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vecto
             return true
         end
         #points = collect()#reduce(vcat, collect((length(p[i])>1 ? p[i] : [])  for i in 1:length(p)))
-        holecounts = [zeros(Int, length(HD.holes)) for i in 1:HD.D.num_points.x]
-        for d in edges(HD)
-            x, y = triangle_edge(HD.D, d)
-            for c in HD.edge_crossings[id(d)]
+        holecounts = [zeros(Int, length(D.holes)) for i in 1:D.num_points.x]
+        for d in edges(D)
+            x, y = triangle_edge(D, d)
+            for c in D.edge_crossings[id(d)]
                 holecounts[x][c.hole_id] += 1
                 holecounts[y][c.hole_id] += 1
             end
@@ -437,7 +430,7 @@ function mcKay_points(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vecto
         end
     end
 
-    n = np(HD)
+    n = np(D)
     p = split(collect(1:n), degrees(A))
     makeEquitable!(p)
 
@@ -490,7 +483,7 @@ function mcKay_points(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vecto
 end
 
 """
-    mcKay_vertices(HD::HoleyDeltaComplex)::Vector{Vector{Int}}
+    mcKay_vertices(D::DeltaComplex)::Vector{Vector{Int}}
 
 Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
 of the triFaces which give a canonical isomorphism class representant.
@@ -499,10 +492,10 @@ Return a vector of permutation vectors `p` such that TriFace 1 becomes TriFace p
 If `only_one=true`, the algorithm stops after finding one valid permutation.
 
 """
-function mcKay_vertices(HD::HoleyDeltaComplex; only_one::Bool=false) ::Vector{Vector{Int}}
-    np1 = np(HD)
+function mcKay_vertices(D::DeltaComplex; only_one::Bool=false) ::Vector{Vector{Int}}
+    np1 = np(D)
     np2 = np1*np1
-    A = adjacency_matrix_deltaComplex(HD.D)
+    A = adjacency_matrix_deltaComplex(D)
 
     #replace partitions by partitions as long as there are 2 elements in the same partition ...
     #...that may be differentiated by their relative degrees to another partition
@@ -535,8 +528,8 @@ function mcKay_vertices(HD::HoleyDeltaComplex; only_one::Bool=false) ::Vector{Ve
         return min(p1*np2 + p2*np1 + p3, p2*np2 + p3*np1 + p1, p3*np2 + p1*np1 + p2)
     end
 
-    n = nv(HD)
-    p = split(collect(1:n), collect(pointValue(T) for T in HD.D.V))
+    n = nv(D)
+    p = split(collect(1:n), collect(pointValue(T) for T in D.V))
     makeEquitable!(p)
 
     if length(p) == n #|| only_one #there is only one canonical permutation
@@ -561,6 +554,9 @@ function mcKay_vertices(HD::HoleyDeltaComplex; only_one::Bool=false) ::Vector{Ve
     queue = Vector{Vector{Vector{Int}}}([p])
     leafs = Vector{Vector{Vector{Int}}}()
     while !isempty(queue)
+        if length(queue)>=100
+            println("Oh no")
+        end
         p = popfirst!(queue)
         i = 1
         while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
@@ -584,7 +580,7 @@ end
 
 
 """
-    mcKay_edges(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+    mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
 
 Apply McKay's canonical graph labeling algorithm in order to determine all possible permutations 
 of the triFaces which give a canonical isomorphism class representant.
@@ -592,28 +588,25 @@ of the triFaces which give a canonical isomorphism class representant.
 Return a vector of permutation vectors `p` such that DualEdge 1 becomes DualEdge p[1], DualEdge 2 becomes DualEdge p[2],...\\
 If `only_one=true`, the algorithm stops after finding one valid permutation.
 """
-function mcKay_edges(HD::HoleyDeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
-    b1 = max(np(HD), nv(HD))
+function mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+    b1 = max(np(D), nv(D))
     b2 = b1*b1
 
     #give each combination of two vertices and 2 points a distinct value 
     function edgeValue(d::DualEdge)
         t1,t2 = d.triangles
-        p1,p2 = points(HD.D, d)
+        p1,p2 = points(D, d)
         return min(t1+t2*b1, t2+t1*b1)*b2 + min(p1+p2*b1, p2+p1*b1)
     end
 
-    m = ne(HD)
-    p = split(collect(1:m), collect(edgeValue(d) for d in HD.D.E))
+    m = ne(D)
+    p = split(collect(1:m), collect(edgeValue(d) for d in D.E))
     i = 1
     while i <= length(p)
         if length(p[i]) > 1
             pp = popat!(p,i)
-            pps = split(pp, collect(length(HD.edge_crossings[pp[j]]) for j in eachindex(pp)))
-            for ppp in pps
-                insert!(p, i, ppp)
-                i += 1
-            end
+            insert!(p, i, pp)
+            i += 1
         else
             i += 1
         end

@@ -6,7 +6,7 @@ if isempty(ARGS)
         "polygonTriangulations.jl",
         "flipGraph_planar.jl",
         "deltaComplex.jl",
-        "holeyDeltaComplex.jl",
+        #"holeyDeltaComplex.jl",
         "flipGraph.jl"
     ]
 else

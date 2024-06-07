@@ -1,10 +1,10 @@
 
 using FlipGraphs, Random
 using GraphPlot#: gplot, cycle_graph
-using Cairo, KernelDensityEstimatePlotting
+#using Cairo, KernelDensityEstimatePlotting
 
-import Fontconfig
-import Compose: px, PNG, draw
+#import Fontconfig
+#import Compose: px, PNG, draw
 
 function drawPNG(g::TriangulatedPolygon, fileName::String ="triangulatedPolygon", drawLabels::Bool = false )
     n = g.n
@@ -51,6 +51,9 @@ end
 #drawPNG(G, string("flipG-torus-1"))
 #diameter(G)
 
-for i in 3:10
-    drawPNG(triangulated_polygon(i), string("triPoly-",i),true)
-end
+#for i in 3:10
+#    drawPNG(triangulated_polygon(i), string("triPoly-",i),true)
+#end
+
+D=deltacomplex(3)
+G=flipgraph_modular(D,3)

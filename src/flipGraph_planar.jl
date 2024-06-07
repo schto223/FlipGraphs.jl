@@ -136,7 +136,7 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
                     permutations = mcKay(gg)
                     newGraph = true
                     for i in 1:nv(G)
-                        if is_isomorph(G.V[i], gg, permutations)
+                        if is_isomorphic(G.V[i], gg, permutations)
                             add_edge!(G, ind_g, i)
                             newGraph = false
                             break
@@ -211,7 +211,7 @@ end
 
 Return true if `g1` is identical to `g2` up to a renaming of the vertices of `g1` by one of the given permutations.
 """
-function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
+function is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
     if sort(degrees(g1)) != sort(degrees(g2))
         return false
     end
