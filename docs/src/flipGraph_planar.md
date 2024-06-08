@@ -28,4 +28,4 @@ if it is possible to get from one triangulation to the other by flipping a singl
     has_edge(::FlipGraphPlanar,::Edge)
     neighbors(::FlipGraphPlanar, ::Integer)
     diameter(::FlipGraphPlanar)
-```
+    ```

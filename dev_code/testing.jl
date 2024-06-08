@@ -46,14 +46,3 @@ function drawPNG(G::FlipGraph, fileName::String ="flipGraph" , drawLabels::Bool=
 end
 
 
-#HD = holey_delta_complex(1,1)
-#G= flip_graph(HD, 2,modular=false)
-#drawPNG(G, string("flipG-torus-1"))
-#diameter(G)
-
-#for i in 3:10
-#    drawPNG(triangulated_polygon(i), string("triPoly-",i),true)
-#end
-
-D=deltacomplex(3)
-G=flipgraph_modular(D,3)

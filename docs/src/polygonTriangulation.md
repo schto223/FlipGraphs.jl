@@ -39,7 +39,7 @@ Edges are stored as an adjacency list of which vertices are connected to another
     has_edge(::TriangulatedPolygon, s, d)
     neighbors(::TriangulatedPolygon, ::Integer)
     degrees(::TriangulatedPolygon)
-    is_isomorph(::TriangulatedPolygon, ::TriangulatedPolygon, ::Vector{Vector{Integer}})
+    is_isomorphic(::TriangulatedPolygon, ::TriangulatedPolygon, ::Array{Vector{Integer},1})
     rename_vertices(::TriangulatedPolygon, ::Vector{Integer})
     adjacency_matrix(::TriangulatedPolygon)
 ```

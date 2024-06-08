@@ -49,9 +49,9 @@ export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoi
 #export num_crossings, edge_crossings, remove_holeloops!, get_crossing
 
 #flipGraph
-export FlipGraph, flipgraph_modular
+export FlipGraph, FGVertex, flipgraph_modular
 export mcKay_points, mcKay_vertices, mcKay_edges
-export is_isomorphic, is_isomorphic_to
+export is_isomorphic
 
 
 include("generalUtilities.jl")

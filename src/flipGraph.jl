@@ -1,3 +1,12 @@
+"""
+    struct FGVertex
+
+A vertex in a flip graph. 
+
+An `FGVertex` is composed of a representant(`DeltaComplex`) of the isotopy class of that vertex. 
+The representant has been relabeld with one of the canonical labelings obtained by McKay's Algorithm.
+Addidtionally, the `FGVertex` contains the number of labelings that are output by the respective McKay's Algorithms.
+"""
 struct FGVertex
     D::DeltaComplex
 
