@@ -255,7 +255,11 @@ function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
     return gg
 end
 
+"""
+    is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
 
+Check if `g2` is isomorphic to `g1` up to a relabeling of the vertices by one of the `permutations`.
+"""
 function is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
     for p in permutations
         if all(i-> all(j-> has_edge(g1.g, p[i], p[j]), g2.adjList[i]) , eachindex(g2.adjList))
