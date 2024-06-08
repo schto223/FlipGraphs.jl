@@ -31,7 +31,7 @@ export degrees
 export flip, flip!, is_flippable
 
 #flipGraph_planar
-export FlipGraphPlanar, flipgraph, flipgraph_planar
+export FlipGraphPlanar, FGPVertex, flipgraph, flipgraph_planar
 export is_isomorphic, rename_vertices
 
 #deltaComplex

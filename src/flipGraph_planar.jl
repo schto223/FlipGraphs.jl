@@ -1,4 +1,4 @@
-export mcKay, relative_degrees
+#export mcKay, relative_degrees
 
 struct FGPVertex
     g :: TriangulatedPolygon

@@ -24,7 +24,8 @@ makedocs(
         "General Utilities" => ["generalUtilities.md", "exporting.md"]
         #"Plotting" => ["plotting.md"]
     ],
-    checkdocs = :none #:exports 
+    #checkdocs = :exports 
+    checkdocs = :none 
 )
 
 deploydocs(
