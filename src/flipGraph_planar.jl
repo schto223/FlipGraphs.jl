@@ -1,3 +1,22 @@
+#export mcKay, relative_degrees
+
+struct FGPVertex
+    g :: TriangulatedPolygon
+    degrees ::Vector{Int} 
+    num_point_perms :: Int
+    ind :: Int
+
+    function FGPVertex(g::TriangulatedPolygon, ind::Integer)
+        return new(g, degrees(g), 0, ind)
+    end
+
+    function FGPVertex(g::TriangulatedPolygon, ind::Integer, perms::Vector{Vector{T}}) where T<:Integer
+        g = rename_vertices(g, perms[1])
+        new(g, degrees(g), length(perms), ind)
+    end
+end
+
+
 """
     struct FlipGraphPlanar <: AbstractGraph{Int32}
 
@@ -8,11 +27,12 @@ Vertices are different triangulations of the same convex polygon.
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraphPlanar <: AbstractGraph{Int32}
-    V ::Vector{TriangulatedPolygon}
+    V ::Vector{FGPVertex}
     adjList ::Vector{Vector{Int32}}
+    modular ::Bool
 
-    function FlipGraphPlanar()
-        new(Vector{TriangulatedPolygon}(), Vector{Vector{Int32}}())
+    function FlipGraphPlanar(modular::Bool=false)
+        new(Vector{FGPVertex}(), Vector{Vector{Int32}}(), modular)
     end
 end
 
@@ -51,7 +71,15 @@ has_edge(G::FlipGraphPlanar, s, d) = (d ∈ G.adjList[s])
 
 Return `true` if `v` is a valid index of a vertex in `G`.
 """
-has_vertex(G::FlipGraphPlanar, v) = (1 <= v <= nv(G))
+has_vertex(G::FlipGraphPlanar, i::Integer) = (1 <= i <= nv(G))
+
+"""
+    has_vertex(G::FlipGraphPlanar, v::FGPVertex)
+
+Return `true` if `v` is a vertex in `G`.
+"""
+has_vertex(G::FlipGraphPlanar, v::FGPVertex) = (v in G.V)
+
 
 """
     neighbors(G::FlipGraphPlanar, v::Integer) -> Vector{Int32}
@@ -96,78 +124,99 @@ function add_edge!(G::FlipGraphPlanar, v, w)
 end
 
 function add_vertex!(G::FlipGraphPlanar, g::TriangulatedPolygon) 
-    push!(G.V,g)
+    fgpv = FGPVertex(g, length(G.V)+1)
+    push!(G.V, fgpv)
     push!(G.adjList,[])
+    return fgpv
 end
 
-function remove_edge!(G::FlipGraphPlanar, e::Edge)
-    deleteat!(G.adjList[src(e)], findfirst(x->x==dst(e), G.adjList[src(e)]))
-    deleteat!(G.adjList[dst(e)], findfirst(x->x==src(e), G.adjList[dst(e)]))
+function add_vertex!(G::FlipGraphPlanar, g::TriangulatedPolygon, perms::Vector{Vector{T}}) where T<:Integer
+    fgpv = FGPVertex(g, length(G.V)+1, perms)
+    push!(G.V, fgpv)
+    push!(G.adjList,[])
+    return fgpv
 end
+
+#function remove_edge!(G::FlipGraphPlanar, e::Edge)
+#    deleteat!(G.adjList[src(e)], findfirst(x->x==dst(e), G.adjList[src(e)]))
+#    deleteat!(G.adjList[dst(e)], findfirst(x->x==src(e), G.adjList[dst(e)]))
+#end
 
 
 """
-    flipgraph(g::TriangulatedPolygon , modular=false)
+    flipgraph(g::TriangulatedPolygon; kwargs..)
     
 Construct the **FlipGraph** for the TriangulatedPolygon `g`.
 
-If `modular` is true, then vertices of the FlipGraph are the classes of isomorphisms up to renaming the vertices. 
-Each class is represented by one of its elements.\\
-If `modular` is false, then each vertex is a different triangulation of the initial graph `g`.\\
-By default, `modular` is set to `false`.
+# Arguments
+- 'modular::Bool = false' : by default the whole flip graph is constructed. If modular is set to true, then only the modular flip graph is constructed.
+In a modular flip graph, vertices of the FlipGraph are classes of isomorphisms up to renaming the vertices. 
+Each class is then represented by one of its elements.
 """
-function flipgraph(g::TriangulatedPolygon, modular::Bool = false)
+function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
     G = FlipGraphPlanar()
     if modular
-        p = mcKay(g)[1]
-        g = rename_vertices(g, p)
+        p = mcKay(g)
+        fgpv = add_vertex!(G, g, p)
+    else
+        for i in 1:nv(g)
+            sort!(g.adjList[i])
+        end
+        fgpv = add_vertex!(G, g)
     end
-    add_vertex!(G, g)
     
-    queue = Vector{Tuple{TriangulatedPolygon, Int32}}()
-    push!(queue,(g,1))
+    queue = Vector{FGPVertex}()
+    push!(queue, fgpv)
     
     if modular
         while !isempty(queue)
-            g, ind_g = popfirst!(queue)
+            fgpv = popfirst!(queue)
+            g = fgpv.g
             for e in edges(g)
                 if is_flippable(g,e)
                     gg = flip(g,e)
                     permutations = mcKay(gg)
+                    num_perms = length(permutations)
+                    degrees_sorted = sort(degrees(gg))
                     newGraph = true
-                    for i in 1:nv(G)
-                        if is_isomorph(G.V[i], gg, permutations)
-                            add_edge!(G, ind_g, i)
+                    for vg in G.V
+                        if  vg.num_point_perms == num_perms && vg.degrees == degrees_sorted && is_isomorphic(vg, gg, permutations)
+                            add_edge!(G, fgpv.ind, vg.ind)
                             newGraph = false
                             break
                         end
                     end
                     if newGraph
-                        add_vertex!(G, rename_vertices(gg, permutations[1]))
-                        add_edge!(G, ind_g, nv(G))
-                        push!(queue, (G.V[end], nv(G)))
+                        new_v = add_vertex!(G, gg, permutations)
+                        add_edge!(G, fgpv.ind, new_v.ind)
+                        push!(queue, new_v)
                     end
                 end
             end
         end
     else 
         while !isempty(queue)
-            g, ind_g = popfirst!(queue)
+            fgpv = popfirst!(queue)
+            g = fgpv.g
             for e in edges(g) 
                 if is_flippable(g,e)
                     gg = flip(g,e)
                     newGraph = true
-                    for i in eachindex(G.V)
-                        if all(issetequal(G.V[i].adjList[j], gg.adjList[j]) for j in 1:nv(g))
-                            add_edge!(G, ind_g, i)
+                    for j in 1:nv(gg)
+                        sort!(gg.adjList[j])
+                    end
+                    degs = degrees(gg)
+                    for v in G.V
+                        if v.degrees == degs && all(v.g.adjList[j] == gg.adjList[j] for j in 1:nv(g))
+                            add_edge!(G, fgpv.ind, v.ind)
                             newGraph = false
                             break
                         end
                     end
                     if newGraph
-                        add_vertex!(G, gg)
-                        add_edge!(G, ind_g, nv(G))
-                        push!(queue, (G.V[end], nv(G)))
+                        new_v = add_vertex!(G, gg)
+                        add_edge!(G, fgpv.ind, new_v.ind)
+                        push!(queue, new_v)
                     end
                 end
             end
@@ -177,7 +226,7 @@ function flipgraph(g::TriangulatedPolygon, modular::Bool = false)
 end
 
 """
-    flipgraph_planar(n::Integer, modular=false)
+    flipgraph_planar(n::Integer; modular=false)
 
 Construct the `FlipGraph` of a convex `n`-gon. 
 
@@ -185,12 +234,12 @@ If `modular=true`, the FlipGraph is reduced to its modular form.
 
 # Examples
 ```julia-repl
-julia> flipgraph_planar(6, false)
+julia> flipgraph_planar(6)
 FlipGraphPlanar with 14 vertices and 21 edges
 ```
 """
-function flipgraph_planar(n::Integer, modular::Bool = false)
-    return flipgraph(triangulated_polygon(n), modular)
+function flipgraph_planar(n::Integer; modular::Bool = false)
+    return flipgraph(triangulated_polygon(n); modular = modular)
 end
 
 """
@@ -207,16 +256,13 @@ function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
 end
 
 """
-    is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{Integer}})
+    is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
 
-Return true if `g1` is identical to `g2` up to a renaming of the vertices of `g1` by one of the given permutations.
+Check if `g2` is isomorphic to `g1` up to a relabeling of the vertices by one of the `permutations`.
 """
-function is_isomorph(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
-    if sort(degrees(g1)) != sort(degrees(g2))
-        return false
-    end
+function is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
     for p in permutations
-        if all(e-> has_edge(g1, p[src(e)], p[dst(e)]), edges(g2))
+        if all(i-> all(j-> has_edge(g1.g, p[i], p[j]), g2.adjList[i]) , eachindex(g2.adjList))
             return true
         end
     end
@@ -236,7 +282,7 @@ diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 Count for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
 """
 function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
-    rdegs = zeros(Int, length(U))
+    rdegs = zeros(Int32, length(U))
     for i in eachindex(U), j in V
         if has_edge(g, U[i], j)
             rdegs[i] += 1

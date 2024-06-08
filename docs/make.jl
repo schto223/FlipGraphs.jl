@@ -20,11 +20,12 @@ makedocs(
     pages = [
         "Home" => ["index.md", "install.md", "quickStart.md"],
         "Convex Polygons" => ["polygonTriangulation.md", "flipGraph_planar.md"],
-        "Closed Surfaces" => ["deltaComplex.md", "holeyDeltaComplex.md", "flipGraph.md"],
-        "General Utilities" => "generalUtilities.md"
+        "Closed Surfaces" => ["deltaComplex.md", "flipGraph.md"],
+        "General Utilities" => ["generalUtilities.md", "exporting.md"]
         #"Plotting" => ["plotting.md"]
     ],
-    checkdocs = :none #:exports 
+    #checkdocs = :exports 
+    checkdocs = :none 
 )
 
 deploydocs(

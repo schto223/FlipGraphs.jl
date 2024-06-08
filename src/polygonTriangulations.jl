@@ -10,10 +10,6 @@ struct TriangulatedPolygon <: AbstractGraph{Int}
     function TriangulatedPolygon(n::Integer)
         new(n, Vector{Vector{Int}}([[] for i in 1:n]))
     end
-
-    function TriangulatedPolygon(n::Integer, adjList::Vector{Vector{T}}) where {T<:Integer}
-        new(n, adjList)
-    end
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", g::TriangulatedPolygon)
@@ -67,8 +63,7 @@ Edges are not directed. It is however necessary to define a source and a target.
 For TriangulatedPolygon, the source will be the incident vertex with the smaller id.
 """
 function edges(g::TriangulatedPolygon) :: Vector{Edge}
-    E = collect(Edge(i,j) for i in 1:nv(g) for j in g.adjList[i])
-    return filter!(e -> src(e) < dst(e), E)
+    return collect(Edge(i,j) for i in 1:nv(g) for j in g.adjList[i] if i<j)
 end 
 
 edgetype(g::TriangulatedPolygon) = SimpleEdge{Int}

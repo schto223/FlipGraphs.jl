@@ -1,3 +1,5 @@
+import Graphs: SimpleEdge
+
 function isBiDirectional(g::TriangulatedPolygon)
     for i = 1:nv(g), j in g.adjList[i]
         if !(i in g.adjList[j])
@@ -36,6 +38,27 @@ end
     @test length(FE) == 7
     flip!(g, FE[3])
     @test ne(g) == 17
+    FE = filter(e->is_flippable(g,e), edges(g))
+    flip!(g, FE[3].src, FE[3].dst)
+
+    for e in edges(g)
+        @test has_edge(g,e) == true
+    end
+
+    for i in vertices(g)
+        @test has_vertex(g,i) == true
+    end
+    @test has_vertex(g, nv(g)+1) == false
+    @test has_vertex(g, 0) == false
     
+    @test edgetype(g) == SimpleEdge{Int}
+    @test is_directed(g) == false
+    @test is_directed(TriangulatedPolygon) == false
+
+    @test outneighbors(g,4) == inneighbors(g,4) == neighbors(g,4)
+
+    A = adjacency_matrix(g)
+    @test size(A) == (10,10)
+    @test allequal((A.==1) + (A.==0))
 end
 

@@ -1,7 +1,6 @@
 using StaticArrays
 import Base.reverse, Base.reverse!
 
-export delta_complex_non_orientable
 
 """
     struct DualEdge
@@ -234,11 +233,19 @@ Return the list of all 3 edges that are incident to the `t`-th Triface in `D`.
 edges(D::DeltaComplex, t::Integer) = D.V[t].edges :: Vector{DualEdge}
 
 """
-    edges_id(T::TriFace) -> Tuple{Int, Int, Int}
+    edges_id(D::DeltaComplex, t::Integer) -> Tuple{Int, Int, Int}
 
 Return the indices of all 3 edges that are incident to `T`. 
 """
 edges_id(D::DeltaComplex, t::Integer) = (get_edge_id(D.V[t],1), get_edge_id(D.V[t],2), get_edge_id(D.V[t],3)) :: Tuple{Int, Int, Int}
+
+"""
+    edges_id(T::TriFace) -> Tuple{Int, Int, Int}
+
+Return the indices of all 3 edges that are incident to `T`. 
+"""
+edges_id(T::TriFace) = (T.edges[1].id, T.edges[2].id, T.edges[3].id) :: Tuple{Int, Int, Int}
+
 
 """
     id(T::TriFace)
@@ -472,7 +479,7 @@ function multi_adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int}
 end
 
 """
-    diameter_deltaComplex(D::DeltaComplex)
+    diameter_deltacomplex(D::DeltaComplex)
 
 Compute the diameter of the DeltaComplex `D`.\\
 
@@ -482,6 +489,19 @@ See also [`diameter_triangulation`](@ref)
 """
 function diameter_deltaComplex(D::DeltaComplex)  
     return diameter(adjacency_matrix_deltaComplex(D))
+end
+
+"""
+    diameter(D::DeltaComplex)
+
+Compute the diameter of the DeltaComplex `D`.\\
+
+The **diameter** of a Graph is the greatest minimal distance between any 2 vertices.
+
+See also [`diameter_triangulation`](@ref)
+"""
+function diameter(D::DeltaComplex)
+    return diameter_deltaComplex(D)
 end
 
 
@@ -560,13 +580,13 @@ end
 
 
 """
-    delta_complex(genus , num_points = 1)
+    deltacomplex(genus , num_points = 1)
 
 Create a triangulation of an orientable surface with `num_points` points on it. 
 
 By default `num_points` is set to 1.
 """
-function delta_complex(genus :: Integer, num_points :: Integer = 1)
+function deltacomplex(genus :: Integer, num_points :: Integer = 1)
     genus >= 0 || throw(ArgumentError(string("Cannot create a surface with a negative genus. Got: genus = ",genus)))
     genus != 0 || num_points >= 3 || throw(ArgumentError(string("To triangulate a spehere one needs at least 3 points.  Got: num_points = ", num_points))) 
     num_points>=1 || throw(ArgumentError(string("To triangulate a surface one needs at least 1 point.  Got: num_points = ", num_points))) 
@@ -577,7 +597,7 @@ function delta_complex(genus :: Integer, num_points :: Integer = 1)
         n = 4*genus
         s = [(-1)^div(k-1, 2) * (2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
     end
-    D = delta_complex(s)
+    D = deltacomplex(s)
     for i in 2:num_points
         subdivide!(D, i-1)
     end
@@ -585,30 +605,38 @@ function delta_complex(genus :: Integer, num_points :: Integer = 1)
 end
 
 """
-    delta_complex_non_orientable(demigenus , num_points = demigenus+1)
+    deltacomplex_non_orientable(demigenus , num_points = demigenus+1)
 
 Create a triangulation of a non-orientable surface with `num_points` points on it. 
 
 By default `num_points` is set to 1.
 """
-function delta_complex_non_orientable(demigenus ::Integer, num_points:: Integer = demigenus+1)
+function deltacomplex_non_orientable(demigenus ::Integer, num_points:: Integer = 1)
     demigenus > 0 || throw(ArgumentError(string("Cannot create a surface with a negative genus. Got: demigenus = ",demigenus)))
-    num_points>=1 || throw(ArgumentError(string("To triangulate a surface one needs at least 1 point.  Got: num_points = ", num_points))) 
+    num_points >= 1 || throw(ArgumentError(string("To triangulate a surface one needs at least 1 point.  Got: num_points = ", num_points))) 
+    demigenus != 1 || num_points > 1 || throw(ArgumentError(string("To triangulate a projective plane one needs at least 2 points. Got: num_points = ", num_points))) 
     
-    num_points > demigenus || throw(ArgumentError(string("Cannot yet create a triangulated non-orientable surface with num_points < demigenus.  Got: num_points = ", num_points))) 
-    
-    n = 4*demigenus
-    s = [(2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
+    if demigenus % 2 == 0 #demigenus/2 klein bottles
+        n = 2*demigenus
+        s = [(-1)^(4%((k-1)%4+1)) * (2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
+    elseif demigenus == 1
+        s = [1,2,1,2] 
+        num_points -= 1
+    else                 #projective plane glued to (demigenus-1)/2 tori
+        n = 2*(demigenus-3)
+        s = [(-1)^div(k-1, 2) * (2*((k-1)÷4) + (k-1)%2 + 1) for k in 1:n]
+        push!(s, demigenus-2, demigenus-1, demigenus, -demigenus+2, -demigenus+1, demigenus)
+    end
 
-    D = delta_complex(s)
-    for i in 1:(num_points-demigenus-1)
+    D = deltacomplex(s)
+    for i in 1:(num_points-1)
         subdivide!(D, i)
     end
     return D
 end
 
 """
-    delta_complex(s :: Array{<:Integer,1})
+    deltacomplex(s :: Array{<:Integer,1})
 
 Create a triangulation of an orientable surface with a single point, by gluing corresponding edges together.\\
 
@@ -619,15 +647,15 @@ If `s[i]` and `s[j]` have the same absolute value, they are glued together while
 #Examples
 The following results in the triangulation of a torus with one point:
 ```julia-rep
-julia> delta_complex([1,2,-1,-2])
+julia> deltacomplex([1,2,-1,-2])
 ```
 
 The following results in the triangulation of a Klein bottle with one point:
 ```julia-rep
-julia> delta_complex([1,2,-1,-2])
+julia> deltacomplex([1,2,-1,-2])
 ```
 """
-function delta_complex(s :: Array{<:Integer,1})
+function deltacomplex(s :: Array{<:Integer,1})
     n = length(s)
 
     function get_TriFace_and_rel_edge(D::DeltaComplex, i::Integer) :: Tuple{TriFace, Int8}
@@ -657,7 +685,7 @@ function delta_complex(s :: Array{<:Integer,1})
         end
     end
 
-    D = delta_scaffold(size(s,1))
+    D = deltacomplex_scaffold(size(s,1))
     #glue respective sides of scaffold together
     for a in s_abs_unique
         i,j = findall(σ -> σ==a , s_abs)
@@ -684,7 +712,7 @@ function delta_complex(s :: Array{<:Integer,1})
 end
 
 
-function delta_scaffold(num_vertices :: Integer)
+function deltacomplex_scaffold(num_vertices :: Integer)
     num_vertices%2 == 0 || throw(ArgumentError(
         string("num_vertices has to be a multiple of 2. Got: num_vertices=", num_vertices)))
     num_vertices>0 || throw(ArgumentError(
@@ -767,7 +795,7 @@ It is usefull in the case that you would like to untwist a certain edge.
 
 # Examples
 ```julia-repl
-julia> D = delta_complex([1,2,-1,2]);
+julia> D = deltacomplex([1,2,-1,2]);
 julia> T = get_vertex(D,1);
 julia> edges(T)
 3-element Array{DualEdge,1}:
@@ -813,6 +841,17 @@ This is always the case if the edge does not connect a `TriFace` to itself.
 """
 function is_flippable(d::DualEdge)
     return d.triangles[1] != d.triangles[2]
+end
+
+"""
+    flip(D::DeltaComplex, e::Integer)
+
+Return the resulting DeltaComplex obtained by flipping the given edge in `D`.
+"""
+function flip(D::DeltaComplex, e::Integer; left::Bool = true) 
+    D2 = deepcopy(D)
+    flip!(D2, get_edge(D2, e), left=left)
+    return D2
 end
 
 """
@@ -1001,7 +1040,7 @@ The algorithm stops once the last measured variance is bigger than the past few 
 
 # Examples
 ```julia-repl
-julia> D = delta_complex(30,30);
+julia> D = deltacomplex(30,30);
 julia> randomize!(D, num_initial_flips=10000, num_flips_per_step = 1000, variance_interval_size=10, lookback_size = 5)
 160000
 ```

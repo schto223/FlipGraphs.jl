@@ -19,7 +19,8 @@ Edges in the dual Graph(i.e. the Δ-complex) connect two triangular faces if the
 This Module comes with some handy and easy to use tools to construct a triangulation of a surface:
 
 ```@docs
-    delta_complex
+    deltacomplex
+    deltacomplex_non_orientable
     subdivide!(::DeltaComplex, ::Integer)
 ```
 ### Common Graph-like methods
@@ -50,6 +51,7 @@ This Module comes with some handy and easy to use tools to construct a triangula
     edges(::TriFace)
     edges(::DeltaComplex, ::Integer)
     edges_id(::DeltaComplex, ::Integer) 
+    edges_id(::TriFace) 
     id(::TriFace) 
 
     other_endpoint(::DualEdge, ::Integer, ::Integer)
@@ -65,6 +67,7 @@ Here are some usefull methods, to pull out general information about the Δ-Comp
     genus(::DeltaComplex)
     diameter_triangulation(::DeltaComplex)
     diameter_deltaComplex(::DeltaComplex)
+    diameter(::DeltaComplex)
     adjacency_matrix_deltaComplex(::DeltaComplex)
     adjacency_matrix_triangulation(::DeltaComplex)
     multi_adjacency_matrix_triangulation(::DeltaComplex)
@@ -98,6 +101,7 @@ A **flip** is defined as the action of replacing an edge in the triangulation by
 It has been shown, that the flipgraph of any closed surface is connected, hence it is possible, to obtain any triangulation by a finite number of flips.
 
 ```@docs
+    flip(::DeltaComplex, ::Integer)
     flip!(::DeltaComplex, ::Integer)
     flip!(::DeltaComplex, ::DualEdge; ::Bool)
     is_flippable(::DeltaComplex, ::Integer)

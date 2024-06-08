@@ -9,6 +9,7 @@ Therefore, it is impossible to construct the whole flipgraph. However, one can c
 
 ```@docs
     FlipGraph
+    FGVertex
     nv(::FlipGraph)
     ne(::FlipGraph)
     vertices(::FlipGraph)
@@ -16,7 +17,7 @@ Therefore, it is impossible to construct the whole flipgraph. However, one can c
     has_vertex(::FlipGraph, ::Integer)
     has_edge(::FlipGraph,::Edge)
     has_edge(::FlipGraph,::Integer, ::Integer)
-    has_edge(::FlipGraph,::HoleyDeltaComplex, ::HoleyDeltaComplex)
+    has_edge(::FlipGraph,::DeltaComplex, ::DeltaComplex)
     neighbors(::FlipGraph, ::Integer)
     diameter(::FlipGraph)
 ```
@@ -43,12 +44,12 @@ For example `p = [3,5,1,2,6,4]` would correspond to the following permutation:
 ```
 
 ```@docs
-    mcKay_points(::HoleyDeltaComplex; ::Bool)
-    mcKay_vertices(::HoleyDeltaComplex; ::Bool)
-    mcKay_edges(::HoleyDeltaComplex; ::Bool)
+    mcKay_points(::DeltaComplex; ::Bool)
+    mcKay_vertices(::DeltaComplex; ::Bool)
+    mcKay_edges(::DeltaComplex; ::Bool)
 
-    is_isomorph(::HoleyDeltaComplex, ::HoleyDeltaComplex)
-    is_isomorph_to(::HoleyDeltaComplex, ::HoleyDeltaComplex)
+    is_isomorphic(::DeltaComplex, ::DeltaComplex)
+    is_isomorphic(::FGVertex, ::DeltaComplex)
 ```
 
 ## Constructing the FlipGraph
@@ -56,7 +57,7 @@ Contrary to flipgraphs of planar triangulations like that of a convex polygon, t
 Therefore, it is impossible to construct the whole flipgraph. However, one can construct a local image of the flipgraph.
 
 ```@docs
-    flip_graph(::HoleyDeltaComplex, ::Integer; ::Bool)
+    flipgraph_modular(::DeltaComplex, ::Integer; ::Bool)
 ```
 
 

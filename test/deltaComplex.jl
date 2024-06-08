@@ -4,7 +4,7 @@ using Random
 
     @testset "Sphere" begin
         for p = 3:8
-            D = delta_complex(0, p)
+            D = deltacomplex(0, p)
             @test nv(D) == 2*(p-2)  
             @test ne(D) == 3*(p-2) 
             @test np(D) == p
@@ -17,7 +17,7 @@ using Random
     @testset "Orientable surfaces" begin
         for g = 1:7
             for p = 1:7
-                D = delta_complex(g, p)
+                D = deltacomplex(g, p)
                 @test genus(D) == g
                 @test np(D) == p
                 @test is_orientable(D) == true
@@ -26,7 +26,7 @@ using Random
         end
 
         #test flip
-        D = delta_complex(3,7)
+        D = deltacomplex(3,7)
         @test sum(point_degrees(D)) == 2*ne(D)
         e = get_edge(D,1)
         e_copy = deepcopy(e)
@@ -43,8 +43,8 @@ using Random
         flip!(D,e)        
         @test all(e_copy.triangles.==e.triangles) && all(e_copy.sides==e.sides) && e.is_twisted==e_copy.is_twisted
 
-        #test delta_complex 
-        D = delta_complex([1,2,3,-3,-1,-2]) # torus with an added point that has only one outgoing edge
+        #test deltacomplex 
+        D = deltacomplex([1,2,3,-3,-1,-2]) # torus with an added point that has only one outgoing edge
         @test sum(point_degrees(D)) == 2*ne(D)
         @test np(D)==2
         @test genus(D)==1
@@ -54,7 +54,7 @@ using Random
 
     @testset "non-orientable surfaces" begin
         @testset "kleinBottle" begin
-            D = delta_complex([1,2,-1,2]) #klein Bottle
+            D = deltacomplex([1,2,-1,2]) #klein Bottle
             @test is_orientable(D) == false
             @test np(D) == 1 && nv(D) == 2 && ne(D) == 3
             @test demigenus(D) == 2
@@ -71,7 +71,7 @@ using Random
         end
 
         @testset "projective plane" begin
-            D = delta_complex([1,2,1,2]) # projective plane
+            D = deltacomplex([1,2,1,2]) # projective plane
             @test is_orientable(D) == false
             @test np(D) == 2 && nv(D) == 2 && ne(D) == 3
             @test demigenus(D) == 1
@@ -88,7 +88,7 @@ using Random
         end
 
         @testset "projective plane * kleinBottle" begin
-            D = delta_complex([1,2,1,2,3,4,-3,4]) # projective plane glued to klein Bottle
+            D = deltacomplex([1,2,1,2,3,4,-3,4]) # projective plane glued to klein Bottle
             @test is_orientable(D) == false
             @test np(D) == 2 && nv(D) == 6 && ne(D) == 9
             @test sum(point_degrees(D)) == 2*ne(D)
@@ -104,6 +104,19 @@ using Random
             @test np(D) == 2 && nv(D) == 6 && ne(D) == 9
             @test demigenus(D) == 3
         end
+
+        for dg = 2:7
+            for p = 1:7
+                D = deltacomplex_non_orientable(dg, p)
+                @test demigenus(D) == dg
+                @test np(D) == p
+                @test is_orientable(D) == false
+            end
+        end
+        D = deltacomplex_non_orientable(1,2)
+        @test demigenus(D) == 1
+        @test np(D) == 2
+        @test is_orientable(D) == false
     end
 
     @testset "functions" begin
@@ -117,34 +130,33 @@ using Random
         @test other_endpoint(DualEdge(3,3,3,2,false), 3,3) == (3,2)
         @test other_endpoint(DualEdge(1,3,3,1,false), 3,1) == (1,3)
         @test other_endpoint(DualEdge(2,1,2,2,false), 2,1) == (2,2)
-
-        io = IOBuffer()
-        D = delta_complex(3,4)
-        show(io,"text/plain",D)
-        show(io,"text/plain",D.V[1])
-        show(io,"text/plain",D.E[2])
-
     end 
 
     @testset "Errors" begin
-        @test_throws ArgumentError delta_complex([1])
-        @test_throws ArgumentError delta_complex([1,2,1,3])
-        @test_throws ArgumentError delta_complex([1,2,1,-2,1])
+        @test_throws ArgumentError deltacomplex([1])
+        @test_throws ArgumentError deltacomplex([1,2,1,3])
+        @test_throws ArgumentError deltacomplex([1,2,1,-2,1])
 
-        D = delta_complex(4)
+        D = deltacomplex(4)
         @test_throws ArgumentError demigenus(D)
-        @test_throws ArgumentError delta_complex(0)
-        D = delta_complex(0,3)
+        @test_throws ArgumentError deltacomplex(0)
+        D = deltacomplex(0,3)
         @test_throws ArgumentError demigenus(D)
 
-        D = delta_complex([1,2,1,2])
+        D = deltacomplex([1,2,1,2])
         @test_throws ArgumentError genus(D)
-        D = delta_complex([1,2,-1,2])
+        D = deltacomplex([1,2,-1,2])
         @test_throws ArgumentError genus(D)
+
+        D = deltacomplex_non_orientable(3)
+        @test_throws ArgumentError genus(D)
+        @test_throws ArgumentError deltacomplex_non_orientable(0)
+        @test_throws ArgumentError deltacomplex_non_orientable(1,1)
+        @test_throws ArgumentError deltacomplex_non_orientable(2,0)
     end
 
     @testset "diameter" begin
-        D = delta_complex(10,20)
+        D = deltacomplex(10,20)
         @test 1 <= diameter_triangulation(D) <= np(D)-1
         @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
         Random.seed!(1234)
@@ -159,8 +171,8 @@ using Random
     end
 
     @testset "Random flipping" begin
-        D1 = delta_complex(10,50)
-        D2 = delta_complex(10,50)
+        D1 = deltacomplex(10,50)
+        D2 = deltacomplex(10,50)
 
         randomize!(D1; num_initial_flips=100000, num_flips_per_step=10000, variance_interval_size=10, lookback_size=5)
         @test nv(D1) == nv(D2)
