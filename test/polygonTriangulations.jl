@@ -43,6 +43,10 @@ end
 
     for e in edges(g)
         @test has_edge(g,e) == true
+        if is_flippable(g,e)
+            gg = flip(g,e)
+            @test nv(gg) == nv(g)
+        end
     end
 
     for i in vertices(g)
@@ -60,5 +64,7 @@ end
     A = adjacency_matrix(g)
     @test size(A) == (10,10)
     @test allequal((A.==1) + (A.==0))
+
+
 end
 

@@ -3,12 +3,12 @@
 
 A structure representing a triangulation of a convex polygon.
 """
-struct TriangulatedPolygon <: AbstractGraph{Int}
+struct TriangulatedPolygon <: AbstractGraph{Int32}
     n :: Int
-    adjList ::Vector{Vector{Int}}
+    adjList ::Vector{Vector{Int32}}
 
     function TriangulatedPolygon(n::Integer)
-        new(n, Vector{Vector{Int}}([[] for i in 1:n]))
+        new(n, Vector{Vector{Int32}}([[] for i in 1:n]))
     end
 end
 
@@ -63,7 +63,7 @@ Edges are not directed. It is however necessary to define a source and a target.
 For TriangulatedPolygon, the source will be the incident vertex with the smaller id.
 """
 function edges(g::TriangulatedPolygon) :: Vector{Edge}
-    return collect(Edge(i,j) for i in 1:nv(g) for j in g.adjList[i] if i<j)
+    return collect(Edge(Int32(i),j) for i in 1:nv(g) for j in g.adjList[i] if i<j)
 end 
 
 edgetype(g::TriangulatedPolygon) = SimpleEdge{Int}
@@ -129,6 +129,12 @@ function remove_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer)
     deleteat!(g.adjList[dst], findfirst(x -> x==src, g.adjList[dst]))
 end
 
+"""
+    flip(g::TriangulatedPolygon, src::Integer, dst::Integer)
+
+Return the `TriangulatedPolygon` obtained from `g` by flipping the the edge incident to `src` and `dst` in `g`.
+"""
+flip(g::TriangulatedPolygon, src::Integer, dst::Integer) = flip!(deepcopy(g), src, dst)
 
 """
     flip(g::TriangulatedPolygon, e::Edge)
@@ -142,21 +148,39 @@ flip(g::TriangulatedPolygon, e::Edge) = flip!(deepcopy(g), e)
 
 Flip the the edge incident to `src` and `dst` in `g`.
 """
-flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) = flip!(g, Edge(src, dst))
+function flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) 
+    S=[]
+    for j in g.adjList[src]
+        if j in g.adjList[dst]
+            push!(S,j)
+        end
+    end
+    u,v = S
+    remove_edge!(g, src, dst)
+    add_edge!(g, u, v)
+    return g
+end
+
+export flip_get_edge!
+function flip_get_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer) 
+    S=[]
+    for j in g.adjList[src]
+        if j in g.adjList[dst]
+            push!(S,j)
+        end
+    end
+    u,v = S
+    remove_edge!(g, src, dst)
+    add_edge!(g, u, v)
+    return u,v
+end
+
 """
     flip!(g::TriangulatedPolygon, e::Edge)
 
 Flip `e` in `g`.
 """
-function flip!(g::TriangulatedPolygon, e::Edge)
-    neigh1 = outneighbors(g, src(e))
-    neigh2 = outneighbors(g, dst(e))
-    S = intersect(neigh1, neigh2)
-    u,v = S
-    remove_edge!(g, e)
-    add_edge!(g, u, v)
-    return g
-end
+flip!(g::TriangulatedPolygon, e::Edge) = flip!(g, src(e), dst(e))
 
 """
     is_flippable(g::TriangulatedPolygon, e::Edge) -> Bool
@@ -179,8 +203,8 @@ end
 
 Return a list of the degrees of every single vertex in `g`
 """
-function degrees(g::TriangulatedPolygon) :: Vector{Int}
-    return [length(g.adjList[i]) for i in 1:g.n]
+function degrees(g::TriangulatedPolygon) :: Vector{Int32}
+    return [Int32(length(g.adjList[i])) for i in 1:g.n]
 end
 
 

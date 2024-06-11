@@ -46,3 +46,4 @@ function drawPNG(G::FlipGraph, fileName::String ="flipGraph" , drawLabels::Bool=
 end
 
 
+G = flipgraph_planar(8,modular=false)

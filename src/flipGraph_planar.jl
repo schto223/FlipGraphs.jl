@@ -1,18 +1,18 @@
-#export mcKay, relative_degrees
+export mcKay, relative_degrees
 
 struct FGPVertex
     g :: TriangulatedPolygon
     degrees ::Vector{Int} 
     num_point_perms :: Int
-    ind :: Int
+    id :: Int
 
-    function FGPVertex(g::TriangulatedPolygon, ind::Integer)
-        return new(g, degrees(g), 0, ind)
+    function FGPVertex(g::TriangulatedPolygon, id::Integer)
+        return new(g, degrees(g), 0, id)
     end
 
-    function FGPVertex(g::TriangulatedPolygon, ind::Integer, perms::Vector{Vector{T}}) where T<:Integer
+    function FGPVertex(g::TriangulatedPolygon, id::Integer, perms::Vector{Vector{T}}) where T<:Integer
         g = rename_vertices(g, perms[1])
-        new(g, degrees(g), length(perms), ind)
+        new(g, degrees(g), length(perms), id)
     end
 end
 
@@ -137,11 +137,6 @@ function add_vertex!(G::FlipGraphPlanar, g::TriangulatedPolygon, perms::Vector{V
     return fgpv
 end
 
-#function remove_edge!(G::FlipGraphPlanar, e::Edge)
-#    deleteat!(G.adjList[src(e)], findfirst(x->x==dst(e), G.adjList[src(e)]))
-#    deleteat!(G.adjList[dst(e)], findfirst(x->x==src(e), G.adjList[dst(e)]))
-#end
-
 
 """
     flipgraph(g::TriangulatedPolygon; kwargs..)
@@ -154,69 +149,137 @@ In a modular flip graph, vertices of the FlipGraph are classes of isomorphisms u
 Each class is then represented by one of its elements.
 """
 function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
+    nvg = nv(g)
     G = FlipGraphPlanar()
+    D = Vector{Any}(undef, nvg-1)
     if modular
         p = mcKay(g)
         fgpv = add_vertex!(G, g, p)
     else
-        for i in 1:nv(g)
+        for i in 1:nvg
             sort!(g.adjList[i])
         end
         fgpv = add_vertex!(G, g)
     end
-    
-    queue = Vector{FGPVertex}()
+    d = D
+    for i in fgpv.degrees[1:end-1]
+        d[i] = Vector{Any}(undef, nvg-1)
+        d = d[i]
+    end
+    d[fgpv.degrees[end]] = FGPVertex[fgpv]
+
+    queue::Vector{FGPVertex} = Vector{FGPVertex}()
     push!(queue, fgpv)
     
     if modular
         while !isempty(queue)
             fgpv = popfirst!(queue)
             g = fgpv.g
-            for e in edges(g)
-                if is_flippable(g,e)
-                    gg = flip(g,e)
-                    permutations = mcKay(gg)
-                    num_perms = length(permutations)
-                    degrees_sorted = sort(degrees(gg))
-                    newGraph = true
-                    for vg in G.V
-                        if  vg.num_point_perms == num_perms && vg.degrees == degrees_sorted && is_isomorphic(vg, gg, permutations)
-                            add_edge!(G, fgpv.ind, vg.ind)
-                            newGraph = false
-                            break
+            for i in 1:nvg
+                for j in g.adjList[i]
+                    if i<j && length(intersect(outneighbors(g, i), outneighbors(g, j))) >= 2 # i-j is a flippable edge
+                        gg = flip(g, i, j)
+                        permutations = mcKay(gg)
+                        num_perms = length(permutations)
+                        degrees_sorted = sort(degrees(gg))
+                        i = 1
+                        d = D
+                        newGraph = false
+                        while i <= nvg
+                            if isassigned(d, degrees_sorted[i])
+                                d = d[degrees_sorted[i]]
+                                i += 1
+                            else
+                                if i == nvg
+                                    d[degrees_sorted[i]] = FGPVertex[]
+                                    d = d[degrees_sorted[i]]
+                                else
+                                    d[degrees_sorted[i]] = Vector{Any}(undef, nvg-1)
+                                    d = d[degrees_sorted[i]]
+                                end
+                                i += 1
+                                newGraph = true
+                            end
                         end
-                    end
-                    if newGraph
-                        new_v = add_vertex!(G, gg, permutations)
-                        add_edge!(G, fgpv.ind, new_v.ind)
-                        push!(queue, new_v)
+                        if !newGraph
+                            newGraph = true
+                            for v in d
+                                if v.num_point_perms == num_perms && is_isomorphic(v, gg, permutations)
+                                    add_edge!(G, fgpv.id, v.id)
+                                    newGraph = false
+                                    break
+                                end
+                            end
+                        end
+                        if newGraph
+                            new_v = add_vertex!(G, gg, permutations)
+                            add_edge!(G, fgpv.id, new_v.id)
+                            push!(queue, new_v)
+                            push!(d, new_v)
+                        end
                     end
                 end
             end
         end
-    else 
+    else #not modular
         while !isempty(queue)
             fgpv = popfirst!(queue)
-            g = fgpv.g
-            for e in edges(g) 
-                if is_flippable(g,e)
-                    gg = flip(g,e)
-                    newGraph = true
-                    for j in 1:nv(gg)
-                        sort!(gg.adjList[j])
-                    end
-                    degs = degrees(gg)
-                    for v in G.V
-                        if v.degrees == degs && all(v.g.adjList[j] == gg.adjList[j] for j in 1:nv(g))
-                            add_edge!(G, fgpv.ind, v.ind)
-                            newGraph = false
-                            break
+            g = deepcopy(fgpv.g)
+            degs = degrees(g)
+            for i in 1:nvg
+                for j in fgpv.g.adjList[i]
+                    if i<j && i+1!=j && (i!=1 || j!=nvg)                        
+                        i_new,j_new = flip_get_edge!(g,i,j)
+                        newGraph = false
+                        sort!(g.adjList[i_new])
+                        sort!(g.adjList[j_new])
+                        degs[i]-=1
+                        degs[j]-=1
+                        degs[i_new]+=1
+                        degs[j_new]+=1
+                        k = 1
+                        d = D
+                        while k <= nvg
+                            if isassigned(d, degs[k])
+                                d = d[degs[k]]
+                                k += 1
+                            else
+                                if k == nvg
+                                    d[degs[k]] = FGPVertex[]
+                                    d = d[degs[k]]
+                                else
+                                    d[degs[k]] = Vector{Any}(undef, nvg-1)
+                                    d = d[degs[k]]
+                                end
+                                k += 1
+                                newGraph = true
+                            end
                         end
-                    end
-                    if newGraph
-                        new_v = add_vertex!(G, gg)
-                        add_edge!(G, fgpv.ind, new_v.ind)
-                        push!(queue, new_v)
+                        if !newGraph
+                            newGraph = true
+                            gg = g#somehow assigning makes it faster so keep it
+                            for v in d
+                                if all(v.g.adjList[q] == gg.adjList[q] for q in 1:nvg)
+                                    add_edge!(G, fgpv.id, v.id)
+                                    newGraph = false
+                                    break
+                                end
+                            end
+                        end
+                        if newGraph
+                            new_v = add_vertex!(G, deepcopy(g))
+                            add_edge!(G, fgpv.id, new_v.id)
+                            push!(queue, new_v)
+                            push!(d, new_v)
+                        end
+                        #revert the flip
+                        flip!(g,i_new,j_new)
+                        sort!(g.adjList[i])
+                        sort!(g.adjList[j])
+                        degs[i]+=1
+                        degs[j]+=1
+                        degs[i_new]-=1
+                        degs[j_new]-=1
                     end
                 end
             end
@@ -301,8 +364,6 @@ of the vertices which give a canonical isomorphism class representant.
 Return a list of all possible canonical point relabeling permutations `p` such that the i-th point should be relabeled as the `p[i]`-th point
 """
 function mcKay(g::TriangulatedPolygon) :: Vector{Vector{Int}}
-    # renamed from sigma
-
     #split V into partitions according to their degrees from smallest to biggest
     function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
         sV = Vector{Vector{Int}}()

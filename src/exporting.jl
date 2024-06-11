@@ -15,6 +15,7 @@ julia> export_gml("C:/Users/USERNAME/Desktop/filename.gml", G);
 ```
 """
 function export_gml(fpn::String, G::AbstractGraph{<:Integer})
+    fpn[end-2:end] == "gml" || throw(ArgumentError("The filename should end in \".gml\""))
     open(fpn,"w") do file
         write(file,"graph [")
         write(file,"\n\tdirected 0")
@@ -30,6 +31,7 @@ function export_gml(fpn::String, G::AbstractGraph{<:Integer})
             write(file,"\n\t\ttarget ", string(e.dst))
             write(file,"\n\t]")
         end
-        write(file,"\n]")
+        write(file,"\n]");
     end
+    return open(io->read(io,String), fpn)
 end

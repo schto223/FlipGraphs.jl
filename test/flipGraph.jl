@@ -1,24 +1,30 @@
 using Random
-
+import Graphs.SimpleEdge
 
 @testset "Flip Graph" begin
     @testset "mcKay" begin
-        for g in 1:10, p in 1:7
+        for g in 1:9, p in 1:7
             D = deltacomplex(g,p)
-            sps_points = mcKay_points(D)
-            @test length(sps_points) >= 1
-            @test all(sp -> length(sp)==p , sps_points)
-            @test all(sp -> length(unique(sp))==length(sp) , sps_points)
+            ps_points = mcKay_points(D)
+            @test length(mcKay_points(D, only_one=true)) == 1
+            @test mcKay_points(D, only_one=true)[1] in ps_points
+            @test length(ps_points) >= 1
+            @test all(sp -> length(sp)==p , ps_points)
+            @test all(sp -> length(unique(sp))==length(sp) , ps_points)
 
-            sps_trifaces = mcKay_vertices(D)
-            @test length(sps_trifaces) >= 1
-            @test all(sp -> length(sp)==nv(D) , sps_trifaces)
-            @test all(sp -> length(unique(sp))==length(sp) , sps_trifaces)
+            ps_vertices = mcKay_vertices(D)
+            @test length(mcKay_vertices(D, only_one=true)) == 1
+            @test mcKay_vertices(D, only_one=true)[1] in ps_vertices
+            @test length(ps_vertices) >= 1
+            @test all(sp -> length(sp)==nv(D) , ps_vertices)
+            @test all(sp -> length(unique(sp))==length(sp) , ps_vertices)
 
-            sps_edges = mcKay_edges(D)
-            @test length(sps_edges) >= 1
-            @test all(sp -> length(sp)==ne(D) , sps_edges)
-            @test all(sp -> length(unique(sp))==length(sp) , sps_edges)
+            ps_edges = mcKay_edges(D)
+            @test length(mcKay_edges(D, only_one=true)) == 1
+            @test mcKay_edges(D, only_one=true)[1] in ps_edges
+            @test length(ps_edges) >= 1
+            @test all(sp -> length(sp)==ne(D) , ps_edges)
+            @test all(sp -> length(unique(sp))==length(sp) , ps_edges)
 
             @test is_isomorphic(D, D, fix_points=false) == true
             @test is_isomorphic(D, D, fix_points=true) == true
@@ -50,16 +56,142 @@ using Random
 
     @testset "flipGraph" begin
         D = deltacomplex(1)
-        G = flipgraph_modular(D, 6)
-        @test nv(G) == 2
-        @test ne(G) == 1
+        G = flipgraph_modular(D)
+        @test nv(G) == 1
+        @test ne(G) == 0
 
         D = deltacomplex(1,2)
-        G1 = flipgraph_modular(D, 100, fix_points=true)
-        G2 = flipgraph_modular(D, 100, fix_points=false)
+        G1 = flipgraph_modular(D, fix_points=true)
+        G2 = flipgraph_modular(D, fix_points=false)
         @test diameter(G1) == 8
         @test nv(G1) >= nv(G2)
         @test ne(G1) >= ne(G2)
+
+        @test edgetype(G) == SimpleEdge{Int32}
+        @test is_directed(G) == false
+        @test is_directed(FlipGraphPlanar) == false
     end
 
+    @testset "flip_graph" begin
+        nvs_labeled = [[1,9,236],[9,713]]
+        nes_labeled = [[0,8,591],[13,2938]]
+        nvs = [[1,5,46,669],[9,368]]
+        nes = [[0,4,98,2684],[13,1478]]
+        #labeled
+        for g in eachindex(nvs_labeled)
+            for p in eachindex(nvs_labeled[g])
+                G = flipgraph_modular(g, p, fix_points=true)
+                @test nv(G) == nvs_labeled[g][p]
+                @test ne(G) == nes_labeled[g][p]
+            end
+        end
+
+        #unlabeled
+        for g in eachindex(nvs)
+            for p in eachindex(nvs[g])
+                G = flipgraph_modular(g, p, fix_points=false)
+                @test nv(G) == nvs[g][p]
+                @test ne(G) == nes[g][p]
+            end
+        end
+    end
+end
+
+
+
+function isGood(Data::FGVertexCandidate)
+    D = Data.D
+    p = 1
+    for pp in Data.point_perms
+        Dp = rename_points!(deepcopy(D), pp)
+        if !sameDcomplex(Dp, get_D(Data, p))
+            println("badP")
+        end
+        v=1
+        for pv in get_vertex_perms(Data, p)
+            Dv = rename_vertices!(deepcopy(Dp), pv)
+            if !sameDcomplex(Dv, get_D(Data, p, v))
+                println("badV")
+            end
+            e=1
+            for pe in get_edge_perms(Data, p, v)
+                De = rename_edges!(deepcopy(Dv), pe)
+                if !sameDcomplex(De, get_D(Data, p, v, e))
+                    println("badE")
+                end
+                e+=1
+            end
+            v+=1
+        end
+        p+=1
+    end
+end
+
+
+function sameDcomplex(D1::DeltaComplex, D2::DeltaComplex)
+    if D1.num_points.x!=D2.num_points.x
+        return false
+    end
+    for i in eachindex(D1.V)
+        v1 = D1.V[i]
+        v2 = D2.V[i]
+        if v1.points != v2.points || v1.id.x!=v2.id.x
+            return false
+        end
+        for j in 1:3
+            if v1.edges[j].id != v2.edges[j].id
+                return false
+            end
+        end
+    end
+    for i in eachindex(D1.E)
+        d1 = D1.E[i]
+        d2 = D2.E[i]
+        if d1.id != d2.id || d1.triangles != d2.triangles || d1.sides != d2.sides || d1.is_twisted != d2.is_twisted
+            return false
+        end
+    end
+    return true
+end
+
+
+export is_isomorphic_safe
+function is_isomorphic_safe(D1::DeltaComplex, D2::DeltaComplex; fix_points::Bool = true)
+    D=deepcopy(D1)
+    if !fix_points
+        rename_points!(D,mcKay_points(D)[1])
+        point_perms = mcKay_points(D2)
+    else
+        point_perms = [collect(1:np(D2))]
+    end
+
+    rename_vertices!(D,mcKay_vertices(D)[1])
+    rename_edges!(D,mcKay_edges(D)[1])
+
+    p = 1
+    for pp in point_perms
+        Dp = rename_points!(deepcopy(D2), pp)
+        v=1
+        for pv in mcKay_vertices(Dp)
+            Dv = rename_vertices!(deepcopy(Dp), pv)
+            e=1
+            for pe in mcKay_edges(Dv)
+                De = rename_edges!(deepcopy(Dv), pe)
+                bo = true
+                for i in 1:nv(D)
+                    if !is_equivalent(D.V[i], De.V[i])
+                        bo=false
+                        break
+                    end
+                end
+                if bo
+                    return true
+                end
+                e+=1
+            end
+            v+=1
+        end
+        p+=1
+    end
+    return false
 end
