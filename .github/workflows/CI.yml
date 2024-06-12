@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.8' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
+          - '1.6' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1' # '1' will automatically expand to the latest stable 1.x release of Julia.
-          #- 'nightly'
+          - 'nightly'
         os:
           - ubuntu-latest
         arch:
@@ -52,6 +52,7 @@ jobs:
       contents: write
       pull-requests: read
       statuses: write
+      actions: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

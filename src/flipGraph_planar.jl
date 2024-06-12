@@ -289,9 +289,9 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
 end
 
 """
-    flipgraph_planar(n::Integer; modular=false)
+    flipgraph_planar(n::Integer; modular=false) :: FlipGraphPlanar
 
-Construct the `FlipGraph` of a convex `n`-gon. 
+Construct the `FlipGraphPlanar` of a convex `n`-gon. 
 
 If `modular=true`, the FlipGraph is reduced to its modular form.
 
@@ -301,7 +301,7 @@ julia> flipgraph_planar(6)
 FlipGraphPlanar with 14 vertices and 21 edges
 ```
 """
-function flipgraph_planar(n::Integer; modular::Bool = false)
+function flipgraph_planar(n::Integer; modular::Bool = false) :: FlipGraphPlanar
     return flipgraph(triangulated_polygon(n); modular = modular)
 end
 

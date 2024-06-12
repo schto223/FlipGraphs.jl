@@ -30,7 +30,7 @@ makedocs(
 )
 
 deploydocs(;
-    repo = "github.com/schto223/FlipGraphs.jl.git",
+    repo = "github.com/schto223/FlipGraphs.jl.git"#,
     #devbranch = "dev",
     #versions = "v^"
 )

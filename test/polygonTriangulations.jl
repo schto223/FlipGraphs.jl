@@ -55,7 +55,7 @@ end
     @test has_vertex(g, nv(g)+1) == false
     @test has_vertex(g, 0) == false
     
-    @test edgetype(g) == SimpleEdge{Int}
+    @test edgetype(g) == SimpleEdge{Int32}
     @test is_directed(g) == false
     @test is_directed(TriangulatedPolygon) == false
 
@@ -63,8 +63,6 @@ end
 
     A = adjacency_matrix(g)
     @test size(A) == (10,10)
-    @test allequal((A.==1) + (A.==0))
-
-
+    @test ((A.==1) + (A.==0)) == ones(Int, 10, 10)
 end
 

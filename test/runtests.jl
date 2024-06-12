@@ -8,7 +8,8 @@ if isempty(ARGS)
         "deltaComplex.jl",
         "flipGraph.jl",
         "show.jl",
-        "exporting.jl"
+        "exporting.jl",
+        "generalUtilities.jl"
     ]
 else
     tests = ARGS

@@ -24,7 +24,13 @@ function diameter(adjacency_matrix :: Matrix{<:Integer}) :: Int
     return maximum(d)
 end
 
-export distances
+"""
+    distances(adjacency_matrix :: Matrix{<:Integer}) :: Matrix{<:Integer}
+
+Compute the shortest distance from any vertex to any other vertex in the graph with the given `adjacency_matrix`.
+
+Return a `Matrix` whose entry at `(i,j)` is the length of a shortest path from `i` to `j`.
+"""
 function distances(adjacency_matrix :: Matrix{<:Integer}) :: Matrix{<:Integer}
     n = size(adjacency_matrix, 1)
     function Seidel(G::Matrix{<:Integer})
@@ -48,9 +54,9 @@ end
 
 Construct the adjacency matrix from an adjaceny list.
 """
-function adjacency_matrix(adjList::Vector{Vector{T}}) :: Matrix{Int} where {T<:Integer}
+function adjacency_matrix(adjList::Vector{Vector{T}}) :: Matrix{T} where {T<:Integer}
     n = size(adjList,1)
-    A = zeros(Int,n,n)
+    A = zeros(T,n,n)
     for i = 1:n
         for j in adjList[i]
             A[i,j] = 1

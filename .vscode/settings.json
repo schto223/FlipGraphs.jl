@@ -7,5 +7,6 @@
         "coverage.xml",
         "jacoco.xml",
         "coverage.cobertura.xml"
-    ]
+    ],
+    "livePreview.defaultPreviewPath": "/docs/build/polygonTriangulation/index.html"
 }
