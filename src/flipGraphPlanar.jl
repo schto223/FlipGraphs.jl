@@ -1,5 +1,13 @@
 export mcKay, relative_degrees
 
+"""
+    struct FGPVertex
+
+A `FGPVertex` represents a vertex in a `FlipGraphPlanar`.
+
+In addition to holding a `TriangulatedPolygon` that either is the vertex or a representative element of the isotopy class,
+this structure holds further usefull data for the construction process of a `FlipGraphPlanar`.
+"""
 struct FGPVertex
     g :: TriangulatedPolygon
     degrees ::Vector{Int} 
@@ -67,26 +75,26 @@ Return `true` if there is an edge between `s` and `d` in `G`.
 has_edge(G::FlipGraphPlanar, s, d) = (d ∈ G.adjList[s])
 
 """
-    has_vertex(G::FlipGraphPlanar, v)
+    has_vertex(G::FlipGraphPlanar, i::Integer) :: Bool
 
-Return `true` if `v` is a valid index of a vertex in `G`.
+Return `true` if `i` is a valid index of a vertex in `G`.
 """
-has_vertex(G::FlipGraphPlanar, i::Integer) = (1 <= i <= nv(G))
+has_vertex(G::FlipGraphPlanar, i::Integer) ::Bool = (1 <= i <= nv(G))
 
 """
-    has_vertex(G::FlipGraphPlanar, v::FGPVertex)
+    has_vertex(G::FlipGraphPlanar, v::FGPVertex) :: Bool
 
 Return `true` if `v` is a vertex in `G`.
 """
-has_vertex(G::FlipGraphPlanar, v::FGPVertex) = (v in G.V)
+has_vertex(G::FlipGraphPlanar, v::FGPVertex) :: Bool = (v in G.V)
 
 
 """
-    neighbors(G::FlipGraphPlanar, v::Integer) -> Vector{Int32}
+    neighbors(G::FlipGraphPlanar, v::Integer) :: Vector{Int32}
 
 Return a list of all the indices of vertices in `G`, that are adjacent to `v`.
 """
-neighbors(G::FlipGraphPlanar, v::Integer) = G.adjList[v] :: Vector{Int32}
+neighbors(G::FlipGraphPlanar, v::Integer) :: Vector{Int32} = G.adjList[v] 
 inneighbors(G::FlipGraphPlanar, v) = G.adjList[v]
 outneighbors(G::FlipGraphPlanar,v) = G.adjList[v]
 
@@ -407,7 +415,6 @@ function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{I
     function makeEquitable!(p::Vector{Vector{T}}, g::TriangulatedPolygon) where T<:Integer
         i = 1; j = 1
         while i <= length(p)
-            #rDegs = relative_degrees(g, p[i], p[j])
             bo = true
             rd1 = relative_degree(g, p[i][1], p[j])
             for k in 2:length(p[i])
@@ -417,8 +424,7 @@ function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{I
                 end
             end
             if !bo
-            #if !all(x -> x==rDegs[1], rDegs) 
-                rDegs = relative_degrees(g, p[i], p[j])#
+                rDegs = relative_degrees(g, p[i], p[j])
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)

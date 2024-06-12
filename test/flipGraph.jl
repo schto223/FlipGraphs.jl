@@ -26,8 +26,8 @@ import Graphs.SimpleEdge
             @test all(sp -> length(sp)==ne(D) , ps_edges)
             @test all(sp -> length(unique(sp))==length(sp) , ps_edges)
 
-            @test is_isomorphic(D, D, fix_points=false) == true
-            @test is_isomorphic(D, D, fix_points=true) == true
+            @test is_isomorphic(D, D, labeled_points=false) == true
+            @test is_isomorphic(D, D, labeled_points=true) == true
         end
     end
 
@@ -61,8 +61,8 @@ import Graphs.SimpleEdge
         @test ne(G) == 0
 
         D = deltacomplex(1,2)
-        G1 = flipgraph_modular(D, fix_points=true)
-        G2 = flipgraph_modular(D, fix_points=false)
+        G1 = flipgraph_modular(D, labeled_points=true)
+        G2 = flipgraph_modular(D, labeled_points=false)
         @test diameter(G1) == 8
         @test nv(G1) >= nv(G2)
         @test ne(G1) >= ne(G2)
@@ -80,7 +80,7 @@ import Graphs.SimpleEdge
         #labeled
         for g in eachindex(nvs_labeled)
             for p in eachindex(nvs_labeled[g])
-                G = flipgraph_modular(g, p, fix_points=true)
+                G = flipgraph_modular(g, p, labeled_points=true)
                 @test nv(G) == nvs_labeled[g][p]
                 @test ne(G) == nes_labeled[g][p]
             end
@@ -89,7 +89,7 @@ import Graphs.SimpleEdge
         #unlabeled
         for g in eachindex(nvs)
             for p in eachindex(nvs[g])
-                G = flipgraph_modular(g, p, fix_points=false)
+                G = flipgraph_modular(g, p, labeled_points=false)
                 @test nv(G) == nvs[g][p]
                 @test ne(G) == nes[g][p]
             end

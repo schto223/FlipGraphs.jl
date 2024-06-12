@@ -9,12 +9,16 @@
 """
 FlipGraphs
 
-A package for triangulations of closed surfaces and their respective FlipGraphs.
+A package for **triangulations** of points and their respective **flip graphs**.
+
+So far, this package includes:\\
+- triangulations of **convex polygons** / triangulations of points situated on the border of a disc and their *flip graphs* (with labeled and unlabeled points).\\
+- triangulations of points on a **closed surface** and their respective *modular flip graphs* (with labeled and unlabeled points).
 """
 module FlipGraphs
 
 import Graphs: 
-    Edge, AbstractGraph, SimpleEdge, diameter,
+    Edge, AbstractGraph, SimpleEdge, #diameter,
     has_edge, neighbors, outneighbors, inneighbors, edges, vertices, edgetype, has_vertex, ne, nv, is_directed, src, dst
 
 
@@ -45,12 +49,8 @@ export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adj
 export subdivide!, twist_edges!, is_twisted
 export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoint, quadrilateral_edges
 
-#holeyDeltaComplex
-#export HoleyDeltaComplex, Hole, Crossing, holey_delta_complex
-#export num_crossings, edge_crossings, remove_holeloops!, get_crossing
-
 #flipGraph
-export FlipGraph, FGVertex, flipgraph_modular
+export FlipGraph, FGVertex, FGVertexCandidate, flipgraph_modular
 export mcKay_points, mcKay_vertices, mcKay_edges
 export is_isomorphic
 
@@ -60,9 +60,8 @@ export matrix_equal, relative_degrees, relative_degree, distances
 
 include("generalUtilities.jl")
 include("polygonTriangulations.jl")
-include("flipGraph_planar.jl")
+include("flipGraphPlanar.jl")
 include("deltaComplex.jl")
-#include("holeyDeltaComplex.jl")
 include("flipGraph.jl")
 include("exporting.jl")
 
