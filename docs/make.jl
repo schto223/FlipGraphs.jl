@@ -14,7 +14,8 @@ import Graphs: Edge
 #);
 
 makedocs(
-    sitename="FlipGraphs Documentation", 
+    sitename="FlipGraphs.jl Documentation", 
+    #format = Documenter.LaTeX(platform = "none"), #format = Documenter.LaTeX(),
     modules= [FlipGraphs],
     doctest = false, #remove later
     pages = [
@@ -28,6 +29,8 @@ makedocs(
     checkdocs = :none 
 )
 
-deploydocs(
+deploydocs(;
     repo = "github.com/schto223/FlipGraphs.jl.git",
+    #devbranch = "dev",
+    #versions = "v^"
 )
