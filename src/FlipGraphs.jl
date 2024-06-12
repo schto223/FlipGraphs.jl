@@ -28,7 +28,7 @@ export diameter, adjacency_matrix, invert_permutation
 #polygonTriangulations
 export TriangulatedPolygon, triangulated_polygon
 export degrees
-export flip, flip!, is_flippable, edges_flippable
+export flip, flip!, flip_get_edge!, is_flippable, edges_flippable
 
 #flipGraph_planar
 export FlipGraphPlanar, FGPVertex, flipgraph, flipgraph_planar
@@ -55,7 +55,7 @@ export mcKay_points, mcKay_vertices, mcKay_edges
 export is_isomorphic
 
 #general
-export matrix_equal, relative_degrees, relative_degree
+export matrix_equal, relative_degrees, relative_degree, distances
 
 
 include("generalUtilities.jl")
