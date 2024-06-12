@@ -25,8 +25,8 @@ jobs:
         arch:
           - x64
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -61,13 +61,13 @@ jobs:
         with:
           version: '1.8'      
       - uses: julia-actions/cache@v1
-      - run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-      #- run: |
-      #    julia --project=docs -e '
-      #      import Pkg; Pkg.add("Documenter")
-      #      using Pkg
-      #      Pkg.develop(PackageSpec(path=pwd()))
-      #      Pkg.instantiate()'
+      #- run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - run: |
+          julia --project=docs -e '
+            import Pkg; Pkg.add("Documenter")
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
