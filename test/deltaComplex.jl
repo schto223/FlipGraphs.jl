@@ -42,6 +42,23 @@ using Random
         flip!(D,e)
         flip!(D,e)        
         @test all(e_copy.triangles.==e.triangles) && all(e_copy.sides==e.sides) && e.is_twisted==e_copy.is_twisted
+        for d in edges(D)
+            @test is_twisted(d) == false
+            @test D.E[d.id] == d
+        end
+        q = quadrilateral_edges(D, get_edge(D,3))
+        q_ids = collect(d.id for d in q)
+        flip!(D,3)
+        qq = quadrilateral_edges(D,get_edge(D,3))
+        qq_ids = collect(d.id for d in qq)
+        @test issetequal(q_ids, qq_ids)
+
+        d = get_edge(D,4)
+        @test vertices(D,d) == (get_vertex(D,d.triangles[1]), get_vertex(D,d.triangles[2]))
+
+        T = get_vertex(D,3)
+        @test all(edges(T).==edges(D, id(T)))
+        @test id(get_edge(T,2)) == get_edge_id(T,2)
 
         #test deltacomplex 
         D = deltacomplex([1,2,3,-3,-1,-2]) # torus with an added point that has only one outgoing edge
@@ -50,6 +67,9 @@ using Random
         @test genus(D)==1
         e = filter(e-> 2 ∈ points(D,e) , edges(D))[1]
         @test is_flippable(e) == false
+        @test has_point(get_vertex(D,1), 1)
+        @test edges_id(D, 3) == edges_id(get_vertex(D, 3))
+        @test 4 in get_edge(D, 4, 2).triangles 
     end
 
     @testset "non-orientable surfaces" begin
@@ -130,6 +150,8 @@ using Random
         @test other_endpoint(DualEdge(3,3,3,2,false), 3,3) == (3,2)
         @test other_endpoint(DualEdge(1,3,3,1,false), 3,1) == (1,3)
         @test other_endpoint(DualEdge(2,1,2,2,false), 2,1) == (2,2)
+
+        @test sides(DualEdge(1,2,1,3,false)) == (2,3)
     end 
 
     @testset "Errors" begin
@@ -153,12 +175,14 @@ using Random
         @test_throws ArgumentError deltacomplex_non_orientable(0)
         @test_throws ArgumentError deltacomplex_non_orientable(1,1)
         @test_throws ArgumentError deltacomplex_non_orientable(2,0)
+
+        @test_throws ArgumentError other_endpoint(DualEdge(1,2,1,3,false), 1,1)
     end
 
     @testset "diameter" begin
         D = deltacomplex(10,20)
         @test 1 <= diameter_triangulation(D) <= np(D)-1
-        @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
+        @test 1 <= diameter(D) <= nv(D)-1
         Random.seed!(1234)
         a = rand(1:ne(D), 1000)
         for i in eachindex(a)
@@ -167,7 +191,7 @@ using Random
             end
         end 
         @test 1 <= diameter_triangulation(D) <= np(D)-1
-        @test 1 <= diameter_deltaComplex(D) <= nv(D)-1
+        @test 1 <= diameter(D) <= nv(D)-1
     end
 
     @testset "Random flipping" begin

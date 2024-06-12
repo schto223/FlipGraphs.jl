@@ -17,7 +17,6 @@ Therefore, it is impossible to construct the whole flipgraph. However, one can c
     has_vertex(::FlipGraph, ::Integer)
     has_edge(::FlipGraph,::Edge)
     has_edge(::FlipGraph,::Integer, ::Integer)
-    has_edge(::FlipGraph,::DeltaComplex, ::DeltaComplex)
     neighbors(::FlipGraph, ::Integer)
     diameter(::FlipGraph)
 ```
@@ -49,7 +48,7 @@ For example `p = [3,5,1,2,6,4]` would correspond to the following permutation:
     mcKay_edges(::DeltaComplex; ::Bool)
 
     is_isomorphic(::DeltaComplex, ::DeltaComplex)
-    is_isomorphic(::FGVertex, ::DeltaComplex)
+    is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex)
 ```
 
 ## Constructing the FlipGraph
@@ -57,7 +56,7 @@ Contrary to flipgraphs of planar triangulations like that of a convex polygon, t
 Therefore, it is impossible to construct the whole flipgraph. However, one can construct a local image of the flipgraph.
 
 ```@docs
-    flipgraph_modular(::DeltaComplex, ::Integer; ::Bool)
+    flipgraph_modular
 ```
 
 

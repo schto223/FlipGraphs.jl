@@ -28,7 +28,7 @@ export diameter, adjacency_matrix, invert_permutation
 #polygonTriangulations
 export TriangulatedPolygon, triangulated_polygon
 export degrees
-export flip, flip!, is_flippable
+export flip, flip!, is_flippable, edges_flippable
 
 #flipGraph_planar
 export FlipGraphPlanar, FGPVertex, flipgraph, flipgraph_planar
@@ -36,13 +36,14 @@ export is_isomorphic, rename_vertices
 
 #deltaComplex
 export DeltaComplex, deltacomplex, deltacomplex_non_orientable, DualEdge, TriFace
-export np
+export np, has_point
 export get_edge, get_point, get_vertex, get_vertex_id, vertices_id, vertices, edges, points, edges_id, get_edge_id, id
+export sides
 export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees, relative_point_degrees
 export euler_characteristic, genus, demigenus, diameter_triangulation, diameter_deltaComplex
-export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltaComplex
-export subdivide!, twist_edges!
-export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoint
+export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltacomplex
+export subdivide!, twist_edges!, is_twisted
+export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoint, quadrilateral_edges
 
 #holeyDeltaComplex
 #export HoleyDeltaComplex, Hole, Crossing, holey_delta_complex
@@ -52,6 +53,9 @@ export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoi
 export FlipGraph, FGVertex, flipgraph_modular
 export mcKay_points, mcKay_vertices, mcKay_edges
 export is_isomorphic
+
+#general
+export matrix_equal, relative_degrees, relative_degree
 
 
 include("generalUtilities.jl")

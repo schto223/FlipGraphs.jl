@@ -68,14 +68,13 @@ Here are some usefull methods, to pull out general information about the Δ-Comp
     diameter_triangulation(::DeltaComplex)
     diameter_deltaComplex(::DeltaComplex)
     diameter(::DeltaComplex)
-    adjacency_matrix_deltaComplex(::DeltaComplex)
+    adjacency_matrix_deltacomplex(::DeltaComplex)
     adjacency_matrix_triangulation(::DeltaComplex)
     multi_adjacency_matrix_triangulation(::DeltaComplex)
 ```
 
 ```@docs
     point_degrees(::DeltaComplex)
-    relative_point_degrees(::DeltaComplex, ::Vector{<:Integer}, ::Vector{<:Integer})
 ```
 
 ```@docs

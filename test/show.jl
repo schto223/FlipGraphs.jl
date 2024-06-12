@@ -21,7 +21,7 @@
         show(io,"text/plain",D.E[2])
 
         D = deltacomplex(1)
-        G = flipgraph_modular(D,100)
+        G = flipgraph_modular(D)
         show(io,"text/plain",G)
     end
 
