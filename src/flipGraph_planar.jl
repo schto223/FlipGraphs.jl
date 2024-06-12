@@ -7,7 +7,7 @@ struct FGPVertex
     id :: Int
 
     function FGPVertex(g::TriangulatedPolygon, id::Integer)
-        return new(g, degrees(g), 0, id)
+        return new(g, degrees(g), 1, id)
     end
 
     function FGPVertex(g::TriangulatedPolygon, id::Integer, perms::Vector{Vector{T}}) where T<:Integer
@@ -174,11 +174,15 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
     if modular
         while !isempty(queue)
             fgpv = popfirst!(queue)
-            g = fgpv.g
+            g = deepcopy(fgpv.g)
             for i in 1:nvg
-                for j in g.adjList[i]
+                for j in fgpv.g.adjList[i]
                     if i<j && length(intersect(outneighbors(g, i), outneighbors(g, j))) >= 2 # i-j is a flippable edge
-                        gg = flip(g, i, j)
+                        i_new,j_new = flip_get_edge!(g,i,j)
+                        newGraph = false
+                        sort!(g.adjList[i_new])
+                        sort!(g.adjList[j_new])
+                        gg=g
                         permutations = mcKay(gg)
                         num_perms = length(permutations)
                         degrees_sorted = sort(degrees(gg))
@@ -217,6 +221,7 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
                             push!(queue, new_v)
                             push!(d, new_v)
                         end
+                        flip!(g, i_new, j_new)
                     end
                 end
             end
@@ -318,6 +323,14 @@ function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
     return gg
 end
 
+function rename_vertices!(g::TriangulatedPolygon, p::Vector{<:Integer})
+    g.adjList[p] = g.adjList[:]
+    for i in 1:g.n
+        g.adjList[i] = p[g.adjList[i]]
+    end
+    return g.adjList
+end
+
 """
     is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
 
@@ -344,7 +357,7 @@ diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 
 Count for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
 """
-function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
+function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int32}
     rdegs = zeros(Int32, length(U))
     for i in eachindex(U), j in V
         if has_edge(g, U[i], j)
@@ -354,6 +367,10 @@ function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vecto
     return rdegs
 end
 
+function relative_degree(g::TriangulatedPolygon, u::T, V::Vector{T}) :: T where T<:Integer
+    adj = g.adjList[u]
+    return count(j->j in adj, V)
+end
 
 """
     mcKay(g::TriangulatedPolygon) -> Vector{Vector{<:Integer}}
@@ -363,14 +380,14 @@ of the vertices which give a canonical isomorphism class representant.
 
 Return a list of all possible canonical point relabeling permutations `p` such that the i-th point should be relabeled as the `p[i]`-th point
 """
-function mcKay(g::TriangulatedPolygon) :: Vector{Vector{Int}}
+function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{Int32}}
     #split V into partitions according to their degrees from smallest to biggest
-    function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
-        sV = Vector{Vector{Int}}()
+    function split(V::Vector{T}, degs::Vector{T}) :: Vector{Vector{T}} where T<:Integer
+        sV = Vector{Vector{T}}()
         deg = 0 
         k = length(V)
         while k > 0
-            W = Vector{Int}()
+            W = Vector{T}()
             for i in eachindex(degs)
                 if degs[i] == deg
                     push!(W, V[i])
@@ -390,8 +407,18 @@ function mcKay(g::TriangulatedPolygon) :: Vector{Vector{Int}}
     function makeEquitable!(p::Vector{Vector{T}}, g::TriangulatedPolygon) where T<:Integer
         i = 1; j = 1
         while i <= length(p)
-            rDegs = relative_degrees(g, p[i], p[j])
-            if !all(x -> x==rDegs[1], rDegs) 
+            #rDegs = relative_degrees(g, p[i], p[j])
+            bo = true
+            rd1 = relative_degree(g, p[i][1], p[j])
+            for k in 2:length(p[i])
+                if relative_degree(g, p[i][k], p[j]) != rd1
+                    bo = false
+                    break
+                end
+            end
+            if !bo
+            #if !all(x -> x==rDegs[1], rDegs) 
+                rDegs = relative_degrees(g, p[i], p[j])#
                 newVs = split(p[i], rDegs)
                 #replace the old partition by the new ones
                 popat!(p,i)
@@ -411,15 +438,29 @@ function mcKay(g::TriangulatedPolygon) :: Vector{Vector{Int}}
         end    
     end
 
-    p = split(collect(1:g.n), degrees(g))
+    p = split(collect(Int32,1:g.n), degrees(g))
     makeEquitable!(p, g)
     if length(p) == g.n #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
+    end
+
+    while only_one     
+        i = 1
+        while length(p[i]) == 1 #i = index of first partition that is not trivial
+            i += 1 
+        end 
+        V = popat!(p, i)
+        insert!(p, i, [popat!(V, 1)])
+        insert!(p, i+1, V)
+        makeEquitable!(p, g)
+        if length(p) == g.n
+            return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
+        end
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int}}}([p])
-    leafs = Vector{Vector{Vector{Int}}}()
+    queue = Vector{Vector{Vector{Int32}}}([p])
+    leafs = Vector{Vector{Int32}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1
@@ -435,10 +476,10 @@ function mcKay(g::TriangulatedPolygon) :: Vector{Vector{Int}}
             if length(pp) != g.n
                 push!(queue, pp)
             else
-                push!(leafs, pp)
+                push!(leafs, invert_permutation(reduce(vcat, pp)))
             end
         end
     end
 
-    return [invert_permutation(reduce(vcat, sigpi)) for sigpi in leafs]   #permutations
+    return leafs
 end
