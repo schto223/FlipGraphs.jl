@@ -1,5 +1,9 @@
 # DeltaComplexes
-
+```@meta
+DocTestSetup = quote
+    using FlipGraphs
+end
+```
 ## Modelling a triangulation on a closed surface
 
 A **Δ-complex** is a representation of a triangulation on a closed surface.

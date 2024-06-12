@@ -1,6 +1,12 @@
 # Quick Start
 
-If you're already familiar with the concept of **flipgraphs**, **triangulations** on **closed surfaces** and **Δ-complexes**, and don't to read the whole documentation of what what is, then here are some quick examples of what you can do with this package.
+```@meta
+DocTestSetup = quote
+    using FlipGraphs
+end
+```
+
+If you're already familiar with the concept of **flipgraphs**, **triangulations** on **closed surfaces** and **Δ-complexes**, and don't want to read the whole documentation, then here are some quick examples of what you can do with this package.
 
 In any other case, please be sure to have a look at the rest of the documentation first.
 
@@ -8,32 +14,52 @@ In any other case, please be sure to have a look at the rest of the documentatio
 
 Create a triangulated convex 10-gon:
 
-```julia-repl
-julia> g = triangulated_polygon(10)
-TriangulatedPolygon with 10 vertices, and adjacency list:
-[[2, 10], [1, 3, 10], [2, 4, 10, 9], [3, 5, 9, 8], [4, 6, 8, 7], [5, 7], [6, 8, 5], [7, 9, 4, 5], [8, 10, 3, 4], [9, 1, 2, 3]]
+```jldoctest ggg
+julia> g = triangulated_polygon(8)
+TriangulatedPolygon with 8 vertices, and adjacency list:
+ 1  → [2, 8]
+ 2  → [1, 3, 8]
+ 3  → [2, 4, 8, 7]
+ 4  → [3, 5, 7, 6]
+ 5  → [4, 6]
+ 6  → [5, 7, 4]
+ 7  → [6, 8, 3, 4]
+ 8  → [7, 1, 2, 3]
 ```
 
 Check if the edge going from vertex 2 to vertex 10 can be flipped:
 
-```julia-repl
-julia> is_flippable(g, 2, 10)
+```jldoctest ggg
+julia> is_flippable(g, 2, 8)
 true
 ```
 
-Flip said edge:
+Flip the edge connecting the vertices 2 and 10:
 
-```julia-repl
-julia> flip!(g, 2, 10)
-TriangulatedPolygon with 10 vertices, and adjacency list:
-[[2, 10, 3], [1, 3], [2, 4, 10, 9, 1], [3, 5, 9, 8], [4, 6, 8, 7], [5, 7], [6, 8, 5], [7, 9, 4, 5], [8, 10, 3, 4], [9, 1, 3]]
+```jldoctest ggg
+julia> flip!(g, 2, 8)
+TriangulatedPolygon with 8 vertices, and adjacency list:
+ 1  → [2, 8, 3]
+ 2  → [1, 3]
+ 3  → [2, 4, 8, 7, 1]
+ 4  → [3, 5, 7, 6]
+ 5  → [4, 6]
+ 6  → [5, 7, 4]
+ 7  → [6, 8, 3, 4]
+ 8  → [7, 1, 3]
 ```
 
-Construct the flipgraph of an Octagon:
+Construct the flipgraph of a convex octagon:
 
-```julia-repl
+```jldoctest
 julia> G = flipgraph_planar(8)
 FlipGraphPlanar with 132 vertices and 330 edges
+```
+
+Export the generated flipgraph as a .gml file:
+
+```julia-repl
+julia> export_gml("C:/Users/USERNAME/Desktop/FILENAME.gml", G);
 ```
 
 
@@ -41,13 +67,13 @@ FlipGraphPlanar with 132 vertices and 330 edges
 
 ### `DeltaComplex`
 
-A `DeltaComplex` is a simplified triangulation on a closed surface.
-(Can be used to compute things like the diameter etc. But does not offer a unique modelisation of a triangulation on a closed surface)
+A `DeltaComplex` is the dual of a triangulation on a closed surface.
+(Can be used to compute things like the diameter etc. But does not offer a unique modelisation of a triangulation on a closed surface. Every DeltaComplex can be interpreted as the homeomorphism class of triangulations of points on a closed surface)
 
 Create a `DeltaComplex` of a surface of genus 1 with 2 points 
 
-```julia-repl
-julia> D = delta_complex(1, 2)
+```jldoctest DDD
+julia> D = deltacomplex(1, 2)
 DeltaComplex on orientable surface of genus 1 with 2 points
 4 TriFaces:
  TriFace #1: Points(1 1 2) Neighbors(2 3 4)
@@ -65,14 +91,14 @@ DeltaComplex on orientable surface of genus 1 with 2 points
 
 Check if the 4th edge (DualEdge 4) can be flipped:
 
-```julia-repl
+```jldoctest DDD
 julia> is_flippable(D, 4)
 true
 ```
 
 Flip said edge:
 
-```julia-repl
+```jldoctest DDD
 julia> flip!(D, 4)
 DeltaComplex on orientable surface of genus 1 with 2 points
 4 TriFaces:
@@ -89,9 +115,9 @@ DeltaComplex on orientable surface of genus 1 with 2 points
  DualEdge 6 : (Δ3)-(2)-------(2)-(Δ1)
 ```
 
-Randomly flip edges in `D` until it the diameter stabilizes:
+Randomly flip edges in `D` until the diameter stabilizes:
 
-```julia-repl
+```
 julia> randomize!(D)
 10300000
 julia> D
@@ -111,20 +137,18 @@ DeltaComplex on orientable surface of genus 1 with 2 points
 ```
 
 
-### `HoleyDeltaComplex`
+## Modular `FlipGraph`
 
-A `DeltaComplex` is a more elaborate modelisation of a triangulation on a closed surface. This allows to determine if two triangulisations are homeomorph to each other or not. This comes however at the cost of efficiency.
+Construct the modular flip graph of a torus with 2 labeled points on it:
 
-```julia-repl
-julia> HD = holey_delta_complex(1, 2)
-HoleyDeltaComplex on orientable surface of genus 1 with: 2 Points; 4 TriFaces; 
-6 DualEdges; 1 Hole:
-Hole 1 : --<--3⤈-1⤈-6⤉--<--
+```jldoctest
+julia> G = flipgraph_modular(1,2)
+modular FlipGraph with 9 vertices and 8 edges
 ```
 
-Construct a local image of the flipgraph containing `HD` up to a depth of 5.
+Construct the modular flip graph of a torus with 2 unlabeled points on it:
 
-```julia-repl
-julia> flip_graph(HD, 5)
-FlipGraph with 98 vertices and 154 edges
+```jldoctest
+julia> G = flipgraph_modular(1,2;labeled_points=false)
+modular FlipGraph with 5 vertices and 4 edges
 ```

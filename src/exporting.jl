@@ -33,5 +33,5 @@ function export_gml(fpn::String, G::AbstractGraph{<:Integer})
         end
         write(file,"\n]");
     end
-    return open(io->read(io,String), fpn)
+    open(io->read(io,String), fpn);
 end

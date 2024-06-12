@@ -1,5 +1,7 @@
-using Test
+using Test, Documenter
 using FlipGraphs
+
+
 
 if isempty(ARGS)
     tests = [
@@ -18,3 +20,5 @@ end
 for test in tests
     include(test)
 end
+
+doctest(FlipGraphs)

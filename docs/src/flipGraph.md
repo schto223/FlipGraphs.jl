@@ -1,5 +1,9 @@
 # FlipGraph
-
+```@meta
+DocTestSetup = quote
+    using FlipGraphs
+end
+```
 Contrary to flipgraphs of planar triangulations like that of a convex polygon, the flipgraph of a closed surface is generally infinitely large.
 Therefore, it is impossible to construct the whole flipgraph. Not only are they infinitely in size, but they also "grow" very fast. It is therefore more interesting and achievable, to look at the modular flip graphs. These are graphs whose vertices are isotopy classes of triangulations.
 

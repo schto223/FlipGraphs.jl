@@ -13,14 +13,16 @@ import Graphs: Edge
 #    )
 #);
 
+#DocMeta.setdocmeta!(FlipGraphs, :DocTestSetup, :(using FlipGraphs); recursive=true)
+
 makedocs(
     sitename="FlipGraphs.jl Documentation", 
     #format = Documenter.LaTeX(platform = "none"), #format = Documenter.LaTeX(),
     modules= [FlipGraphs],
-    doctest = false, #remove later
+    doctest = true, #remove later
     pages = [
         "Home" => ["index.md", "install.md", "quickStart.md"],
-        "Convex Polygons" => ["polygonTriangulation.md", "flipGraph_planar.md"],
+        "Convex Polygons" => ["polygonTriangulation.md", "flipGraphPlanar.md"],
         "Closed Surfaces" => ["deltaComplex.md", "flipGraph.md"],
         "General Utilities" => ["generalUtilities.md", "exporting.md"]
         #"Plotting" => ["plotting.md"]
@@ -29,8 +31,8 @@ makedocs(
     checkdocs = :none 
 )
 
-deploydocs(;
-    repo = "github.com/schto223/FlipGraphs.jl.git"#,
+#deploydocs(;
+#    repo = "github.com/schto223/FlipGraphs.jl.git"#,
     #devbranch = "dev",
     #versions = "v^"
-)
+#)

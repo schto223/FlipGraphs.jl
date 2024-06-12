@@ -13,8 +13,14 @@ struct TriangulatedPolygon <: AbstractGraph{Int32}
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", g::TriangulatedPolygon)
-    println(io, string("TriangulatedPolygon with ", g.n, " vertices, and adjacency list:"))
-    show(io, mime, g.adjList)
+    if g.n > 20
+        println(io, string("TriangulatedPolygon with ", g.n, " vertices"))
+    else
+        println(io, string("TriangulatedPolygon with ", g.n, " vertices, and adjacency list:"))
+        for i in eachindex(g.adjList)
+            println(io, " $i $(i<10 ? " " : "")→ ["*join(g.adjList[i],", ")*"]")
+        end
+    end
 end
 
 """
@@ -142,7 +148,7 @@ flip(g::TriangulatedPolygon, src::Integer, dst::Integer) ::TriangulatedPolygon =
 
 Return the triangulated polygon obtained by flipping the edge `e` in `g`.
 """
-flip(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon = flip!(deepcopy(g), e) 
+flip(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon = flip(g, src(e), dst(e)) 
 
 """
     flip!(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon

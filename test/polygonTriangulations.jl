@@ -64,5 +64,14 @@ end
     A = adjacency_matrix(g)
     @test size(A) == (10,10)
     @test ((A.==1) + (A.==0)) == ones(Int, 10, 10)
+
+    g = triangulated_polygon(100)
+    g_copy= deepcopy(g)
+    p = mcKay(g, only_one=true)[1]
+    p_inv = invert_permutation(p)
+    rename_vertices!(g, p)
+    @test g.adjList == rename_vertices(g_copy, p).adjList
+    rename_vertices!(g, p_inv)
+    @test g.adjList == g_copy.adjList
 end
 

@@ -1,4 +1,3 @@
-export  FGVertexCandidate
 """
     struct FGVertexCandidate
 
@@ -17,8 +16,8 @@ struct FGVertexCandidate
     multi_adjacency_matrix_triangulation
     adjacency_matrix_deltacomplex
 
-    function FGVertexCandidate(D::DeltaComplex, fix_points::Bool)
-        if !fix_points
+    function FGVertexCandidate(D::DeltaComplex, labeled_points::Bool)
+        if !labeled_points
             point_perms = mcKay_points(D)
             rename_points!(D, point_perms[1])
         else
@@ -31,8 +30,8 @@ struct FGVertexCandidate
             multi_adjacency_matrix_triangulation(D), adjacency_matrix_deltacomplex(D))
     end
 
-    function FGVertexCandidate(D::DeltaComplex, fix_points::Bool, edge_ids::Vector{<:Integer})
-        if !fix_points
+    function FGVertexCandidate(D::DeltaComplex, labeled_points::Bool, edge_ids::Vector{<:Integer})
+        if !labeled_points
             point_perms = mcKay_points(D)
             rename_points!(D, point_perms[1])
         else
@@ -52,7 +51,7 @@ end
 
 A vertex in a flip graph. 
 
-An `FGVertex` is composed of a representant(`DeltaComplex`) of the isotopy class of that vertex. 
+A `FGVertex` is composed of a representant(`DeltaComplex`) of the isotopy class of that vertex. 
 The representant has been relabeld with one of the canonical labelings obtained by McKay's Algorithm.
 Addidtionally, the `FGVertex` contains the number of labelings that are output by the respective McKay's Algorithms.
 """
@@ -68,14 +67,14 @@ struct FGVertex
     vertex_perms :: Vector{Vector{Vector{Int}}}
     edge_perms :: Vector{Vector{Vector{Vector{Int}}}}
 
-    p_degrees :: Vector{Int} #sorted if fix_points=false
+    p_degrees :: Vector{Int} #sorted if labeled_points=false
 
     multi_adjacency_matrix_triangulation :: Matrix{Int}
     adjacency_matrix_deltacomplex :: Matrix{Int}
 
-    function FGVertex(D::DeltaComplex, id::Integer, fix_points::Bool)
+    function FGVertex(D::DeltaComplex, id::Integer, labeled_points::Bool)
         A_deltacomplex = adjacency_matrix_deltacomplex(D)
-        if fix_points
+        if labeled_points
             point_perms = [collect(1:np(D))]
         else
             point_perms = mcKay_points(D)
@@ -83,7 +82,7 @@ struct FGVertex
         vertex_perms = Vector{Vector{Vector{Int}}}(undef, length(point_perms)) 
         edge_perms = [Vector{Vector{Vector{Int}}}() for i in 1:length(point_perms)]
         for i_p in eachindex(point_perms)
-            if fix_points
+            if labeled_points
                 vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = A_deltacomplex)
             else
                 vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex, point_perms[i_p])
@@ -93,13 +92,13 @@ struct FGVertex
             end
         end 
         new(D, id, np(D), nv(D), ne(D), point_perms, vertex_perms, edge_perms, 
-        (fix_points ? point_degrees(D) : sort!(point_degrees(D))), 
+        (labeled_points ? point_degrees(D) : sort!(point_degrees(D))), 
         multi_adjacency_matrix_triangulation(D), A_deltacomplex)
     end
 
-    function FGVertex(fgvc::FGVertexCandidate, id::Integer, fix_points::Bool)
+    function FGVertex(fgvc::FGVertexCandidate, id::Integer, labeled_points::Bool)
         D = deepcopy(fgvc.D)
-        if fix_points
+        if labeled_points
             point_perms = [collect(1:length(fgvc.p_degrees))]
         else
             point_perms = mcKay_points(D)
@@ -107,7 +106,7 @@ struct FGVertex
         vertex_perms = Vector{Vector{Vector{Int}}}(undef, length(point_perms)) 
         edge_perms = [Vector{Vector{Vector{Int}}}() for i in 1:length(point_perms)]
         for i_p in eachindex(point_perms)
-            if fix_points
+            if labeled_points
                 vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = fgvc.adjacency_matrix_deltacomplex)
             else
                 vertex_perms[i_p] = mcKay_vertices(D, fgvc.adjacency_matrix_deltacomplex, point_perms[i_p])
@@ -164,22 +163,21 @@ end
 #end
 
 
-
 """
     struct FlipGraph <: AbstractGraph{Int}
 
-A Graph representing the flipgraph of a Δ-Complex.
+A Graph representing the **flip graph** of a **Δ-Complex**.
 
-Vertices are different triangulations of the same surface.\\
+Vertices are isotopy classes of triangulations of the same surface.\\
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraph <: AbstractGraph{Int}    
     V::Vector{FGVertex}
     adjList::Vector{Vector{Int32}}
-    fix_points::Bool
+    labeled_points::Bool
 
-    function FlipGraph(fix_points::Bool)
-        new(Vector{FGVertex}(), Vector{Vector{Int32}}(), fix_points)
+    function FlipGraph(labeled_points::Bool)
+        new(Vector{FGVertex}(), Vector{Vector{Int32}}(), labeled_points)
     end
 end
 
@@ -240,7 +238,7 @@ Return the number of vertices in `G`.
 nv(G::FlipGraph) ::Int = length(G.V)
 
 """
-    vertices(G::FlipGraph) -> Vector{DeltaComplex}
+    vertices(G::FlipGraph) :: Vector{DeltaComplex}
 
 Return a list of all the vertices that have been constructed in `G`.
 """
@@ -257,7 +255,7 @@ function add_edge!(G::FlipGraph, v, w)
 end
 
 function add_vertex!(G::FlipGraph, D::DeltaComplex) 
-    fgv = FGVertex(D, nv(G)+1, G.fix_points)
+    fgv = FGVertex(D, nv(G)+1, G.labeled_points)
     return add_vertex!(G, fgv)
 end
 
@@ -268,11 +266,11 @@ function add_vertex!(G::FlipGraph, fgv::FGVertex)
 end
 
 function add_vertex!(G::FlipGraph, fgvc::FGVertexCandidate) 
-    fgv = FGVertex(fgvc, nv(G)+1, G.fix_points)
+    fgv = FGVertex(fgvc, nv(G)+1, G.labeled_points)
     return add_vertex!(G, fgv)
 end
 
-#function build_vertex_tree(nps::Integer, nes::Integer, fix_points::Bool)
+#function build_vertex_tree(nps::Integer, nes::Integer, labeled_points::Bool)
 #    if nps == 1
 #        return Vector{FGVertex}()
 #    end
@@ -299,10 +297,10 @@ end
 Construct the **FlipGraph** for the DeltaComplex `D`.  
 
 # Arguments
-- `fix_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
+- `labeled_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
 """
-function flipgraph_modular(g::Integer, p::Integer; fix_points::Bool=true)
-    return flipgraph_modular(deltacomplex(g,p), fix_points=fix_points)
+function flipgraph_modular(g::Integer, p::Integer; labeled_points::Bool=true)
+    return flipgraph_modular(deltacomplex(g,p), labeled_points=labeled_points)
 end
 
 """
@@ -311,18 +309,18 @@ end
 Construct the **FlipGraph** for the DeltaComplex `D`.  
 
 # Arguments
-- `fix_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
+- `labeled_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
 - `depth::Integer = ∞` : Determines the depth to which the flip grap should be constructed. i.e. up to which distance from `D`. 
 """
-function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), fix_points::Bool = true)
-    G = FlipGraph(fix_points)
+function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), labeled_points::Bool = true)
+    G = FlipGraph(labeled_points)
     nes = ne(D); nps = np(D)#TODO add the first vertex to the tree    
     fgv_first = add_vertex!(G, D)
 
     #rooted tree whose i-th nodes branch-off regarding to the possible degrees of the i-th point. 
     #The leafs contain all the vertices that have the same point_degrees
     if nps > 1
-        if fix_points
+        if labeled_points
             vertex_tree = Vector{Any}(undef, 2*nes-(nps-1)) 
         else
             vertex_tree = Vector{Any}(undef, (2*nes)÷nps) 
@@ -334,7 +332,7 @@ function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), fix_p
     vtn = vertex_tree
     for i in 1:nps-1 #fgvc.p_degrees[1:end-1] 
         if i != nps-1
-            if fix_points
+            if labeled_points
                 vtn[fgv_first.p_degrees[i]] = Vector{Any}(undef, 2*nes - sum(fgv_first.p_degrees[1:i])-(nps-i-1))
             else
                 vtn[fgv_first.p_degrees[i]] = Vector{Any}(undef, (2*nes - sum(fgv_first.p_degrees[1:i]))÷(nps-i))
@@ -354,13 +352,13 @@ function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), fix_p
         for e in 1:ne(D)
             if is_flippable(D, edge_ids[e])
                 flip!(D, edge_ids[e])
-                fgvc, edge_ids = FGVertexCandidate(D, fix_points, edge_ids)
+                fgvc, edge_ids = FGVertexCandidate(D, labeled_points, edge_ids)
                 is_new = false
                 vtn = vertex_tree
                 for i in 1:nps-1 #fgvc.p_degrees[1:end-1] 
                     if !isassigned(vtn, fgvc.p_degrees[i])
                         if i != nps-1
-                            if fix_points
+                            if labeled_points
                                 vtn[fgvc.p_degrees[i]] = Vector{Any}(undef, 2*nes - sum(fgvc.p_degrees[1:i])-(nps-i-1))
                             else
                                 vtn[fgvc.p_degrees[i]] = Vector{Any}(undef, (2*nes - sum(fgvc.p_degrees[1:i]))÷(nps-i))
@@ -375,7 +373,7 @@ function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), fix_p
                 if !is_new
                     is_new = true
                     for v in vtn
-                        if is_isomorphic(fgvc, v; fix_points=fix_points)
+                        if is_isomorphic(fgvc, v; labeled_points=labeled_points)
                             add_edge!(G, ind_D, v.id)
                             is_new = false
                             break
@@ -405,17 +403,17 @@ end
 """
     is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; kwargs..) -> Bool
 
-Return `true` if `D1` is isomorph to `D2` up to a renaming of the vertices, edges and if `fix_points=false` also points.
+Return `true` if `D1` is isomorph to `D2` up to a renaming of the vertices, edges and if `labeled_points=false` also points.
     
 # Arguments
-- `fix_points::Bool=true` : If fix_points is set to `false`, then the isomorphism also includes a renaming of the points. 
+- `labeled_points::Bool=true` : If labeled_points is set to `false`, then the isomorphism also includes a renaming of the points. 
 """
-function is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; fix_points::Bool = true) :: Bool
+function is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; labeled_points::Bool = true) :: Bool
     nv(D1) == nv(D2) && ne(D1) == ne(D2) && np(D1) == np(D2) || return false
     D = deepcopy(D1)
-    fgvc = FGVertexCandidate(D, fix_points)
-    fgv = FGVertex(D2, 0, fix_points)
-    return is_isomorphic(fgvc, fgv, fix_points=fix_points)
+    fgvc = FGVertexCandidate(D, labeled_points)
+    fgv = FGVertex(D2, 0, labeled_points)
+    return is_isomorphic(fgvc, fgv, labeled_points=labeled_points)
 end
 
 
@@ -425,14 +423,14 @@ end
 Return `true` if `candidate` is in the isotopy class of `fgv`. 
 
 # Arguments
-- `fix_points::Bool=true` : If is set to `false`, then the isomorphism would also allow a relabeling of the points. 
+- `labeled_points::Bool=true` : If is set to `false`, then the isomorphism would also allow a relabeling of the points. 
 """
-function is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex; fix_points::Bool = true) :: Bool
+function is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex; labeled_points::Bool = true) :: Bool
     if candidate.p_degrees != fgv.p_degrees#TODO, do planar idea with only checking the right candidates
         return false
     end
     #point mapping
-    if !fix_points
+    if !labeled_points
         permutations_points = fgv.point_perms
         valid_permutation_points = trues(length(permutations_points))
         if length(permutations_points) != candidate.num_point_perms
@@ -556,7 +554,6 @@ end
 function makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}) where T<:Integer
     i = 1; j = 1
     while i <= length(p)
-        #rDegs = relative_degrees(A, p[i], p[j])
         bo = true
         rd1 = relative_degree(A, p[i][1], p[j])
         for k in 2:length(p[i])
