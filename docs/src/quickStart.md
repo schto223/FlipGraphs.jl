@@ -6,9 +6,9 @@ DocTestSetup = quote
 end
 ```
 
-If you're already familiar with the concept of **flipgraphs**, **triangulations** on **closed surfaces** and **Δ-complexes**, and don't want to read the whole documentation, then here are some quick examples of what you can do with this package.
+If you're already familiar with the concept of **flip graphs**, **triangulations** on **closed surfaces**, and **Δ-complexes**, and don't want to read the whole documentation, then here are some quick examples of what you can do with this package.
 
-In any other case, please be sure to have a look at the rest of the documentation first.
+In any other case, please be sure to take a look at the rest of the documentation first.
 
 ## Triangulated Convex Polygon
 
@@ -34,7 +34,7 @@ julia> is_flippable(g, 2, 8)
 true
 ```
 
-Flip the edge connecting the vertices 2 and 10:
+Flip the edge connecting vertices 2 and 10:
 
 ```jldoctest ggg
 julia> flip!(g, 2, 8)
@@ -49,14 +49,14 @@ TriangulatedPolygon with 8 vertices, and adjacency list:
  8  → [7, 1, 3]
 ```
 
-Construct the flipgraph of a convex octagon:
+Construct the flip graph of a convex octagon:
 
 ```jldoctest
 julia> G = flipgraph_planar(8)
 FlipGraphPlanar with 132 vertices and 330 edges
 ```
 
-Export the generated flipgraph as a .gml file:
+Export the generated flip graph as a .gml file:
 
 ```julia-repl
 julia> export_gml("C:/Users/USERNAME/Desktop/FILENAME.gml", G);
@@ -68,9 +68,10 @@ julia> export_gml("C:/Users/USERNAME/Desktop/FILENAME.gml", G);
 ### `DeltaComplex`
 
 A `DeltaComplex` is the dual of a triangulation on a closed surface.
-(Can be used to compute things like the diameter etc. But does not offer a unique modelisation of a triangulation on a closed surface. Every DeltaComplex can be interpreted as the homeomorphism class of triangulations of points on a closed surface)
+It can be used to compute things like the diameter, but it does not offer a unique modelisation of a triangulation on a closed surface. 
+Every DeltaComplex can be interpreted as the homeomorphism class of triangulations of points on a closed surface.
 
-Create a `DeltaComplex` of a surface of genus 1 with 2 points 
+Create a `DeltaComplex` of a surface of genus 1 with 2 points:
 
 ```jldoctest DDD
 julia> D = deltacomplex(1, 2)
@@ -117,7 +118,7 @@ DeltaComplex on orientable surface of genus 1 with 2 points
 
 Randomly flip edges in `D` until the diameter stabilizes:
 
-```
+```julia-repl
 julia> randomize!(D)
 10300000
 julia> D

@@ -1,16 +1,19 @@
-# DeltaComplexes
+# Triangulations of Closed Surfaces
 ```@meta
 DocTestSetup = quote
     using FlipGraphs
 end
 ```
-## Modelling a triangulation on a closed surface
+A triangulation of a closed surface is composed of points on the closed surface, which are connected by a maximal number of arcs (isotopy classes of curves on the surface which start and end at fixed points without containing any loops) in such a way, that no two arcs are homotopic to each other. \
+As these become very complex objects that are difficult and computationally complex to model, it is often more useful, to look at the dual of a triangulation. This dual is called a *Δ-complex*. 
+
+## DeltaComplex
 
 A **Δ-complex** is a representation of a triangulation on a closed surface.
-To define a triangulation on a closed surface, it does not suffice to take into account vertices and edges. We will also need to take into account the triangular faces between them. Therefore the triangulations are modeled using an extension of their dual graph.
+To define a triangulation on a closed surface, it does not suffice to consider vertices and edges. We will also need to consider the triangular faces between them. Therefore, the triangulations are modeled using an extension of their dual graph.
 
-Vertices are triangular faces which in turn consist of three points, and three edges. These points and edges are not necessarily distinct.
-Edges in the dual Graph(i.e. the Δ-complex) connect two triangular faces if they in turn share an edge. In order to avoid confusion between the edges of the triangulation and the edges in the dual graph, I will, hence forwards call the latter *dual edge*.
+Vertices are triangular faces, which in turn consist of three points and three edges. These points and edges are not necessarily distinct.
+Edges in the dual (i.e. the Δ-complex) connect two triangular faces if they, in turn, share an edge. In order to avoid confusion between the edges of the triangulation and the edges of the dual, I will henceforth refer to the latter as the *dual edge*.
 
 ```@docs
     DeltaComplex
@@ -49,6 +52,7 @@ This Module comes with some handy and easy to use tools to construct a triangula
 
     vertices(::DeltaComplex, ::DualEdge)
     vertices_id(::DualEdge)
+    sides
 
     get_edge(::TriFace, ::Integer) 
     get_edge_id(::TriFace, ::Integer)
@@ -57,6 +61,8 @@ This Module comes with some handy and easy to use tools to construct a triangula
     edges_id(::DeltaComplex, ::Integer) 
     edges_id(::TriFace) 
     id(::TriFace) 
+
+    quadrilateral_edges(::DeltaComplex, ::DualEdge)
 
     other_endpoint(::DualEdge, ::Integer, ::Integer)
     is_similar(::DualEdge, ::DualEdge)
@@ -95,6 +101,7 @@ Regarding on which way edges are glued together, the resulting surface may be no
     is_orientable(::DeltaComplex)
     demigenus
     twist_edges!
+    is_twisted
 ```
 
 ## Flipping

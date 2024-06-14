@@ -26,8 +26,8 @@ You can start using the package as follows:
 
 ```julia-repl
 julia> using FlipGraphs
-julia> flipgraph_planar(10)
-FlipGraphPlanar with 1430 vertices and 5005 edges
+julia> flipgraph_planar(13)
+FlipGraphPlanar with 58786 vertices and 293930 edges
 ```
 
-You can get help for a function by putting a question mark in front.
+If you need help with a function, you can put a question mark in front of it,or have a look at the [documentation](https://schto223.github.io/FlipGraphs.jl/dev). 

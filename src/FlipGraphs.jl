@@ -24,7 +24,7 @@ import Graphs:
 
 #general graph functions
 export edgetype, has_edge, has_vertex, neighbors, inneighbors, outneighbors, ne, nv
-export vertices, edges, is_directed, add_edge!, add_vertex!, remove_edge!
+export vertices, edges, is_directed, add_edge!, remove_edge!#, add_vertex!
 
 #graphFunctions
 export diameter, adjacency_matrix, invert_permutation
@@ -36,7 +36,7 @@ export flip, flip!, flip_get_edge!, is_flippable, edges_flippable
 
 #flipGraph_planar
 export FlipGraphPlanar, FGPVertex, flipgraph, flipgraph_planar
-export is_isomorphic, rename_vertices
+export is_isomorphic, rename_vertices, mcKay
 
 #deltaComplex
 export DeltaComplex, deltacomplex, deltacomplex_non_orientable, DualEdge, TriFace
@@ -56,6 +56,9 @@ export is_isomorphic
 
 #general
 export matrix_equal, relative_degrees, relative_degree, distances
+
+#exporting
+export export_gml
 
 
 include("generalUtilities.jl")
