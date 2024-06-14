@@ -16,9 +16,9 @@ import Graphs: Edge
 #DocMeta.setdocmeta!(FlipGraphs, :DocTestSetup, :(using FlipGraphs); recursive=true)
 
 makedocs(
-    sitename="FlipGraphs.jl Documentation", 
-    #format = Documenter.LaTeX(platform = "none"), #format = Documenter.LaTeX(),
+    sitename="FlipGraphs.jl",     
     modules= [FlipGraphs],
+    #format = Documenter.LaTeX(platform = "none"), #format = Documenter.LaTeX(),
     #format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
     doctest = true, #remove later
     pages = [
@@ -29,7 +29,7 @@ makedocs(
         #"Plotting" => ["plotting.md"]
     ],
     #checkdocs = :exports 
-    checkdocs = :none 
+    checkdocs = :none
 )
 
 #deploydocs(;

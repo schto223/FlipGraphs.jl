@@ -94,9 +94,20 @@ import Graphs.SimpleEdge
                 @test ne(G) == nes[g][p]
             end
         end
+
+        #sphere
+        for p in 3:5
+            G = flipgraph_modular(0, p, labeled_points=true)
+            @test nv(G) == [4, 64, 2240][p-2]
+            @test ne(G) == [3, 120, 7200][p-2]
+        end
+        for p in 3:7
+            G = flipgraph_modular(0, p, labeled_points=false)
+            @test nv(G) == [2, 6, 26, 191, 1904][p-2]
+            @test ne(G) == [1, 5, 48, 658, 9627][p-2]
+        end
     end
 end
-
 
 
 function isGood(Data::FGVertexCandidate)

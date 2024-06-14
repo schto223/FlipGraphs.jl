@@ -1,9 +1,9 @@
 """
     struct FGVertexCandidate
 
-A possible candidate for a vertex in a flip graph. 
+A candidate for a possible vertex in a flip graph. 
 
-It hasn't yet been decided if this candidate is a new Vertex in the graph, or isomorph to an already existing DeltaComplex.
+It hasn't yet been decided if this candidate is a new vertex in the graph, or isomorph to an already existing `DeltaComplex`.
 """
 struct FGVertexCandidate
     D::DeltaComplex
@@ -53,11 +53,11 @@ end
 """
     struct FGVertex
 
-A vertex in a flip graph. 
+A *vertex* in a `FlipGraph`. 
 
-A `FGVertex` is composed of a representant(`DeltaComplex`) of the isotopy class of that vertex. 
-The representant has been relabeld with one of the canonical labelings obtained by McKay's Algorithm.
-Addidtionally, the `FGVertex` contains the number of labelings that are output by the respective McKay's Algorithms.
+A `FGVertex` is composed of a representant (`DeltaComplex`) of the isotopy class of that vertex. 
+The representant has been relabeled with one of the canonical labeling obtained by an adaptation of *McKay's Algorithm*.
+Additionally, the `FGVertex` contains the number of labeling that are output by the respective *McKay's Algorithms*.
 """
 struct FGVertex
     D :: DeltaComplex
@@ -82,7 +82,7 @@ struct FGVertex
             point_perms = [collect(1:np(D))]
         else
             point_perms = mcKay_points(D)
-        end            
+        end
         vertex_perms = Vector{Vector{Vector{Int}}}(undef, length(point_perms)) 
         edge_perms = [Vector{Vector{Vector{Int}}}() for i in 1:length(point_perms)]
         for i_p in eachindex(point_perms)
@@ -108,7 +108,7 @@ struct FGVertex
             point_perms = mcKay_points(D)
         end
         vertex_perms = Vector{Vector{Vector{Int}}}(undef, length(point_perms)) 
-        edge_perms = [Vector{Vector{Vector{Int}}}() for i in 1:length(point_perms)]
+        edge_perms = [Vector{Vector{Vector{Int}}}() for i in eachindex(point_perms)]
         for i_p in eachindex(point_perms)
             if labeled_points
                 vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = fgvc.adjacency_matrix_deltacomplex)
@@ -170,12 +170,12 @@ end
 """
     struct FlipGraph <: AbstractGraph{Int}
 
-A Graph representing the **flip graph** of a **Δ-Complex**.
+A *graph* representing the **flip graph** of a **Δ-Complex**.
 
 Vertices are isotopy classes of triangulations of the same surface.\\
 Two vertices are linked by an edge, if the respective triangulations differ only by a single flip.
 """
-struct FlipGraph <: AbstractGraph{Int}    
+struct FlipGraph <: AbstractGraph{Int32}    
     V::Vector{FGVertex}
     adjList::Vector{Vector{Int32}}
     labeled_points::Bool
@@ -190,9 +190,9 @@ function Base.show(io::IO, mime::MIME"text/plain", G::FlipGraph)
 end
 
 """
-    edges(G::FlipGraph) ::Vector{Edge}
+    edges(G::FlipGraph) :: Vector{Edge}
 
-Construct an array containing all the edges in `G`.
+Construct a list containing all the edges in `G`.
 """
 function edges(G::FlipGraph) ::Vector{Edge}
     return collect(Edge(Int32(i),j) for i in eachindex(G.V) for j in G.adjList[i] if i<j)
@@ -201,75 +201,94 @@ end
 edgetype(G::FlipGraph) = SimpleEdge{Int32}
 
 """
-    has_edge(G::FlipGraph, e::Edge) -> Bool
+    has_edge(G::FlipGraph, e::Edge) :: Bool
+
+Return `true` if `e` is an edge in `G`.
 """
 has_edge(G::FlipGraph, e::Edge)::Bool = (dst(e) ∈ G.adjList[src(e)])
 
 """
-    has_edge(G::FlipGraph, s::Integer, d::Integer) -> Bool
+    has_edge(G::FlipGraph, s::Integer, d::Integer) :: Bool
+
+Return `true` if there is an edge between the `s`-th and `d`-th vertex in `G`.
 """
-has_edge(G::FlipGraph, s::Integer, d::Integer)::Bool = (d ∈ G.adjList[s])
+has_edge(G::FlipGraph, s::Integer, d::Integer) :: Bool = (d ∈ G.adjList[s])
+
+"""
+    has_edge(G::FlipGraph, v1::FGVertex, v2::FGVertex) :: Bool
+
+Return `true` if there is an edge between `v1` and `v2` in `G`.
+"""
+has_edge(G::FlipGraph, v1::FGVertex, v2::FGVertex) :: Bool = (v2.id ∈ G.adjList[v1.id])
 
 
 """
-    has_vertex(G::FlipGraph, v::Integer) -> Bool
+    has_vertex(G::FlipGraph, v::Integer) :: Bool
 
 Return true if `v` is a valid index of a vertex in `G`.
 """
-has_vertex(G::FlipGraph, v::Integer) = (1 <= v <= nv(G))
+has_vertex(G::FlipGraph, v::Integer) :: Bool = (1 <= v <= nv(G))
+
+"""
+    neighbors(G::FlipGraph, v::Integer) :: Vector{Int32}
+
+Return a list of the indices of all the neighboring vertices of the `v`-th vertex.
+"""
+neighbors(G::FlipGraph, v::Integer) :: Vector{Int32} = G.adjList[v]
 inneighbors(G::FlipGraph, v) = neighbors(G,v)
 outneighbors(G::FlipGraph, v) = neighbors(G,v)
 
 """
-    neighbors(G::FlipGraph, v::Integer) -> Vector{Int}
-
-Return a list of the indices of all the neighboring vertices of the `v`-th vertex.
-"""
-neighbors(G::FlipGraph, v::Integer) ::Vector{Int} = G.adjList[v]
-
-"""
-    ne(G::FlipGraph) -> Int
+    ne(G::FlipGraph) :: Int
 
 Return the number of edges in `G`.
 """
-ne(G::FlipGraph) ::Int = sum(size(G.adjList[i],1) for i in eachindex(G.adjList))÷2
+ne(G::FlipGraph) :: Int = sum(size(G.adjList[i],1) for i in eachindex(G.adjList))÷2
 
 """
-    nv(G::FlipGraph) -> Int
+    nv(G::FlipGraph) :: Int
 
 Return the number of vertices in `G`.
 """
-nv(G::FlipGraph) ::Int = length(G.V)
+nv(G::FlipGraph) :: Int = length(G.V)
 
 """
-    vertices(G::FlipGraph) :: Vector{DeltaComplex}
+    vertices(G::FlipGraph) :: Vector{FGVertex}
 
 Return a list of all the vertices that have been constructed in `G`.
 """
 vertices(G::FlipGraph) :: Vector{FGVertex} = G.V
-is_directed(G::FlipGraph) = false
-is_directed(::Type{FlipGraph}) = false
+
+"""
+    vertices_deltacomplex(G::FlipGraph) :: Vector{DeltaComplex}
+
+Construct a list of all the `DeltaComplex`s which form the vertices in `G`.
+"""
+vertices_deltacomplex(G::FlipGraph) :: Vector{DeltaComplex} = collect(DeltaComplex, v.D for v in vertices(G))
+
+is_directed(G::FlipGraph) ::Bool = false
+is_directed(::Type{FlipGraph}) ::Bool = false
 
 
 function add_edge!(G::FlipGraph, v, w) 
     if !has_edge(G, v, w) && v!=w
-        push!(G.adjList[v],w)
-        push!(G.adjList[w],v)
+        push!(G.adjList[v], w)
+        push!(G.adjList[w], v)
     end
 end
 
-function add_vertex!(G::FlipGraph, D::DeltaComplex) 
-    fgv = FGVertex(D, nv(G)+1, G.labeled_points)
-    return add_vertex!(G, fgv)
-end
-
-function add_vertex!(G::FlipGraph, fgv::FGVertex) 
+function add_vertex!(G::FlipGraph, fgv::FGVertex) :: FGVertex
     push!(G.V, fgv)
     push!(G.adjList,[])
     return fgv
 end
 
-function add_vertex!(G::FlipGraph, fgvc::FGVertexCandidate) 
+function add_vertex!(G::FlipGraph, D::DeltaComplex) :: FGVertex
+    fgv = FGVertex(D, nv(G)+1, G.labeled_points)
+    return add_vertex!(G, fgv)
+end
+
+function add_vertex!(G::FlipGraph, fgvc::FGVertexCandidate) :: FGVertex
     fgv = FGVertex(fgvc, nv(G)+1, G.labeled_points)
     return add_vertex!(G, fgv)
 end
@@ -296,32 +315,32 @@ end
 
 
 """
-    flipgraph_modular(g::Integer; kwargs..)
+    flipgraph_modular(g::Integer, p::Integer; kwargs..) :: FlipGraph
     
-Construct the **FlipGraph** for the DeltaComplex `D`.  
+Construct the **modular flip graph** for a genus `g` closed orientable surface with `p` points on it.  
 
 # Arguments
-- `labeled_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
+- `labeled_points :: Bool = true` : If set to `false`, the isomorphism also includes a renaming of the points. 
 """
 function flipgraph_modular(g::Integer, p::Integer; labeled_points::Bool=true)
-    return flipgraph_modular(deltacomplex(g,p), labeled_points=labeled_points)
+    return flipgraph_modular(deltacomplex(g, p), labeled_points=labeled_points)
 end
 
 """
     flipgraph_modular(D::DeltaComplex; kwargs..)
     
-Construct the **FlipGraph** for the DeltaComplex `D`.  
+Construct the **modular flip graph** for the closed orientable surface defined by the *Δ-complex* `D`.  
 
 # Arguments
-- `labeled_points::Bool=true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
-- `depth::Integer = ∞` : Determines the depth to which the flip grap should be constructed. i.e. up to which distance from `D`. 
+- `labeled_points :: Bool = true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
+- `depth :: Integer = ∞` : Determines the depth to which the flip grap should be constructed. i.e. up to which distance from `D`. 
 """
 function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), labeled_points::Bool = true)
     G = FlipGraph(labeled_points)
     nes = ne(D); nps = np(D)#TODO add the first vertex to the tree    
     fgv_first = add_vertex!(G, D)
 
-    #rooted tree whose i-th nodes branch-off regarding to the possible degrees of the i-th point. 
+    #rooted tree whose i-th nodes branch-off according to the possible degrees of the i-th point. 
     #The leafs contain all the vertices that have the same point_degrees
     if nps > 1
         if labeled_points
@@ -405,12 +424,12 @@ end
 
 
 """
-    is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; kwargs..) -> Bool
+    is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; kwargs..) :: Bool
 
 Return `true` if `D1` is isomorph to `D2` up to a renaming of the vertices, edges and if `labeled_points=false` also points.
     
 # Arguments
-- `labeled_points::Bool=true` : If labeled_points is set to `false`, then the isomorphism also includes a renaming of the points. 
+- `labeled_points :: Bool = true` : If labeled_points is set to `false`, then the isomorphism also includes a renaming of the points. 
 """
 function is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; labeled_points::Bool = true) :: Bool
     nv(D1) == nv(D2) && ne(D1) == ne(D2) && np(D1) == np(D2) || return false
@@ -427,7 +446,7 @@ end
 Return `true` if `candidate` is in the isotopy class of `fgv`. 
 
 # Arguments
-- `labeled_points::Bool=true` : If is set to `false`, then the isomorphism would also allow a relabeling of the points. 
+- `labeled_points :: Bool = true` : If is set to `false`, then the isomorphism would also allow a relabeling of the points. 
 """
 function is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex; labeled_points::Bool = true) :: Bool
     if candidate.p_degrees != fgv.p_degrees#TODO, do planar idea with only checking the right candidates
@@ -487,11 +506,15 @@ function is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex; labeled_poin
     return false
 end
  
+"""
+    is_all_equivalent(D::DeltaComplex, fgv::FGVertex, p_p::Vector{T}, p_v::Vector{T}, p_e::Vector{T}) where T<:Integer
 
-function is_all_equivalent(D::DeltaComplex, Data::FGVertex, p_p::Vector{T}, p_v::Vector{T}, p_e::Vector{T}) where T<:Integer
+Return `true` if `D` is identical to the `DeltaComplex` defined by the vertex fgv, whose `DeltaComplex` has been renamed by the `p_p`-th point permutation, `p_v`-th vertex permutation, `p_e`-th edge permutation.
+"""
+function is_all_equivalent(D::DeltaComplex, fgv::FGVertex, p_p::Vector{T}, p_v::Vector{T}, p_e::Vector{T}) where T<:Integer
     for n in eachindex(D.V)
         T1 = D.V[p_v[n]]
-        T2 = Data.D.V[n]
+        T2 = fgv.D.V[n]
         bo = true
         for offset in 0:2
             bo = true
@@ -520,14 +543,14 @@ end
 """
     diameter(G::FlipGraph)
 
-Return the diameter of the portion of the flipgraph that has been constructed.
+Compute the diameter of the `FlipGraph` `G`.
 """
 function diameter(G::FlipGraph)
     return diameter(adjacency_matrix(G.adjList))
 end
 
 """
-    split(V::Vector{<:Integer}, degs::Vector{<:Integer})
+    split(V::Vector{T}, degs::Vector{<:Integer}) :: Vector{Vector{T}} where T<:Integer
 
 Split `V` into partitions according to their degrees from smallest to biggest.
 """
@@ -553,8 +576,11 @@ function split(V::Vector{T}, degs::Vector{<:Integer}) :: Vector{Vector{T}} where
 end
 
 
-#replace partitions by partitions as long as there are 2 elements in the same partition ...
-#...that may be differentiated by their relative degrees to another partition
+"""
+    makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}) where T<:Integer
+    
+Replace partitions by sub-partitions as long as there are at least 2 elements in the same partition that may be differentiated by their relative degrees to another partition.
+"""
 function makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}) where T<:Integer
     i = 1; j = 1
     while i <= length(p)
@@ -588,13 +614,46 @@ function makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}) where T<:Int
 end
 
 """
-    mcKay_points(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{Int32}}
+    force_makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}) where T<:Integer
 
-Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
+If it is no longer possible to makeEquitable, the first non-trivial set gets split by removing one of the elements and putting it in a singleton.
+This is done with all the elements from said set, resulting in a bunch of possibilities. 
+Each of the partitions is now again tried to be made equitable.
+"""
+function force_makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}, n::Integer) where T<:Integer
+    queue = Vector{Vector{Vector{T}}}([p])
+    leafs = Vector{Vector{T}}()
+    while !isempty(queue)
+        p = popfirst!(queue)
+        i = 1
+        while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
+        for j in eachindex(p[i]) #replace the i-th partition by isolating its j-th element 
+            pp = deepcopy(p)
+            V = popat!(pp, i)
+            insert!(pp, i, [V[j]])
+            popat!(V, j)
+            insert!(pp, i+1, V)
+            makeEquitable!(pp, A)
+            if length(pp) != n
+                push!(queue, pp)
+            else
+                push!(leafs, invert_permutation(reduce(vcat, pp)))
+            end
+        end
+    end
+    return leafs
+end
+
+"""
+    mcKay_points(D::DeltaComplex; kwargs..) :: Vector{Vector{Int32}}
+
+Apply a version of McKay's canonical graph labeling algorithm to determine all possible permutations 
 of the points which give a canonical isomorphism class representant.
 
-Return a vector of permutation vectors `p` such that Point 1 becomes Point `p[1]`, Point 2 becomes Point `p[2]`,...
-If `only_one=true`, the algorithm stops after finding one valid permutation.
+Return a vector of permutation vectors `p` such that point 1 becomes point `p[1]`, point 2 becomes point `p[2]`,...
+
+# Arguments
+- `only_one :: Bool = false`, If set to true, the algorithm will stop after finding a single valid permutation.
 """
 function mcKay_points(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{Int32}}
     A = multi_adjacency_matrix_triangulation(D)
@@ -620,32 +679,22 @@ function mcKay_points(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{In
             return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
         end
     end
-    
-    #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int32}}}([p])
-    leafs = Vector{Vector{Int32}}()
-    while !isempty(queue)
-        p = popfirst!(queue)
-        i = 1       
-        while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
-        for j in eachindex(p[i]) #replace the i-th partition by isolating its j-th element 
-            pp = deepcopy(p)
-            V = popat!(pp, i)
-            insert!(pp, i, [popat!(V, j)])
-            insert!(pp, i+1, V)
-            makeEquitable!(pp,A)
-            if length(pp) != n
-                push!(queue, pp)
-            else
-                push!(leafs, invert_permutation(reduce(vcat, pp)))
-            end
-        end
-    end
 
-    return leafs  #Permutations
+    return force_makeEquitable!(p, A, n)  #Permutations
 end
 
-function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, point_perm::Vector{<:Integer})
+"""
+    mcKay_vertices(D::DeltaComplex; , A_deltacomplex::Matrix{<:Integer}, point_perm::Vector{<:Integer}) :: Vector{Vector{Int32}}
+
+Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
+of the `TriFace`s which give a canonical isomorphism class representant.
+
+Return a vector of permutation vectors `p` such that `TriFace` 1 becomes `TriFace` `p[1]`, `TriFace` 2 becomes `TriFace` `p[2]`, ...\\
+If `only_one=true`, the algorithm stops after finding one valid permutation.
+
+The vectors `point_perm` determins how the points of `D` are implied to have been renamed, without actually having been changed.
+"""
+function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, point_perm::Vector{<:Integer}) :: Vector{Vector{Int32}}
     np1 = np(D)
     np2 = np1*np1
 
@@ -658,44 +707,26 @@ function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, poin
     n = nv(D)
     p = split(collect(Int32,1:n), collect(pointValue(T) for T in D.V))
     makeEquitable!(p,A_deltacomplex)
-
     if length(p) == n #there is only one canonical permutation
         return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
-    
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int32}}}([p])
-    leafs = Vector{Vector{Int32}}()
-    while !isempty(queue)
-        p = popfirst!(queue)
-        i = 1
-        while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
-        for j in eachindex(p[i]) #replace the i-th partition by isolating its j-th element 
-            pp = deepcopy(p)
-            V = popat!(pp, i)
-            insert!(pp, i, [V[j]])
-            popat!(V, j)
-            insert!(pp, i+1, V)
-            makeEquitable!(pp,A_deltacomplex)
-            if length(pp) != n
-                push!(queue, pp)
-            else
-                push!(leafs, invert_permutation(reduce(vcat, pp)))
-            end
-        end
-    end
-    return leafs
+    return force_makeEquitable!(p, A_deltacomplex, n)
 end
 
+
 """
-    mcKay_vertices(D::DeltaComplex)::Vector{Vector{Int32}}
+    mcKay_vertices(D::DeltaComplex; kwargs..) :: Vector{Vector{Int32}}
 
 Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
-of the triFaces which give a canonical isomorphism class representant.
+of the `TriFace`s which give a canonical isomorphism class representant.
 
-Return a vector of permutation vectors `p` such that TriFace 1 becomes TriFace p[1], TriFace 2 becomes TriFace p[2],...\\
+Return a vector of permutation vectors `p` such that `TriFace` 1 becomes `TriFace` `p[1]`, `TriFace` 2 becomes `TriFace` `p[2]`, ...\\
 If `only_one=true`, the algorithm stops after finding one valid permutation.
 
+# Arguments
+- `only_one :: Bool = false`, If set to true, the algorithm will stop after finding a single valid permutation.
+- A\\_deltacomplex :: Matrix{<:Integer} = Matrix{Int32}(adjacency_matrix_deltacomplex(D)). If provided, the algorithm will use the adjacency matrix of the `DeltaComplex` `D`. If not, the algorithm would have to compute it itself.
 """
 function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::Matrix{<:Integer} = Matrix{Int32}(adjacency_matrix_deltacomplex(D))) ::Vector{Vector{Int32}}
     np1 = np(D)
@@ -729,31 +760,19 @@ function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::M
         end
     end
     
-    #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int32}}}([p])
-    leafs = Vector{Vector{Int32}}()
-    while !isempty(queue)
-        p = popfirst!(queue)
-        i = 1
-        while length(p[i]) == 1; i += 1 end #i = index of first partition that is not trivial
-        for j in eachindex(p[i]) #replace the i-th partition by isolating its j-th element 
-            pp = deepcopy(p)
-            V = popat!(pp, i)
-            insert!(pp, i, [V[j]])
-            popat!(V, j)
-            insert!(pp, i+1, V)
-            makeEquitable!(pp, A_deltacomplex)
-            if length(pp) != n
-                push!(queue, pp)
-            else
-                push!(leafs, invert_permutation(reduce(vcat, pp)))
-            end
-        end
-    end
-    return leafs
+    return force_makeEquitable!(p, A_deltacomplex, n)
 end
 
+"""
+    mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm::Vector{<:Integer}) :: Vector{Vector{Int32}}
 
+Apply McKay's canonical graph labeling algorithm in order to determine all possible permutations 
+of the `DualEdge`s which give a canonical isomorphism class representant.
+
+The vectors `point_perm` and `vertex_perm` respectively determin how the points and vertices of `D` are implied to have been renamed, without actually having been changed.
+
+Return a vector of permutation vectors `p` such that `DualEdge` 1 becomes `DualEdge` `p[1]`, `DualEdge` 2 becomes `DualEdge` `p[2]`, ...\\
+"""
 function mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm::Vector{<:Integer})
     b1 = max(np(D), nv(D))
     b2 = b1*b1
@@ -763,7 +782,6 @@ function mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm
         t1,t2 = vertex_perm[d.triangles]
         p1,p2 = points(D, d)
         p1,p2 = point_perm[p1], point_perm[p2]
-
         return min(t1+t2*b1, t2+t1*b1)*b2 + min(p1+p2*b1, p2+p1*b1)
     end
 
@@ -809,13 +827,15 @@ function mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm
 end
 
 """
-    mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+    mcKay_edges(D::DeltaComplex; kwargs..) :: Vector{Vector{Int32}}
 
 Apply McKay's canonical graph labeling algorithm in order to determine all possible permutations 
-of the triFaces which give a canonical isomorphism class representant.
+of the `DualEdge`s which give a canonical isomorphism class representant.
 
-Return a vector of permutation vectors `p` such that DualEdge 1 becomes DualEdge p[1], DualEdge 2 becomes DualEdge p[2],...\\
-If `only_one=true`, the algorithm stops after finding one valid permutation.
+Return a vector of permutation vectors `p` such that `DualEdge` 1 becomes `DualEdge` `p[1]`, `DualEdge` 2 becomes `DualEdge` `p[2]`, ...\\
+
+# Arguments
+- `only_one :: Bool = false`, If set to true, the algorithm will stop after finding a single valid permutation.
 """
 function mcKay_edges(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{Int32}}
     b1 = max(np(D), nv(D))

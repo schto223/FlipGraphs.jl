@@ -15,7 +15,7 @@
         G = flipgraph_planar(n, modular=true)
         # Check if number of triangulations is correct (comparing to https://oeis.org/A000207)
         @test nv(G)== [1, 1, 1, 3, 4, 12, 27, 82, 228, 733, 2282, 7528, 24834, 83898][n-2] 
-        #@test ne(G)== [1, 1, 1, 3, 4, 12, 27, 82, 228, 733, 2282, 7528, 24834, 83898][n-2]
+        @test ne(G)== [0, 0, 0, 2, 4, 20, 65, 239, 822, 2945, 10531, 38127][n-2]
         if n<9
             @test diameter(G) == [0,0,0,2,2,4,5,6,7,8][n-2]  
         end
@@ -42,6 +42,6 @@
         @test has_vertex(G,v) == true
     end
 
-    @test has_vertex(G,get_vertex(G,3)) == true
-    @test has_vertex(G,3) == true
+    @test has_vertex(G, get_vertex(G,3)) == true
+    @test has_vertex(G, 3) == true
 end

@@ -348,14 +348,14 @@ np(D::DeltaComplex) :: Int = getindex(D.num_points)
 """
     nv(D::DeltaComplex) :: Int
 
-Return the number of vertices(`TriFace`s) in `D`.
+Return the number of vertices (`TriFace`s) in `D`.
 """
 nv(D::DeltaComplex) :: Int = length(D.V)
 
 """
     ne(D::DeltaComplex) :: Int
 
-Return the number of dual edges in the `DeltaComplex` `D`.
+Return the number of edges (`DualEdge`s) in the `DeltaComplex` `D`.
 
 This is equal to the number of edges in the triangulation itself.
 """
@@ -365,8 +365,11 @@ ne(D::DeltaComplex) :: Int = length(D.E)
 """
     euler_characteristic(D::DeltaComplex) :: Int
 
-Compute the *euler characteristic* of the `DeltaComplex` `D`:\\
-`` X = #vertices - #edges + #faces ``
+Compute the *euler characteristic* of the `DeltaComplex D`:
+
+```math
+X = n_{vertices} - n_{edges} + n_{faces} 
+```
 """
 euler_characteristic(D::DeltaComplex) = np(D) - ne(D) + nv(D) :: Int
 
@@ -555,7 +558,7 @@ end
 
 Create a triangulation of an orientable surface of a certain `genus` with `num_points` points on it. 
 
-By default `num_points` is set to 1.
+By default, `num_points` is set to 1.
 """
 function deltacomplex(genus :: Integer, num_points :: Integer = 1) :: DeltaComplex
     genus >= 0 || throw(ArgumentError(string("Cannot create a surface with a negative genus. Got: genus = ", genus)))
@@ -580,7 +583,7 @@ end
 
 Create a triangulation of a non-orientable surface with `num_points` points on it. 
 
-By default `num_points` is set to 1.
+By default, `num_points` is set to 1.
 """
 function deltacomplex_non_orientable(demigenus :: Integer, num_points :: Integer = 1) :: DeltaComplex
     demigenus > 0 || throw(ArgumentError(string("Cannot create a surface with a negative genus. Got: demigenus = ",demigenus)))
@@ -609,13 +612,13 @@ end
 """
     deltacomplex(s :: Vector{<:Integer})
 
-Create a triangulation of an orientable surface with a single point, by gluing corresponding edges together.
+Create a triangulation of an orientable surface with a single point, by gluing the corresponding edges together.
 
-`s` should be an array of nonzero integers representing the edges of a polygon in anticlockwise order.\\ 
-The i-th edge is orientated anticlockwise if `s[i]>0`` and anticlockwise if `s[i]<0`.\\
-If `s[i]` and `s[j]` have the same absolute value, they are glued together while respecting their orientation.\\
+`s` should be an array of nonzero integers representing the edges of a polygon in anticlockwise order.\\
+The i-th edge is orientated anticlockwise if `s[i]>0` and anticlockwise if `s[i]<0`.\\
+If `s[i]` and `s[j]` have the same absolute value, they are glued together while respecting their orientation.
 
-#Examples
+# Examples
 The following results in the triangulation of a *torus* with one point:
 ```julia-rep
 julia> deltacomplex([1,2,-1,-2])
@@ -1079,7 +1082,7 @@ end
 
 Relabel every vertex(`TriFace`) in `D`, according to the permutation `p`.
 
-``TriFace 1 => TriFace p[1]`` 
+`TriFace` 1 => `TriFace` ``p[1]`` 
 """
 function rename_vertices!(D::DeltaComplex, p::Vector{<:Integer})
     D.V .= D.V[invert_permutation(p)]
@@ -1093,7 +1096,7 @@ end
 
 Relabel every edge(`DualEdge`) in `D`, according to the permutation `p`.
 
-``DualEdge 1 => DualEdge p[1]``
+`DualEdge` 1 => `DualEdge` ``p[1]``
 """
 function rename_edges!(D::DeltaComplex, p::Vector{<:Integer})
     D.E .= D.E[invert_permutation(p)]
