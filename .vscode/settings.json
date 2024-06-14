@@ -1,6 +1,7 @@
 {
-    "coverage-gutters.coverageBaseDir": "C:/Programming/Master Thesis/FlipGraphs/local_code/",
+    "coverage-gutters.coverageBaseDir": "C:/Programming/Master_Thesis/FlipGraphs/dev_code/",
     "coverage-gutters.coverageFileNames": [
+        
         "coverage-lcov.info",
         "lcov.info",
         "cov.xml",
@@ -8,5 +9,5 @@
         "jacoco.xml",
         "coverage.cobertura.xml"
     ],
-    "livePreview.defaultPreviewPath": "/docs/build/polygonTriangulation/index.html"
+    "livePreview.defaultPreviewPath":""
 }

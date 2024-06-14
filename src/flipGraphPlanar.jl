@@ -50,7 +50,7 @@ end
 
 Construct an array containing all the edges in `G`.
 """
-function edges(G::FlipGraphPlanar) ::Vector{Edge}
+function edges(G::FlipGraphPlanar) :: Vector{Edge}
     E = collect(Edge(Int32(i),j) for i in eachindex(G.V) for j in G.adjList[i])
     return filter!(e -> (src(e) > dst(e)), E)
 end 

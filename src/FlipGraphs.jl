@@ -52,7 +52,7 @@ export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoi
 #flipGraph
 export FlipGraph, FGVertex, FGVertexCandidate, flipgraph_modular
 export mcKay_points, mcKay_vertices, mcKay_edges
-export is_isomorphic
+export is_isomorphic, vertices_deltacomplex
 
 #general
 export matrix_equal, relative_degrees, relative_degree, distances
