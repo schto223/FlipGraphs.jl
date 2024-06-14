@@ -27,6 +27,14 @@
         @test has_edge(G,e)
     end
 
+    for i in eachindex(G.V)
+        for j in eachindex(G.V)
+            if i!=j
+                @test is_isomorphic(get_vertex(G, i).g , get_vertex(G, j).g) == false
+            end
+        end
+    end
+
     @test edgetype(G) == SimpleEdge{Int32}
     @test is_directed(G) == false
     @test is_directed(FlipGraphPlanar) == false
@@ -44,4 +52,9 @@
 
     @test has_vertex(G, get_vertex(G,3)) == true
     @test has_vertex(G, 3) == true
+
+    g = triangulated_polygon(20)
+    p = mcKay(g, only_one=true)[1]
+    g2 = rename_vertices(g,p)
+    @test is_isomorphic(g,g2)
 end

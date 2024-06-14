@@ -1,5 +1,31 @@
 using Random
 
+function sameDcomplex(D1::DeltaComplex, D2::DeltaComplex)
+    if D1.num_points.x!=D2.num_points.x
+        return false
+    end
+    for i in eachindex(D1.V)
+        v1 = D1.V[i]
+        v2 = D2.V[i]
+        if v1.points != v2.points || v1.id.x!=v2.id.x
+            return false
+        end
+        for j in 1:3
+            if v1.edges[j].id != v2.edges[j].id
+                return false
+            end
+        end
+    end
+    for i in eachindex(D1.E)
+        d1 = D1.E[i]
+        d2 = D2.E[i]
+        if d1.id != d2.id || d1.triangles != d2.triangles || d1.sides != d2.sides || d1.is_twisted != d2.is_twisted
+            return false
+        end
+    end
+    return true
+end
+
 @testset "deltaComplex" begin
 
     @testset "Sphere" begin
@@ -205,7 +231,31 @@ using Random
         @test sum(point_degrees(D1)) == 2*ne(D1)
     end
 
+    @testset "twist and flip" begin
+        D = deltacomplex(5,5)
+        Random.seed!(2535)
+        es = rand(1:ne(D), 1000)
+        vs = rand(1:nv(D), 1000)
+        bo = true
+        for i in eachindex(es)
+            flip!(D,es[i])
+            twist_edges!(D,vs[i])
+            if !is_orientable(D)
+                bo = false
+            end
+        end
+        @test bo == true
+        @test genus(D) == 5
+        @test np(D) == 5
+    end
+
+    @testset "left and right flip" begin
+        D = deltacomplex(3,5)
+        D1 = flip(D,5, left=true)
+        D2 = flip(D,5, left=false)
+        @test is_isomorphic(D1,D2) == true
+    end
 end
 
 
-    
+
