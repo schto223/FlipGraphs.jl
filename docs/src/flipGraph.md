@@ -10,6 +10,7 @@ Therefore, it is impossible to construct the whole flip graph. Not only are they
 ```@docs
     FlipGraph
     FGVertex
+    FGVertexCandidate
     nv(::FlipGraph)
     ne(::FlipGraph)
     vertices(::FlipGraph)

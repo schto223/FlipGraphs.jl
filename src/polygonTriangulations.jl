@@ -102,21 +102,21 @@ outneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 """
     ne(g::TriangulatedPolygon) :: Int
 
-Return the number of edges in `g`.
+Return the number of edges in the triangulated convex polygon `g`.
 """
 ne(g::TriangulatedPolygon) ::Int = sum(size(g.adjList[i], 1) for i in 1:nv(g)) ÷ 2
 
 """
     nv(g::TriangulatedPolygon) :: Int
 
-Return the number of vertices/points in `g`.
+Return the number of vertices/points in the triangulated convex polygon `g`.
 """
 nv(g::TriangulatedPolygon) :: Int = g.n
 
 """
     vertices(g::TriangulatedPolygon) :: Vector{Int}
 
-Return a list of all the vertices in `g`.
+Create a list of all the vertices in the triangulated convex polygon `g`.
 """
 vertices(g::TriangulatedPolygon) :: Vector{Int} = collect(1:g.n)
 
@@ -139,7 +139,7 @@ end
 """
     flip(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
 
-Return the `TriangulatedPolygon` obtained from `g` by flipping the the edge incident to `src` and `dst` in `g`.
+Return the `TriangulatedPolygon` obtained from `g` by flipping the the edge incident to `src` and `dst`.
 """
 flip(g::TriangulatedPolygon, src::Integer, dst::Integer) ::TriangulatedPolygon = flip!(deepcopy(g), src, dst)
 
@@ -153,14 +153,14 @@ flip(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon = flip(g, src(e), d
 """
     flip!(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon
 
-Flip `e` in `g`.
+Flip the edge `e` in the triangulated convex polygon `g`.
 """
 flip!(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon = flip!(g, src(e), dst(e))
 
 """
     flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
 
-Flip the the edge incident to `src` and `dst` in `g`.
+Flip the the edge incident to `src` and `dst` in the triangulated convex polygon `g`.
 """
 function flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
     u = 0; v = 0
@@ -200,7 +200,7 @@ function flip_get_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: T
 end
 
 """
-    is_flippable(g::TriangulatedPolygon, e::Edge) ::Bool
+    is_flippable(g::TriangulatedPolygon, e::Edge) :: Bool
 """
 is_flippable(g::TriangulatedPolygon, e::Edge) ::Bool = is_flippable(g, e.src, e.dst)
 
@@ -213,14 +213,14 @@ Note that for a triangulation of a convex polygon, the inner edges are always fl
     while the outer edges cannot be flipped.    
 """
 function is_flippable(g::TriangulatedPolygon, src::Integer, dst::Integer) :: Bool
-    return length(intersect(outneighbors(g, src), outneighbors(g, dst))) >= 2
+    return count(k in g.adjList[src] for k in g.adjList[dst]) ==2
 end
 
 
 """
-    degrees(g::TriangulatedPolygon) -> Vector{Int}
+    degrees(g::TriangulatedPolygon) :: Vector{Int32}
 
-Return a list of the degrees of every single vertex in `g`.
+Compute a list of the degrees of every single vertex in `g`.
 """
 function degrees(g::TriangulatedPolygon) :: Vector{Int32}
     return [Int32(length(g.adjList[i])) for i in 1:g.n]

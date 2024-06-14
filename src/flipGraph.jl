@@ -20,14 +20,18 @@ struct FGVertexCandidate
         if !labeled_points
             point_perms = mcKay_points(D)
             rename_points!(D, point_perms[1])
-        else
-            point_perms = [collect(1:np(D))]
-        end
-        rename_vertices!(D, mcKay_vertices(D,only_one=true)[1])
-        edge_perms = mcKay_edges(D)
-        rename_edges!(D, edge_perms[1])
-        new(D, length(point_perms), length(edge_perms), point_degrees(D),
+            rename_vertices!(D, mcKay_vertices(D, only_one=true)[1])
+            edge_perms = mcKay_edges(D)
+            rename_edges!(D, edge_perms[1])
+            new(D, length(point_perms), length(edge_perms), point_degrees(D),
             multi_adjacency_matrix_triangulation(D), adjacency_matrix_deltacomplex(D))
+        else
+            rename_vertices!(D, mcKay_vertices(D, only_one=true)[1])
+            edge_perms = mcKay_edges(D)
+            rename_edges!(D, edge_perms[1])
+            new(D, 1, length(edge_perms), point_degrees(D),
+            multi_adjacency_matrix_triangulation(D), adjacency_matrix_deltacomplex(D))
+        end 
     end
 
     function FGVertexCandidate(D::DeltaComplex, labeled_points::Bool, edge_ids::Vector{<:Integer})
@@ -69,8 +73,8 @@ struct FGVertex
 
     p_degrees :: Vector{Int} #sorted if labeled_points=false
 
-    multi_adjacency_matrix_triangulation :: Matrix{Int}
-    adjacency_matrix_deltacomplex :: Matrix{Int}
+    multi_adjacency_matrix_triangulation :: Matrix{Int32}
+    adjacency_matrix_deltacomplex :: Matrix{Int32}
 
     function FGVertex(D::DeltaComplex, id::Integer, labeled_points::Bool)
         A_deltacomplex = adjacency_matrix_deltacomplex(D)
@@ -169,7 +173,7 @@ end
 A Graph representing the **flip graph** of a **Δ-Complex**.
 
 Vertices are isotopy classes of triangulations of the same surface.\\
-Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
+Two vertices are linked by an edge, if the respective triangulations differ only by a single flip.
 """
 struct FlipGraph <: AbstractGraph{Int}    
     V::Vector{FGVertex}
@@ -527,13 +531,13 @@ end
 
 Split `V` into partitions according to their degrees from smallest to biggest.
 """
-function split(V::Vector{<:Integer}, degs::Vector{<:Integer}) 
-    sV = Vector{Vector{Int}}()
+function split(V::Vector{T}, degs::Vector{<:Integer}) :: Vector{Vector{T}} where T<:Integer
+    sV = Vector{Vector{T}}()
     unique_degs = sort!(unique(degs))
     j = 1 
     k = length(V)
     while k > 0
-        W = Vector{Int}()
+        W = Vector{T}()
         for i in eachindex(degs)
             if degs[i] == unique_degs[j]
                 push!(W, V[i])
@@ -584,7 +588,7 @@ function makeEquitable!(p::Vector{Vector{T}}, A::Matrix{<:Integer}) where T<:Int
 end
 
 """
-    mcKay_points(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+    mcKay_points(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{Int32}}
 
 Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
 of the points which give a canonical isomorphism class representant.
@@ -592,15 +596,15 @@ of the points which give a canonical isomorphism class representant.
 Return a vector of permutation vectors `p` such that Point 1 becomes Point `p[1]`, Point 2 becomes Point `p[2]`,...
 If `only_one=true`, the algorithm stops after finding one valid permutation.
 """
-function mcKay_points(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+function mcKay_points(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{Int32}}
     A = multi_adjacency_matrix_triangulation(D)
 
     n = np(D)
-    p = split(collect(1:n), degrees(A))
+    p = split(collect(Int32,1:n), degrees(A))
     makeEquitable!(p, A)
 
     if length(p) == n #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
 
     while only_one     
@@ -613,13 +617,13 @@ function mcKay_points(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}
         insert!(p, i+1, V)
         makeEquitable!(p, A)
         if length(p) == n
-            return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+            return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
         end
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int}}}([p])
-    leafs = Vector{Vector{Vector{Int}}}()
+    queue = Vector{Vector{Vector{Int32}}}([p])
+    leafs = Vector{Vector{Int32}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1       
@@ -633,12 +637,12 @@ function mcKay_points(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}
             if length(pp) != n
                 push!(queue, pp)
             else
-                push!(leafs, pp)
+                push!(leafs, invert_permutation(reduce(vcat, pp)))
             end
         end
     end
 
-    return [invert_permutation(reduce(vcat, p)) for p in leafs]   #Permutations
+    return leafs  #Permutations
 end
 
 function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, point_perm::Vector{<:Integer})
@@ -652,16 +656,16 @@ function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, poin
     end
 
     n = nv(D)
-    p = split(collect(1:n), collect(pointValue(T) for T in D.V))
+    p = split(collect(Int32,1:n), collect(pointValue(T) for T in D.V))
     makeEquitable!(p,A_deltacomplex)
 
     if length(p) == n #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int}}}([p])
-    leafs = Vector{Vector{Int}}()
+    queue = Vector{Vector{Vector{Int32}}}([p])
+    leafs = Vector{Vector{Int32}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1
@@ -684,7 +688,7 @@ function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, poin
 end
 
 """
-    mcKay_vertices(D::DeltaComplex)::Vector{Vector{Int}}
+    mcKay_vertices(D::DeltaComplex)::Vector{Vector{Int32}}
 
 Apply a version of McKay's canonical graph labeling algorithm in order to determine all possible permutations 
 of the triFaces which give a canonical isomorphism class representant.
@@ -704,11 +708,11 @@ function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::M
     end
 
     n = nv(D)
-    p = split(collect(1:n), collect(pointValue(T) for T in D.V))
-    makeEquitable!(p,A_deltacomplex)
+    p = split(collect(Int32, 1:n), collect(pointValue(T) for T in D.V))
+    makeEquitable!(p, A_deltacomplex)
 
     if length(p) == n #|| only_one #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
     
     while only_one     
@@ -721,13 +725,13 @@ function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::M
         insert!(p, i+1, V)
         makeEquitable!(p, A_deltacomplex)
         if length(p) == n
-            return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+            return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
         end
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int}}}([p])
-    leafs = Vector{Vector{Int}}()
+    queue = Vector{Vector{Vector{Int32}}}([p])
+    leafs = Vector{Vector{Int32}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1
@@ -764,7 +768,7 @@ function mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm
     end
 
     m = ne(D)
-    p = split(collect(1:m), collect(edgeValue(d) for d in D.E))
+    p = split(collect(Int32, 1:m), collect(edgeValue(d) for d in D.E))
     i = 1
     while i <= length(p)
         if length(p[i]) > 1
@@ -779,12 +783,12 @@ function mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm
     #this is only possible for two edges at a time, they cannot be distinguished
 
     if length(p) == m #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int}}}([p])
-    leafs = Vector{Vector{Vector{Int}}}()
+    queue = Vector{Vector{Vector{Int32}}}([p])
+    leafs = Vector{Vector{Int32}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1
@@ -797,12 +801,11 @@ function mcKay_edges(D::DeltaComplex, point_perm::Vector{<:Integer}, vertex_perm
             if length(pp) != m
                 push!(queue, pp)
             else
-                push!(leafs, pp)
+                push!(leafs, invert_permutation(reduce(vcat, pp)))
             end
         end
     end
-
-    return [invert_permutation(reduce(vcat, p)) for p in leafs]   #sigma_pi' 
+    return leafs   #sigma_pi' 
 end
 
 """
@@ -814,7 +817,7 @@ of the triFaces which give a canonical isomorphism class representant.
 Return a vector of permutation vectors `p` such that DualEdge 1 becomes DualEdge p[1], DualEdge 2 becomes DualEdge p[2],...\\
 If `only_one=true`, the algorithm stops after finding one valid permutation.
 """
-function mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
+function mcKay_edges(D::DeltaComplex; only_one::Bool=false) :: Vector{Vector{Int32}}
     b1 = max(np(D), nv(D))
     b2 = b1*b1
 
@@ -826,7 +829,7 @@ function mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
     end
 
     m = ne(D)
-    p = split(collect(1:m), collect(edgeValue(d) for d in D.E))
+    p = split(collect(Int32, 1:m), collect(edgeValue(d) for d in D.E))
     i = 1
     while i <= length(p)
         if length(p[i]) > 1
@@ -841,12 +844,12 @@ function mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
     #this is only possible for two edges at a time, they cannot be distinguished
 
     if length(p) == m #there is only one canonical permutation
-        return Vector{Vector{Int}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int}}}([p])
-    leafs = Vector{Vector{Vector{Int}}}()
+    queue = Vector{Vector{Vector{Int32}}}([p])
+    leafs = Vector{Vector{Int32}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1
@@ -862,10 +865,9 @@ function mcKay_edges(D::DeltaComplex; only_one::Bool=false)::Vector{Vector{Int}}
                 if only_one
                     return [invert_permutation(reduce(vcat, pp))]
                 end
-                push!(leafs, pp)
+                push!(leafs, invert_permutation(reduce(vcat, pp)))
             end
         end
     end
-
-    return [invert_permutation(reduce(vcat, p)) for p in leafs]   #sigma_pi's
+    return leafs   #sigma_pi's
 end

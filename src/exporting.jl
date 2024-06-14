@@ -1,6 +1,3 @@
-
-export export_gml
-
 """
     export_gml(fpn::String, G::AbstractGraph{::Integer})
 

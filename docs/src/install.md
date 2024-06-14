@@ -39,8 +39,8 @@ If you need help understanding what a function does or what a structure represen
 julia> ?FlipGraph
   struct FlipGraph <: AbstractGraph{Int}
 
-  A Graph representing the flipgraph of a Δ-Complex.
+  A Graph representing the flip graph of a Δ-Complex.
 
-  Vertices are different triangulations of the same surface.
-  Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
+  Vertices are isotopy classes of triangulations of the same surface.
+  Two vertices are linked by an edge, if the respective triangulations differ only by a single flip.
 ```

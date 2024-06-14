@@ -19,6 +19,7 @@ makedocs(
     sitename="FlipGraphs.jl Documentation", 
     #format = Documenter.LaTeX(platform = "none"), #format = Documenter.LaTeX(),
     modules= [FlipGraphs],
+    #format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
     doctest = true, #remove later
     pages = [
         "Home" => ["index.md", "install.md", "quickStart.md"],

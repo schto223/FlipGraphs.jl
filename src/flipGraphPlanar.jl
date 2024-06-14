@@ -1,5 +1,3 @@
-export mcKay, relative_degrees
-
 """
     struct FGPVertex
 
@@ -28,10 +26,9 @@ end
 """
     struct FlipGraphPlanar <: AbstractGraph{Int32}
 
-A Graph representing the FlipGraph of a convex polygon. 
+A Graph representing the **flip graph** of a **convex polygon**. 
 
 Vertices are different triangulations of the same convex polygon.
-
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraphPlanar <: AbstractGraph{Int32}
@@ -149,24 +146,24 @@ end
 """
     flipgraph(g::TriangulatedPolygon; kwargs..)
     
-Construct the **FlipGraph** for the TriangulatedPolygon `g`.
+Construct the **`FlipGraph`** for the `TriangulatedPolygon` `g`.
 
 # Arguments
 - 'modular::Bool = false' : by default the whole flip graph is constructed. If modular is set to true, then only the modular flip graph is constructed.
-In a modular flip graph, vertices of the FlipGraph are classes of isomorphisms up to renaming the vertices. 
+In a *modular flip graph*, vertices of the flip graph are classes of isomorphisms up to renaming the vertices. 
 Each class is then represented by one of its elements.
 """
 function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
     nvg = nv(g)
     G = FlipGraphPlanar()
     D = Vector{Any}(undef, nvg-1)
+    for i in 1:nvg
+        sort!(g.adjList[i])
+    end
     if modular
         p = mcKay(g)
         fgpv = add_vertex!(G, g, p)
     else
-        for i in 1:nvg
-            sort!(g.adjList[i])
-        end
         fgpv = add_vertex!(G, g)
     end
     d = D
@@ -185,15 +182,12 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
             g = deepcopy(fgpv.g)
             for i in 1:nvg
                 for j in fgpv.g.adjList[i]
-                    if i<j && length(intersect(outneighbors(g, i), outneighbors(g, j))) >= 2 # i-j is a flippable edge
+                    if  i<j && count(k in g.adjList[j] for k in g.adjList[i]) == 2 # i-j is a flippable edge  is_flippable(g ,i ,j)
                         i_new,j_new = flip_get_edge!(g,i,j)
                         newGraph = false
-                        sort!(g.adjList[i_new])
-                        sort!(g.adjList[j_new])
-                        gg=g
-                        permutations = mcKay(gg)
+                        permutations = mcKay(g)
                         num_perms = length(permutations)
-                        degrees_sorted = sort(degrees(gg))
+                        degrees_sorted = sort(degrees(g))
                         i = 1
                         d = D
                         newGraph = false
@@ -216,7 +210,7 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
                         if !newGraph
                             newGraph = true
                             for v in d
-                                if v.num_point_perms == num_perms && is_isomorphic(v, gg, permutations)
+                                if v.num_point_perms == num_perms && is_isomorphic(v, g, permutations)
                                     add_edge!(G, fgpv.id, v.id)
                                     newGraph = false
                                     break
@@ -224,7 +218,9 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
                             end
                         end
                         if newGraph
-                            new_v = add_vertex!(G, gg, permutations)
+                            sort!(g.adjList[i_new])
+                            sort!(g.adjList[j_new])
+                            new_v = add_vertex!(G, g, permutations)
                             add_edge!(G, fgpv.id, new_v.id)
                             push!(queue, new_v)
                             push!(d, new_v)
@@ -319,11 +315,11 @@ function flipgraph_planar(n::Integer; modular::Bool = false) :: FlipGraphPlanar
 end
 
 """
-    rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
+    rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer}) :: TriangulatedPolygon
 
-Rename the vertices of `g` by applying the permutation `p`.
+Return the `TriangulatedPolygon` obtained from renaming the vertices of the triangulated convex polygon `g` by applying the permutation `p`.
 """
-function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
+function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer}) :: TriangulatedPolygon
     gg = TriangulatedPolygon(g.n)
     for i in 1:g.n
         gg.adjList[p[i]] = p[g.adjList[i]]
@@ -331,6 +327,11 @@ function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer})
     return gg
 end
 
+"""
+    rename_vertices!(g::TriangulatedPolygon, p::Vector{<:Integer}) :: TriangulatedPolygon
+
+Rename the vertices of the triangulated convex polygon `g` by applying the permutation `p`.
+"""
 function rename_vertices!(g::TriangulatedPolygon, p::Vector{<:Integer})
     g.adjList[p] = g.adjList[:]
     for i in 1:g.n
@@ -354,6 +355,22 @@ function is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vec
 end
 
 """
+    is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon)
+
+Check if `g1` and `g2` are isomorphic up to a relabeling of the vertices.
+"""
+function is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon)
+    rename_vertices!(g1, mcKay(g1, only_one=true)[1])
+    permutations = mcKay(g2)
+    for p in permutations
+        if all(i-> all(j-> has_edge(g1.g, p[i], p[j]), g2.adjList[i]) , eachindex(g2.adjList))
+            return true
+        end
+    end
+    return false
+end
+
+"""
     diameter(G::FlipGraphPlanar)
 
 Compute the diameter of `G`.
@@ -361,7 +378,7 @@ Compute the diameter of `G`.
 diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 
 """
-    relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) -> Vector{<:Integer}
+    relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
 
 Count for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
 """
@@ -375,18 +392,23 @@ function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vecto
     return rdegs
 end
 
-function relative_degree(g::TriangulatedPolygon, u::T, V::Vector{T}) :: T where T<:Integer
+"""
+    relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{<:Integer}) :: Vector{<:Integer}
+
+Count the number of edges in `g` going from `u` to a vertex in `V`.
+"""
+function relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{T}) :: T where T<:Integer
     adj = g.adjList[u]
     return count(j->j in adj, V)
 end
 
 """
-    mcKay(g::TriangulatedPolygon) -> Vector{Vector{<:Integer}}
+    mcKay(g::TriangulatedPolygon) :: Vector{Vector{<:Integer}}
 
-Apply *McKay's canonical graph labeling algorithm* in order to determine all possible permutations 
-of the vertices which give a canonical isomorphism class representant.
+Apply *McKay's canonical graph labeling algorithm* to determine all possible permutations 
+of the vertices, which give a canonical isomorphism class representant.
 
-Return a list of all possible canonical point relabeling permutations `p` such that the i-th point should be relabeled as the `p[i]`-th point
+Return a list of all possible canonical point-relabeling permutations `p` such that the i-th point should be relabeled as the `p[i]`-th point
 """
 function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{Int32}}
     #split V into partitions according to their degrees from smallest to biggest
