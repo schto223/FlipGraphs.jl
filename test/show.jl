@@ -4,6 +4,8 @@
     @testset "convex polygon" begin
         p = triangulated_polygon(10)
         show(io,"text/plain",p)
+        p = triangulated_polygon(30)
+        show(io,"text/plain",p)
 
         G = flipgraph_planar(10)
         show(io,"text/plain",G)

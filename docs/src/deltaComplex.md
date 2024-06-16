@@ -99,7 +99,8 @@ If you wish to get the `TriFace`s that border the `DualEdge`, you might want to 
     vertices(::DeltaComplex, ::DualEdge)
     vertices_id(::DualEdge)    
     get_vertex_id(::DualEdge, ::Integer)
-    sides    
+    sides 
+    get_side(::DualEdge, ::Integer)   
     other_endpoint(::DualEdge, ::Integer, ::Integer)
 ```
 

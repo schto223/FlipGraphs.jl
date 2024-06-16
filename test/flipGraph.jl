@@ -114,6 +114,7 @@ end
         @test is_directed(FlipGraph) == false
         @test has_edge(G, Edge(1,2)) == true
         @test has_edge(G, get_vertex(G,1), get_vertex(G,2)) == true
+        @test has_vertex(G,0) == false
         @test 1 in outneighbors(G, 2)
         @test 2 in inneighbors(G, 1)
         V = vertices(G)

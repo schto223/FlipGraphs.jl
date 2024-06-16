@@ -1,29 +1,4 @@
 """
-    struct FGPVertex
-
-A `FGPVertex` represents a vertex in a `FlipGraphPlanar`.
-
-In addition to holding a `TriangulatedPolygon` that either is the vertex or a representative element of the isotopy class,
-this structure holds further usefull data for the construction process of a `FlipGraphPlanar`.
-"""
-struct FGPVertex
-    g :: TriangulatedPolygon
-    degrees ::Vector{Int} 
-    num_point_perms :: Int
-    id :: Int
-
-    function FGPVertex(g::TriangulatedPolygon, id::Integer)
-        return new(g, degrees(g), 1, id)
-    end
-
-    function FGPVertex(g::TriangulatedPolygon, id::Integer, perms::Vector{Vector{T}}) where T<:Integer
-        g = rename_vertices(g, perms[1])
-        new(g, degrees(g), length(perms), id)
-    end
-end
-
-
-"""
     struct FlipGraphPlanar <: AbstractGraph{Int32}
 
 A Graph representing the **flip graph** of a **convex polygon**. 
@@ -32,21 +7,11 @@ Vertices are different triangulations of the same convex polygon.
 Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
 """
 struct FlipGraphPlanar <: AbstractGraph{Int32}
-    V ::Vector{FGPVertex}
-    adjList ::Vector{Vector{Int32}}
-    modular ::Bool
-
-    function FlipGraphPlanar(modular::Bool=false)
-        new(Vector{FGPVertex}(), Vector{Vector{Int32}}(), modular)
-    end
-end
-
-struct FlipGraphPlanar_v2 <: AbstractGraph{Int32}
     V ::Vector{TriangulatedPolygon}
     adjList ::Vector{Vector{Int32}}
     modular ::Bool
 
-    function FlipGraphPlanar_v2(modular::Bool=false)
+    function FlipGraphPlanar(modular::Bool=false)
         new(Vector{TriangulatedPolygon}(), Vector{Vector{Int32}}(), modular)
     end
 end
@@ -55,9 +20,6 @@ function Base.show(io::IO, mime::MIME"text/plain", G::FlipGraphPlanar)
     print(io, string("FlipGraphPlanar with ", nv(G) , " vertices and ", ne(G), " edges")); 
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", G::FlipGraphPlanar_v2)
-    print(io, string("FlipGraphPlanar with ", length(G.V) , " vertices and ", ne(G), " edges")); 
-end
 
 """
     edges(G::FlipGraphPlanar) ::Vector{Edge}
@@ -84,7 +46,6 @@ has_edge(G::FlipGraphPlanar, e::Edge) = (dst(e) ∈ G.adjList[src(e)])
 Return `true` if there is an edge between `s` and `d` in `G`.
 """
 has_edge(G::FlipGraphPlanar, s, d) = (d ∈ G.adjList[s])
-has_edge(G::FlipGraphPlanar_v2, s, d) = (d ∈ G.adjList[s])
 
 """
     has_vertex(G::FlipGraphPlanar, i::Integer) :: Bool
@@ -94,11 +55,13 @@ Return `true` if `i` is a valid index of a vertex in `G`.
 has_vertex(G::FlipGraphPlanar, i::Integer) ::Bool = (1 <= i <= nv(G))
 
 """
-    has_vertex(G::FlipGraphPlanar, v::FGPVertex) :: Bool
+    has_vertex(G::FlipGraphPlanar, g::TriangulatedPolygon) :: Bool
 
-Return `true` if `v` is a vertex in `G`.
+Return `true` if `g` is a vertex in `G`. 
+
+If `G` is a modular flip graph, this will only return `true` if `g` is the propper representant of the vertex.
 """
-has_vertex(G::FlipGraphPlanar, v::FGPVertex) :: Bool = (v in G.V)
+has_vertex(G::FlipGraphPlanar, g::TriangulatedPolygon) :: Bool = (g in G.V)
 
 
 """
@@ -116,7 +79,6 @@ outneighbors(G::FlipGraphPlanar,v) = G.adjList[v]
 Return the number of edges in `G`.
 """
 ne(G::FlipGraphPlanar) = sum(size(G.adjList[i], 1) for i in eachindex(G.adjList))÷2
-ne(G::FlipGraphPlanar_v2) = sum(size(G.adjList[i], 1) for i in eachindex(G.adjList))÷2
 
 """
     nv(G::FlipGraphPlanar)
@@ -132,8 +94,12 @@ Return the List of all vertices in `G`.
 """
 vertices(G::FlipGraphPlanar) = G.V
 
+"""
+    get_vertex(G::FlipGraphPlanar, i::Integer) :: TriangulatedPolygon
 
-get_vertex(G::FlipGraphPlanar, i::Integer) = G.V[i]
+Return the `i`-th vertex in the planar flip graph `G`.
+"""
+get_vertex(G::FlipGraphPlanar, i::Integer) :: TriangulatedPolygon = G.V[i]
 is_directed(G::FlipGraphPlanar) = false
 is_directed(::Type{FlipGraphPlanar}) = false
 
@@ -144,27 +110,10 @@ function add_edge!(G::FlipGraphPlanar, v, w)
     end
 end
 
-function add_edge!(G::FlipGraphPlanar_v2, v, w) 
-    if !has_edge(G, v, w) && v!=w
-        push!(G.adjList[v],w)
-        push!(G.adjList[w],v)
-    end
-end
-
 function add_vertex!(G::FlipGraphPlanar, g::TriangulatedPolygon) 
-    fgpv = FGPVertex(g, length(G.V)+1)
-    push!(G.V, fgpv)
+    push!(G.V, g)
     push!(G.adjList,[])
-    return fgpv
 end
-
-function add_vertex!(G::FlipGraphPlanar, g::TriangulatedPolygon, perms::Vector{Vector{T}}) where T<:Integer
-    fgpv = FGPVertex(g, length(G.V)+1, perms)
-    push!(G.V, fgpv)
-    push!(G.adjList,[])
-    return fgpv
-end
-
 
 """
     flipgraph(g::TriangulatedPolygon; kwargs..)
@@ -177,133 +126,80 @@ In a *modular flip graph*, vertices of the flip graph are classes of isomorphism
 Each class is then represented by one of its elements.
 """
 function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
+    if !modular
+        return flipgraph_planar_labeledpoints(g)
+    end
     nvg = nv(g)
-    G = FlipGraphPlanar()
-    D = Vector{Any}(undef, nvg-1)
-    for i in 1:nvg
-        sort!(g.adjList[i])
-    end
-    if modular
-        p = mcKay(g)
-        fgpv = add_vertex!(G, g, p)
-    else
-        fgpv = add_vertex!(G, g)
-    end
-    d = D
-    for i in fgpv.degrees[1:end-1]
-        d[i] = Vector{Any}(undef, nvg-1)
-        d = d[i]
-    end
-    d[fgpv.degrees[end]] = FGPVertex[fgpv]
 
-    queue::Vector{FGPVertex} = Vector{FGPVertex}()
-    push!(queue, fgpv)
+    G = FlipGraphPlanar()
+    p = mcKay(g, only_one=true)[1]
+    add_vertex!(G, rename_vertices!(g,p))
     
-    if modular
-        while !isempty(queue)
-            fgpv = popfirst!(queue)
-            g = deepcopy(fgpv.g)
-            for i in 1:nvg
-                for j in fgpv.g.adjList[i]
-                    if  i<j && count(k in g.adjList[j] for k in g.adjList[i]) == 2 # i-j is a flippable edge  is_flippable(g ,i ,j)
-                        i_new,j_new = flip_get_edge!(g,i,j)
-                        newGraph = false
-                        permutations = mcKay(g)
-                        num_perms = length(permutations)
-                        degrees_sorted = sort(degrees(g))
-                        i = 1
-                        d = D
-                        newGraph = false
-                        while i <= nvg
-                            if isassigned(d, degrees_sorted[i])
-                                d = d[degrees_sorted[i]]
-                                i += 1
+    #D is a search tree which sorts vertices by their sorted degrees. 
+    #Since arrays have to start at 1, and we do not want leading empty values, we look at the increase in the degree from vertex to vertex
+    #max_steps gives an upper limit to the possible step size at that point.
+    max_cum_degs = 2*nvg - 6 
+    deg_steps = degree_steps(g)
+    max_steps = zeros(Int, nvg-2)
+    for i in eachindex(max_steps)
+        max_steps[i] =  max_cum_degs ÷ (nvg-1-i)
+    end
+    D = Vector{Vector{Any}}(undef, 1 + max_cum_degs÷(nvg-2))
+    d = D  
+    for i in eachindex(deg_steps)
+        if i == nvg-2
+            d[deg_steps[i] + 1] = Int[1]
+        else
+            d[deg_steps[i] + 1] = Vector{Any}(undef, 1 + max_steps[i+1])
+            d = d[deg_steps[i] + 1]
+        end    
+    end
+
+    id = 0
+    while id < length(G.V)
+        id += 1
+        g_v = G.V[id]
+        g = deepcopy(g_v)
+        for i in 1:nvg
+            for j in g_v.adjList[i]
+                if  i<j && count(k in g.adjList[j] for k in g.adjList[i]) == 2 # i-j is a flippable edge  is_flippable(g ,i ,j)
+                    i_new, j_new = flip_get_edge!(g,i,j)
+                    permutations = mcKay(g, only_one=true)
+                    d = D
+                    newGraph = false
+                    degs = sort!(degrees(g))
+                    for k in eachindex(deg_steps)
+                        deg_step = degs[k+2] - degs[k+1] + 1
+                        if isassigned(d, deg_step)
+                            d = d[deg_step]
+                        else
+                            if k == nvg - 2
+                                d[deg_step] = Int[]
+                                d = d[deg_step]
                             else
-                                if i == nvg
-                                    d[degrees_sorted[i]] = FGPVertex[]
-                                    d = d[degrees_sorted[i]]
-                                else
-                                    d[degrees_sorted[i]] = Vector{Any}(undef, nvg-1)
-                                    d = d[degrees_sorted[i]]
-                                end
-                                i += 1
-                                newGraph = true
+                                d[deg_step] = Vector{Vector{Any}}(undef, 1 + max_steps[k+1])
+                                d = d[deg_step]
                             end
-                        end
-                        if !newGraph
                             newGraph = true
-                            for v in d
-                                if v.num_point_perms == num_perms && is_isomorphic(v, g, permutations)
-                                    add_edge!(G, fgpv.id, v.id)
-                                    newGraph = false
-                                    break
-                                end
+                        end            
+                    end
+                    if !newGraph
+                        newGraph = true
+                        for v_id in d
+                            if is_isomorphic(G.V[v_id], g, permutations)
+                                add_edge!(G, v_id, id)
+                                newGraph = false
+                                break
                             end
                         end
-                        if newGraph
-                            sort!(g.adjList[i_new])
-                            sort!(g.adjList[j_new])
-                            new_v = add_vertex!(G, g, permutations)
-                            add_edge!(G, fgpv.id, new_v.id)
-                            push!(queue, new_v)
-                            push!(d, new_v)
-                        end
-                        flip!(g, i_new, j_new)
                     end
-                end
-            end
-        end
-    else #not modular
-        while !isempty(queue)
-            fgpv = popfirst!(queue)
-            g = deepcopy(fgpv.g)
-            degs = degrees(g)
-            for i in 1:nvg
-                for j in fgpv.g.adjList[i]
-                    if i<j && i+1!=j && (i!=1 || j!=nvg)                        
-                        i_new,j_new = flip_get_edge!(g,i,j)
-                        newGraph = false
-                        sort!(g.adjList[i_new])
-                        sort!(g.adjList[j_new])
-                        degs[i] -= 1
-                        degs[j] -= 1
-                        degs[i_new] += 1
-                        degs[j_new] += 1
-                        k = 1
-                        d = D
-                        while k <= nvg
-                            if isassigned(d, degs[k])
-                                d = d[degs[k]]
-                                k += 1
-                            else
-                                if k == nvg
-                                    d[degs[k]] = FGPVertex[]
-                                    d = d[degs[k]]
-                                else
-                                    d[degs[k]] = Vector{Any}(undef, nvg-1)
-                                    d = d[degs[k]]
-                                end
-                                k += 1
-                                newGraph = true
-                            end
-                        end
-                        if !newGraph
-                            add_edge!(G, fgpv.id, d[1].id)
-                        elseif newGraph
-                            new_v = add_vertex!(G, deepcopy(g))
-                            add_edge!(G, fgpv.id, new_v.id)
-                            push!(queue, new_v)
-                            push!(d, new_v)
-                        end
-                        #revert the flip
-                        flip!(g,i_new,j_new)
-                        sort!(g.adjList[i])
-                        sort!(g.adjList[j])
-                        degs[i]+=1
-                        degs[j]+=1
-                        degs[i_new]-=1
-                        degs[j_new]-=1
+                    if newGraph
+                        new_v = rename_vertices(g, permutations[1])
+                        add_vertex!(G, new_v)
+                        add_edge!(G, id, nv(G))
+                        push!(d, nv(G))
                     end
+                    flip!(g, i_new, j_new)
                 end
             end
         end
@@ -311,74 +207,81 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
     return G
 end
 
-export flipgraph_not_modular
-function flipgraph_not_modular(g::TriangulatedPolygon; modular::Bool = false)
+#We assume n>=4: The first two are always 2, hence they are skipped. we start at the third degree in the sorted list and only store the increases. Most will be 0.
+function degree_steps(g::TriangulatedPolygon{T}) :: Vector{T} where T<:Integer
+    d = sort!([length(g.adjList[i]) for i in 1:g.n])
+    return d[3:end] - d[2:end-1]
+end
+
+"""
+    flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
+
+Compute the **flip graph** with labeled points from the root vertex `g`.
+"""
+function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
     nvg = nv(g)
-    G = FlipGraphPlanar_v2()
+    G = FlipGraphPlanar()
     push!(G.adjList, [])
 
-    D = Vector{Any}(undef, nvg-1)
+    #D is a search tree which branches of for each degree of a vertex. The leafs are the ids of the vertices in the flip graph
+    D = Vector{Any}(undef, nvg-2)
     push!(G.V, g)
     d = D
     degs = degrees(g)
-    for i in degs[1:end-1]
-        d[i] = Vector{Any}(undef, nvg-1)
+    degs .-= 1
+    for i in degs[1:end-2]
+        d[i] = Vector{Any}(undef, nvg-2)
         d = d[i]
     end
-    d[degs[end]] = 1
+    d[degs[end-1]] = 1
 
-    queue::Vector{Tuple{TriangulatedPolygon, Int32}} = [(g,1)]
+    queue::Vector{Tuple{typeof(g), Int32}} = [(g,1)]
     numVG = 1
-    if !modular
-        while !isempty(queue)
-            fgpv, v_id = popfirst!(queue)
-            g = deepcopy(fgpv)
-            degs = degrees(g)
-            for i in 1:nvg
-                for j in fgpv.adjList[i]
-                    if i<j && i+1!=j && (i!=1 || j!=nvg)                        
-                        i_new, j_new = flip_get_edge!(g,i,j)
-                        newGraph = false
-                        #sort!(g.adjList[i_new])
-                        #sort!(g.adjList[j_new])
-                        degs[i] -= 1
-                        degs[j] -= 1
-                        degs[i_new] += 1
-                        degs[j_new] += 1
-                        k = 1
-                        d = D
-                        while k <= nvg
-                            if isassigned(d, degs[k])
-                                d = d[degs[k]]
+    while !isempty(queue)
+        fgpv, v_id = popfirst!(queue)
+        g = deepcopy(fgpv)
+        degs = degrees(g)
+        degs .-= 1
+        for i in 1:nvg
+            for j in fgpv.adjList[i]
+                if i<j && i+1!=j && (i!=1 || j!=nvg)                        
+                    i_new, j_new = flip_get_edge!(g,i,j)
+                    newGraph = false
+                    degs[i] -= 1
+                    degs[j] -= 1
+                    degs[i_new] += 1
+                    degs[j_new] += 1
+                    k = 1
+                    d = D
+                    while k < nvg
+                        if isassigned(d, degs[k])
+                            d = d[degs[k]]
+                        else
+                            if k == nvg - 1 #it is a new vertex
+                                numVG += 1
+                                d[degs[k]] = numVG
+                                new_v = deepcopy(g)
+                                push!(G.V, new_v)
+                                push!(G.adjList, [])
+                                add_edge!(G, v_id, numVG)
+                                push!(queue, (new_v, numVG))
                             else
-                                if k == nvg #it is a new vertex
-                                    numVG += 1
-                                    d[degs[k]] = numVG
-                                    new_v = deepcopy(g)
-                                    push!(G.V, new_v)
-                                    push!(G.adjList, [])
-                                    add_edge!(G, v_id, numVG)
-                                    push!(queue, (new_v, numVG))
-                                else
-                                    d[degs[k]] = Vector{Any}(undef, nvg-1)
-                                    d = d[degs[k]]
-                                end 
-                                newGraph = true
-                            end
-                            k += 1
+                                d[degs[k]] = Vector{Any}(undef, nvg-2)
+                                d = d[degs[k]]
+                            end 
+                            newGraph = true
                         end
-                        if !newGraph
-                            add_edge!(G, v_id, d)
-                        end
-                        #revert the flip
-                        flip!(g, i_new, j_new)
-                        #sort!(g.adjList[i])
-                        #sort!(g.adjList[j])
-                        degs[i] += 1
-                        degs[j] += 1
-                        degs[i_new] -= 1
-                        degs[j_new] -= 1
+                        k += 1
                     end
+                    if !newGraph
+                        add_edge!(G, v_id, d)
+                    end
+                    #revert the flip
+                    flip!(g, i_new, j_new)
+                    degs[i] += 1
+                    degs[j] += 1
+                    degs[i_new] -= 1
+                    degs[j_new] -= 1
                 end
             end
         end
@@ -401,7 +304,7 @@ FlipGraphPlanar with 14 vertices and 21 edges
 ```
 """
 function flipgraph_planar(n::Integer; modular::Bool = false) :: FlipGraphPlanar
-    return flipgraph(triangulated_polygon(n); modular = modular)
+    return flipgraph(triangulated_polygon(Int8, n); modular = modular)
 end
 
 """
@@ -410,7 +313,7 @@ end
 Return the `TriangulatedPolygon` obtained from renaming the vertices of the triangulated convex polygon `g` by applying the permutation `p`.
 """
 function rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer}) :: TriangulatedPolygon
-    gg = TriangulatedPolygon(g.n)
+    gg = TriangulatedPolygon{eltype(g)}(g.n)
     for i in 1:g.n
         gg.adjList[p[i]] = p[g.adjList[i]]
     end
@@ -427,17 +330,17 @@ function rename_vertices!(g::TriangulatedPolygon, p::Vector{<:Integer})
     for i in 1:g.n
         g.adjList[i] = p[g.adjList[i]]
     end
-    return g.adjList
+    return g
 end
 
 """
-    is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
+    is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
 
 Check if `g2` is isomorphic to `g1` up to a relabeling of the vertices by one of the `permutations`.
 """
-function is_isomorphic(g1::FGPVertex, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
+function is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
     for p in permutations
-        if all(i-> all(j-> has_edge(g1.g, p[i], p[j]), g2.adjList[i]) , eachindex(g2.adjList))
+        if all(i-> all(j -> has_edge(g1, p[i], p[j]), g2.adjList[i]), eachindex(g2.adjList))
             return true
         end
     end
@@ -500,9 +403,9 @@ of the vertices, which give a canonical isomorphism class representant.
 
 Return a list of all possible canonical point-relabeling permutations `p` such that the i-th point should be relabeled as the `p[i]`-th point
 """
-function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{Int32}}
+function mcKay(g::TriangulatedPolygon{T}; only_one::Bool =false) :: Vector{Vector{T}} where T<:Integer
     #split V into partitions according to their degrees from smallest to biggest
-    function split(V::Vector{T}, degs::Vector{T}) :: Vector{Vector{T}} where T<:Integer
+    function split(V::Vector{T}, degs::Vector{<:Integer}) :: Vector{Vector{T}} where T<:Integer
         sV = Vector{Vector{T}}()
         deg = 0 
         k = length(V)
@@ -556,13 +459,13 @@ function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{I
         end    
     end
 
-    p = split(collect(Int32,1:g.n), degrees(g))
+    p = split(collect(T, 1:g.n), degrees(g))
     makeEquitable!(p, g)
     if length(p) == g.n #there is only one canonical permutation
-        return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
+        return Vector{Vector{T}}([invert_permutation(reduce(vcat, p))])
     end
 
-    while only_one     
+    while only_one   
         i = 1
         while length(p[i]) == 1 #i = index of first partition that is not trivial
             i += 1 
@@ -572,13 +475,13 @@ function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{I
         insert!(p, i+1, V)
         makeEquitable!(p, g)
         if length(p) == g.n
-            return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
+            return Vector{Vector{T}}([invert_permutation(reduce(vcat, p))])
         end
     end
     
     #split the first partition that has more than 2 elements 
-    queue = Vector{Vector{Vector{Int32}}}([p])
-    leafs = Vector{Vector{Int32}}()
+    queue = Vector{Vector{Vector{T}}}([p])
+    leafs = Vector{Vector{T}}()
     while !isempty(queue)
         p = popfirst!(queue)
         i = 1
@@ -598,6 +501,5 @@ function mcKay(g::TriangulatedPolygon; only_one::Bool =false) :: Vector{Vector{I
             end
         end
     end
-
     return leafs
 end

@@ -1,8 +1,7 @@
 
 # Flip Graphs of Convex Polygons
 
-**Flip Graphs**, are obtained by considering triangulations on a fixed set of points as vertices, and connecting two vertices, 
-if it is possible to get from one triangulation to the other by flipping a single edge.
+**Flip Graphs**, are obtained by considering triangulations on a fixed set of points as vertices, and connecting two vertices, if it is possible to get from one triangulation to the other by flipping a single edge.
 
 ## Structures
 
@@ -12,14 +11,6 @@ It is therefore possible to use it with other packages that work with *Graphs.jl
 
 ```@docs
     FlipGraphPlanar
-```
-
-For computational purposes, the vertices of a `FlipGraphPlanar` object are not `TriangulatedPolygon`s. They have their own proper structure, which is composed of a `TriangulatedPolygon` object together with some helpful information about the triangulation. \
-In the case of a flip graph of triangulations with labeled points, the `TriangulatedPolygon` is *the* unique triangulation of its kind.\ 
-If the flip graph is, however, of triangulations with unlabeled points, then the `TriangulatedPolygon` is only one of the triangulations where the points have been labeled by one of the possible canonical labelings.
-
-```@docs
-    FGPVertex
 ```
 
 ## Constructors
@@ -39,9 +30,10 @@ The following methods overload some of the main functions from the [Graphs.jl](h
     nv(::FlipGraphPlanar)
     ne(::FlipGraphPlanar)
     vertices(::FlipGraphPlanar)
-    edges(::FlipGraphPlanar)
+    edges(::FlipGraphPlanar)   
+    has_vertex(::FlipGraphPlanar,::TriangulatedPolygon)
     has_vertex(::FlipGraphPlanar,::Integer)
-    has_vertex(::FlipGraphPlanar,::FGPVertex)
+    get_vertex(::FlipGraphPlanar, ::Integer)
     has_edge(::FlipGraphPlanar,s,d)
     has_edge(::FlipGraphPlanar,::Edge)
 
@@ -57,7 +49,7 @@ The second case is more challenging, as there are $n!$ different ways to label $
 
 ```@docs    
     is_isomorphic(::TriangulatedPolygon, ::TriangulatedPolygon)
-    is_isomorphic(::FGPVertex, ::TriangulatedPolygon, ::Array{Vector{T},1}) where T<:Integer
+    is_isomorphic(::TriangulatedPolygon, ::TriangulatedPolygon, ::Array{Vector{T},1}) where T<:Integer
 ```
 
 The following methods are used to build the flip graph; However, they can also be useful elsewhere:

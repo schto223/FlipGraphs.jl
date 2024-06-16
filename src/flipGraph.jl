@@ -221,7 +221,6 @@ Return `true` if there is an edge between `v1` and `v2` in `G`.
 """
 has_edge(G::FlipGraph, v1::FGVertex, v2::FGVertex) :: Bool = (v2.id ∈ G.adjList[v1.id])
 
-
 """
     has_vertex(G::FlipGraph, v::Integer) :: Bool
 

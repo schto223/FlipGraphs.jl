@@ -72,5 +72,3 @@ If you want to extrude some more information from a `TriangulatedPolygon` object
     flip(::TriangulatedPolygon, ::Edge)
     flip_get_edge!
 ```
-
-

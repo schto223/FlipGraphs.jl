@@ -3,12 +3,12 @@
 
 A structure representing a triangulation of a convex polygon.
 """
-struct TriangulatedPolygon <: AbstractGraph{Int32}
-    n :: Int
-    adjList ::Vector{Vector{Int32}}
+struct TriangulatedPolygon{T<:Integer} <: AbstractGraph{T}
+    n :: T
+    adjList ::Vector{Vector{T}}
 
-    function TriangulatedPolygon(n::Integer)
-        new(n, Vector{Vector{Int32}}([[] for i in 1:n]))
+    function TriangulatedPolygon{T}(n::Integer) where T<:Integer
+        new(n, Vector{Vector{T}}([[] for i in 1:n]))
     end
 end
 
@@ -23,6 +23,7 @@ function Base.show(io::IO, mime::MIME"text/plain", g::TriangulatedPolygon)
     end
 end
 
+
 """
     triangulated_polygon(n::Integer) :: TriangulatedPolygon
 
@@ -31,11 +32,12 @@ Create a triangulated convex `n`-gon.
 Vertices are named from 1 to `n` in an anticlockwise manner.
 The inside is triangulated in a zig-zag pattern.
 """
-function triangulated_polygon(n::Integer) :: TriangulatedPolygon
+triangulated_polygon(n::Integer) :: TriangulatedPolygon = triangulated_polygon(typeof(n), n)
+function triangulated_polygon(T::Type{<:Integer}, n::Integer) :: TriangulatedPolygon{T}
     n>=0 || throw(ArgumentError(string("The number of vertices(n) cannot be negative. Got: n = ",n)))
     
     #construct the polygon
-    g = TriangulatedPolygon(n)
+    g = TriangulatedPolygon{T}(n)
     for i in 1:n-1
         add_edge!(g, i, i+1)
     end
@@ -66,16 +68,16 @@ Compute and return a list of all the edges in `g`.
 Edges are not directed. It is, however, necessary for computations to define a source and a target. 
 For `TriangulatedPolygon`, the source will be the incident vertex with the smaller id.
 """
-function edges(g::TriangulatedPolygon) :: Vector{SimpleEdge{Int32}}
-    return collect(SimpleEdge{Int32}, Edge(Int32(i),j) for i in 1:nv(g) for j in g.adjList[i] if i<j)
+function edges(g::TriangulatedPolygon{T}) where T<:Integer
+    return collect(SimpleEdge{T}, Edge(T(i),j) for i in 1:nv(g) for j in g.adjList[i] if i<j)
 end 
 
-edgetype(g::TriangulatedPolygon) = SimpleEdge{Int32}
+edgetype(g::TriangulatedPolygon) = SimpleEdge{eltype(g)}
 
 """
     has_edge(g::TriangulatedPolygon, e::Edge)
 """
-has_edge(g::TriangulatedPolygon, e::Edge)::Bool = (dst(e) ∈ g.adjList[src(e)]) 
+has_edge(g::TriangulatedPolygon, e::Edge) :: Bool = (dst(e) ∈ g.adjList[src(e)]) 
 """
     has_edge(g::TriangulatedPolygon, s::Integer, d::Integer)
     
@@ -95,7 +97,7 @@ has_vertex(g::TriangulatedPolygon, v) = (1 <= v <= g.n)
 
 Return the list of all the vertices in `g` that are adjacent to `v`.
 """
-neighbors(g::TriangulatedPolygon, v::Integer) :: Vector{Int32} = g.adjList[v]
+neighbors(g::TriangulatedPolygon, v::Integer) = g.adjList[v] 
 inneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 outneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 
@@ -104,21 +106,21 @@ outneighbors(g::TriangulatedPolygon, v) = g.adjList[v]
 
 Return the number of edges in the triangulated convex polygon `g`.
 """
-ne(g::TriangulatedPolygon) ::Int = sum(size(g.adjList[i], 1) for i in 1:nv(g)) ÷ 2
+ne(g::TriangulatedPolygon) = sum(size(g.adjList[i], 1) for i in 1:nv(g)) ÷ 2
 
 """
     nv(g::TriangulatedPolygon) :: Int
 
 Return the number of vertices/points in the triangulated convex polygon `g`.
 """
-nv(g::TriangulatedPolygon) :: Int = g.n
+nv(g::TriangulatedPolygon) = g.n
 
 """
     vertices(g::TriangulatedPolygon) :: Vector{Int}
 
 Create a list of all the vertices in the triangulated convex polygon `g`.
 """
-vertices(g::TriangulatedPolygon) :: Vector{Int} = collect(1:g.n)
+vertices(g::TriangulatedPolygon) :: Vector{eltype(g)} = collect(eltype(g), 1:g.n)
 
 is_directed(g::TriangulatedPolygon) = false
 is_directed(::Type{TriangulatedPolygon}) = false
@@ -183,7 +185,7 @@ end
 
 Flip the edge incident to the vertices `src` and `dst` and return the new endpoints of the flipped edge.
 """
-function flip_get_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: Tuple{Int32, Int32}
+function flip_get_edge!(g::TriangulatedPolygon{T}, src::Integer, dst::Integer) :: Tuple{T, T} where T<:Integer
     u = 0; v = 0
     for j in g.adjList[src]
         if j in g.adjList[dst]
@@ -222,8 +224,8 @@ end
 
 Compute a list of the degrees of every single vertex in `g`.
 """
-function degrees(g::TriangulatedPolygon) :: Vector{Int32}
-    return [Int32(length(g.adjList[i])) for i in 1:g.n]
+function degrees(g::TriangulatedPolygon{T}) :: Vector{T} where T<:Integer
+    return [T(length(g.adjList[i])) for i in 1:g.n]
 end
 
 
@@ -232,6 +234,6 @@ end
 
 Compute the adjacency matrix for the triangulated graph `g`. 
 """
-function adjacency_matrix(g::TriangulatedPolygon) :: Matrix{Int32}
+function adjacency_matrix(g::TriangulatedPolygon{T}) :: Matrix{T} where T<:Integer
     return adjacency_matrix(g.adjList)
 end

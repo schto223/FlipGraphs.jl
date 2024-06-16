@@ -35,14 +35,14 @@ export degrees
 export flip, flip!, flip_get_edge!, is_flippable, edges_flippable
 
 #flipGraph_planar
-export FlipGraphPlanar, FGPVertex, flipgraph, flipgraph_planar
+export FlipGraphPlanar, flipgraph, flipgraph_planar
 export is_isomorphic, rename_vertices, mcKay
 
 #deltaComplex
 export DeltaComplex, deltacomplex, deltacomplex_non_orientable, DualEdge, TriFace
 export np, has_point
 export get_edge, get_point, get_vertex, get_vertex_id, vertices_id, vertices, edges, points, edges_id, get_edge_id, id
-export sides
+export sides, get_side
 export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees, relative_point_degrees
 export euler_characteristic, genus, demigenus, diameter_triangulation, diameter_deltaComplex
 export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltacomplex
