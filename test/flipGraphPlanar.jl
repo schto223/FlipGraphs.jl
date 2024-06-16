@@ -15,7 +15,7 @@
         G = flipgraph_planar(n, modular=true)
         # Check if number of triangulations is correct (comparing to https://oeis.org/A000207)
         @test nv(G)== [1, 1, 1, 3, 4, 12, 27, 82, 228, 733, 2282, 7528, 24834, 83898][n-2] 
-        @test ne(G)== [0, 0, 0, 2, 4, 20, 65, 239, 822, 2945, 10531, 38127][n-2]
+        @test ne(G)== [0, 0, 0, 2, 4, 20, 66, 248, 868, 3139, 11256, 40832, 148413,543152][n-2]
         if n<9
             @test diameter(G) == [0,0,0,2,2,4,5,6,7,8][n-2]  
         end
@@ -25,6 +25,14 @@
     
     for e in edges(G)
         @test has_edge(G,e)
+    end
+
+    for i in eachindex(G.V)
+        for j in eachindex(G.V)
+            if i!=j
+                @test is_isomorphic(get_vertex(G, i) , get_vertex(G, j)) == false
+            end
+        end
     end
 
     @test edgetype(G) == SimpleEdge{Int32}
@@ -44,4 +52,9 @@
 
     @test has_vertex(G, get_vertex(G,3)) == true
     @test has_vertex(G, 3) == true
+
+    g = triangulated_polygon(50)
+    p = mcKay(g, only_one=true)[1]
+    g2 = rename_vertices(g,p)
+    @test is_isomorphic(g,g2)
 end

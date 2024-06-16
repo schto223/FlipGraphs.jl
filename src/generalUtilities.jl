@@ -80,8 +80,8 @@ julia> show(p_inv[p])
 [1, 2, 3, 4, 5, 6]
 ```
 """
-function invert_permutation(p::Vector{<:Integer}) :: Vector{Int}
-    pp = zeros(Int, length(p))
+function invert_permutation(p::Vector{<:T}) :: Vector{T} where T<:Integer
+    pp = zeros(T, length(p))
     foreach( i -> pp[p[i]] = i ,eachindex(p))
     return pp
 end

@@ -1,5 +1,46 @@
 using Random
-import Graphs.SimpleEdge
+import Graphs: SimpleEdge, Edge
+
+function is_isomorphic_safe(D1::DeltaComplex, D2::DeltaComplex; fix_points::Bool = true)
+    D=deepcopy(D1)
+    if !fix_points
+        rename_points!(D,mcKay_points(D)[1])
+        point_perms = mcKay_points(D2)
+    else
+        point_perms = [collect(1:np(D2))]
+    end
+
+    rename_vertices!(D,mcKay_vertices(D)[1])
+    rename_edges!(D,mcKay_edges(D)[1])
+
+    p = 1
+    for pp in point_perms
+        Dp = rename_points!(deepcopy(D2), pp)
+        v=1
+        for pv in mcKay_vertices(Dp)
+            Dv = rename_vertices!(deepcopy(Dp), pv)
+            e=1
+            for pe in mcKay_edges(Dv)
+                De = rename_edges!(deepcopy(Dv), pe)
+                bo = true
+                for i in 1:nv(D)
+                    if !is_equivalent(D.V[i], De.V[i])
+                        bo=false
+                        break
+                    end
+                end
+                if bo
+                    return true
+                end
+                e+=1
+            end
+            v+=1
+        end
+        p+=1
+    end
+    return false
+end
+
 
 @testset "Flip Graph" begin
     @testset "mcKay" begin
@@ -54,7 +95,7 @@ import Graphs.SimpleEdge
         @test is_isomorphic(D, D2)
     end
 
-    @testset "flipGraph" begin
+    @testset "FlipGraph" begin
         D = deltacomplex(1)
         G = flipgraph_modular(D)
         @test nv(G) == 1
@@ -67,12 +108,29 @@ import Graphs.SimpleEdge
         @test nv(G1) >= nv(G2)
         @test ne(G1) >= ne(G2)
 
+        G = flipgraph_modular(1,2)
         @test edgetype(G) == SimpleEdge{Int32}
         @test is_directed(G) == false
-        @test is_directed(FlipGraphPlanar) == false
+        @test is_directed(FlipGraph) == false
+        @test has_edge(G, Edge(1,2)) == true
+        @test has_edge(G, get_vertex(G,1), get_vertex(G,2)) == true
+        @test has_vertex(G,0) == false
+        @test 1 in outneighbors(G, 2)
+        @test 2 in inneighbors(G, 1)
+        V = vertices(G)
+        Vd = vertices_deltacomplex(G)
+        for i in eachindex(V)
+            @test V[i].D == Vd[i]
+            for j in eachindex(V)
+                if i!=j
+                    @test is_isomorphic(Vd[i], Vd[j]) == false
+                end
+            end
+        end
+
     end
 
-    @testset "flip_graph" begin
+    @testset "flipgraph_modular" begin
         nvs_labeled = [[1,9,236],[9,713]]
         nes_labeled = [[0,8,591],[13,2938]]
         nvs = [[1,5,46,669],[9,368]]
@@ -110,24 +168,24 @@ import Graphs.SimpleEdge
 end
 
 
-function isGood(Data::FGVertexCandidate)
-    D = Data.D
+function isGood(fgvc::FGVertexCandidate)
+    D = fgvc.D
     p = 1
-    for pp in Data.point_perms
+    for pp in fgvc.point_perms
         Dp = rename_points!(deepcopy(D), pp)
-        if !sameDcomplex(Dp, get_D(Data, p))
+        if !sameDcomplex(Dp, get_D(fgvc, p))
             println("badP")
         end
         v=1
-        for pv in get_vertex_perms(Data, p)
+        for pv in get_vertex_perms(fgvc, p)
             Dv = rename_vertices!(deepcopy(Dp), pv)
-            if !sameDcomplex(Dv, get_D(Data, p, v))
+            if !sameDcomplex(Dv, get_D(fgvc, p, v))
                 println("badV")
             end
             e=1
-            for pe in get_edge_perms(Data, p, v)
+            for pe in get_edge_perms(fgvc, p, v)
                 De = rename_edges!(deepcopy(Dv), pe)
-                if !sameDcomplex(De, get_D(Data, p, v, e))
+                if !sameDcomplex(De, get_D(fgvc, p, v, e))
                     println("badE")
                 end
                 e+=1
@@ -138,71 +196,3 @@ function isGood(Data::FGVertexCandidate)
     end
 end
 
-
-function sameDcomplex(D1::DeltaComplex, D2::DeltaComplex)
-    if D1.num_points.x!=D2.num_points.x
-        return false
-    end
-    for i in eachindex(D1.V)
-        v1 = D1.V[i]
-        v2 = D2.V[i]
-        if v1.points != v2.points || v1.id.x!=v2.id.x
-            return false
-        end
-        for j in 1:3
-            if v1.edges[j].id != v2.edges[j].id
-                return false
-            end
-        end
-    end
-    for i in eachindex(D1.E)
-        d1 = D1.E[i]
-        d2 = D2.E[i]
-        if d1.id != d2.id || d1.triangles != d2.triangles || d1.sides != d2.sides || d1.is_twisted != d2.is_twisted
-            return false
-        end
-    end
-    return true
-end
-
-
-export is_isomorphic_safe
-function is_isomorphic_safe(D1::DeltaComplex, D2::DeltaComplex; fix_points::Bool = true)
-    D=deepcopy(D1)
-    if !fix_points
-        rename_points!(D,mcKay_points(D)[1])
-        point_perms = mcKay_points(D2)
-    else
-        point_perms = [collect(1:np(D2))]
-    end
-
-    rename_vertices!(D,mcKay_vertices(D)[1])
-    rename_edges!(D,mcKay_edges(D)[1])
-
-    p = 1
-    for pp in point_perms
-        Dp = rename_points!(deepcopy(D2), pp)
-        v=1
-        for pv in mcKay_vertices(Dp)
-            Dv = rename_vertices!(deepcopy(Dp), pv)
-            e=1
-            for pe in mcKay_edges(Dv)
-                De = rename_edges!(deepcopy(Dv), pe)
-                bo = true
-                for i in 1:nv(D)
-                    if !is_equivalent(D.V[i], De.V[i])
-                        bo=false
-                        break
-                    end
-                end
-                if bo
-                    return true
-                end
-                e+=1
-            end
-            v+=1
-        end
-        p+=1
-    end
-    return false
-end

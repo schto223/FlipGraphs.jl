@@ -124,46 +124,46 @@ struct FGVertex
     end
 end
 
-function get_point_perm(Data::FGVertex, i_p::Integer)
-    return Data.point_perms[i_p]
+function get_point_perm(fgv::FGVertex, i_p::Integer)
+    return fgv.point_perms[i_p]
 end
 
-function get_point_perms(Data::FGVertex)
-    return Data.point_perms
+function get_point_perms(fgv::FGVertex)
+    return fgv.point_perms
 end
 
-function get_vertex_perm(Data::FGVertex, i_p::Integer, i_v::Integer)
-    return Data.vertex_perms[i_p][i_v]
+function get_vertex_perm(fgv::FGVertex, i_p::Integer, i_v::Integer)
+    return fgv.vertex_perms[i_p][i_v]
 end
 
-function get_vertex_perms(Data::FGVertex, i_p::Integer)
-    return Data.vertex_perms[i_p]
+function get_vertex_perms(fgv::FGVertex, i_p::Integer)
+    return fgv.vertex_perms[i_p]
 end
 
-function get_edge_perms(Data::FGVertex, i_p::Integer, i_v::Integer)
-    return Data.edge_perms[i_p][i_v]
+function get_edge_perms(fgv::FGVertex, i_p::Integer, i_v::Integer)
+    return fgv.edge_perms[i_p][i_v]
 end
 
-function get_edge_perm(Data::FGVertex, i_p::Integer, i_v::Integer, i_e::Integer)
-    return Data.edge_perms[i_p][i_v][i_e]
+function get_edge_perm(fgv::FGVertex, i_p::Integer, i_v::Integer, i_e::Integer)
+    return fgv.edge_perms[i_p][i_v][i_e]
 end
 
-#function get_D(Data::FGVertex, i_p::Integer)
-#    D = deepcopy(Data.D)
-#    return rename_points!(D, Data.point_perms[i_p])
+#function get_D(fgv::FGVertex, i_p::Integer)
+#    D = deepcopy(fgv.D)
+#    return rename_points!(D, fgv.point_perms[i_p])
 #end
 #
-#function get_D(Data::FGVertex, i_p::Integer, i_v::Integer)
-#    D = deepcopy(Data.D)
-#    rename_points!(D, Data.point_perms[i_p])
-#    return rename_vertices!(D, Data.vertex_perms[i_p][i_v])
+#function get_D(fgv::FGVertex, i_p::Integer, i_v::Integer)
+#    D = deepcopy(fgv.D)
+#    rename_points!(D, fgv.point_perms[i_p])
+#    return rename_vertices!(D, fgv.vertex_perms[i_p][i_v])
 #end
 #
-#function get_D(Data::FGVertex, i_p::Integer, i_v::Integer, i_e::Integer)
-#    D = deepcopy(Data.D)
-#    rename_points!(D, Data.point_perms[i_p])
-#    rename_vertices!(D, Data.vertex_perms[i_p][i_v])
-#    return rename_edges!(D, Data.edge_perms[i_p][i_v][i_e])
+#function get_D(fgv::FGVertex, i_p::Integer, i_v::Integer, i_e::Integer)
+#    D = deepcopy(fgv.D)
+#    rename_points!(D, fgv.point_perms[i_p])
+#    rename_vertices!(D, fgv.vertex_perms[i_p][i_v])
+#    return rename_edges!(D, fgv.edge_perms[i_p][i_v][i_e])
 #end
 
 
@@ -221,7 +221,6 @@ Return `true` if there is an edge between `v1` and `v2` in `G`.
 """
 has_edge(G::FlipGraph, v1::FGVertex, v2::FGVertex) :: Bool = (v2.id ∈ G.adjList[v1.id])
 
-
 """
     has_vertex(G::FlipGraph, v::Integer) :: Bool
 
@@ -255,9 +254,16 @@ nv(G::FlipGraph) :: Int = length(G.V)
 """
     vertices(G::FlipGraph) :: Vector{FGVertex}
 
-Return a list of all the vertices that have been constructed in `G`.
+Return the list of all the vertices that have been constructed in `G`.
 """
 vertices(G::FlipGraph) :: Vector{FGVertex} = G.V
+
+"""
+    get_vertex(G::FlipGraph, id::Integer) :: Vector{FGVertex}
+
+Return the `id`-th vertex the flip graph `G`.
+"""
+get_vertex(G::FlipGraph, id::Integer) :: FGVertex = G.V[id]
 
 """
     vertices_deltacomplex(G::FlipGraph) :: Vector{DeltaComplex}
@@ -366,7 +372,7 @@ function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), label
         vtn = vtn[fgv_first.p_degrees[i]]
     end
 
-    queue = Vector{Tuple{FGVertex, Int, Int}}()  #(D, Data, index, depth)
+    queue = Vector{Tuple{FGVertex, Int, Int}}()  #(D, fgv, index, depth)
     push!(queue, (fgv_first, 1, 0))
     while !isempty(queue)
         fgv_first, ind_D, d = popfirst!(queue)
@@ -454,7 +460,7 @@ function is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex; labeled_poin
     end
     #point mapping
     if !labeled_points
-        permutations_points = fgv.point_perms
+        permutations_points = get_point_perms(fgv)
         valid_permutation_points = trues(length(permutations_points))
         if length(permutations_points) != candidate.num_point_perms
             return false

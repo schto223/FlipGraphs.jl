@@ -1,12 +1,10 @@
 using Test, Documenter
 using FlipGraphs
 
-
-
 if isempty(ARGS)
     tests = [
         "polygonTriangulations.jl",
-        "flipGraph_planar.jl",
+        "flipGraphPlanar.jl",
         "deltaComplex.jl",
         "flipGraph.jl",
         "show.jl",

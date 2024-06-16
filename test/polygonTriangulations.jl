@@ -55,7 +55,7 @@ end
     @test size(A) == (10,10)
     @test ((A.==1) + (A.==0)) == ones(Int, 10, 10)
 
-    @test edgetype(g) == SimpleEdge{Int32}
+    @test edgetype(g) == SimpleEdge{eltype(g)}
     @test is_directed(g) == false
     @test is_directed(TriangulatedPolygon) == false
 

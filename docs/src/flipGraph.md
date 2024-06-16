@@ -40,6 +40,7 @@ As with [`FlipGraphPlanar`](@ref), there are a bunch of methods which overload s
     vertices_deltacomplex
     edges(::FlipGraph)
     has_vertex(::FlipGraph, ::Integer)
+    get_vertex(::FlipGraph, ::Integer)
     has_edge(::FlipGraph,::Edge)
     has_edge(::FlipGraph,::Integer, ::Integer)    
     has_edge(::FlipGraph,::FGVertex, ::FGVertex)
