@@ -32,8 +32,8 @@ makedocs(
     checkdocs = :none
 )
 
-#deploydocs(;
-#    repo = "github.com/schto223/FlipGraphs.jl.git"#,
+deploydocs(;
+    repo = "github.com/schto223/FlipGraphs.jl.git"#,
     #devbranch = "dev",
     #versions = "v^"
-#)
+)
