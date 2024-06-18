@@ -69,6 +69,12 @@ end
 
             @test is_isomorphic(D, D, labeled_points=false) == true
             @test is_isomorphic(D, D, labeled_points=true) == true
+
+            D = deltacomplex(4,6)
+            D2 = deltacomplex(4,6)
+            rename_edges!(D2, mcKay_edges(D2)[1])
+            @test is_isomorphic(D, D2, labeled_points=false) == true
+            @test is_isomorphic(D, D2, labeled_points=true) == true
         end
     end
 

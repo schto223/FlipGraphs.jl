@@ -45,5 +45,5 @@ function drawPNG(G::FlipGraph, fileName::String ="flipGraph" , drawLabels::Bool=
     end
 end
 
-g = triangulated_polygon(4)
-drawPNG(g, "g4")
+G = flipgraph_modular(0,3)
+drawPNG(G, "G_0-3")
