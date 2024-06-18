@@ -1,7 +1,7 @@
 using GraphPlot#: gplot, cycle_graph
-using Cairo, KernelDensityEstimatePlotting
+#using Cairo#, KernelDensityEstimatePlotting
 
-import Fontconfig
+#import Fontconfig
 import Compose: px, PNG, draw
 
 export drawPNG, plot

@@ -1,10 +1,10 @@
 
 using FlipGraphs, Random
-using GraphPlot#: gplot, cycle_graph
-#using Cairo, KernelDensityEstimatePlotting
+using GraphPlot: gplot, cycle_graph
+using Cairo#, KernelDensityEstimatePlotting
 
-#import Fontconfig
-#import Compose: px, PNG, draw
+import Fontconfig
+import Compose: px, PNG, draw
 
 function drawPNG(g::TriangulatedPolygon, fileName::String ="triangulatedPolygon", drawLabels::Bool = false )
     n = g.n
@@ -45,5 +45,5 @@ function drawPNG(G::FlipGraph, fileName::String ="flipGraph" , drawLabels::Bool=
     end
 end
 
-g = triangulated_polygon(6)
-G = flipgraph(g, modular=true)
+G = flipgraph_modular(0,3)
+drawPNG(G, "G_0-3")

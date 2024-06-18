@@ -240,34 +240,30 @@ function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
     while !isempty(queue)
         fgpv, v_id = popfirst!(queue)
         g = deepcopy(fgpv)
-        degs = degrees(g)
-        degs .-= 1
         for i in 1:nvg
             for j in fgpv.adjList[i]
                 if i<j && i+1!=j && (i!=1 || j!=nvg)                        
                     i_new, j_new = flip_get_edge!(g,i,j)
                     newGraph = false
-                    degs[i] -= 1
-                    degs[j] -= 1
-                    degs[i_new] += 1
-                    degs[j_new] += 1
                     k = 1
                     d = D
+                    deg = 0
                     while k < nvg
-                        if isassigned(d, degs[k])
-                            d = d[degs[k]]
+                        deg = length(g.adjList[k]) - 1
+                        if isassigned(d, deg)
+                            d = d[deg]
                         else
                             if k == nvg - 1 #it is a new vertex
                                 numVG += 1
-                                d[degs[k]] = numVG
+                                d[deg] = numVG
                                 new_v = deepcopy(g)
                                 push!(G.V, new_v)
                                 push!(G.adjList, [])
                                 add_edge!(G, v_id, numVG)
                                 push!(queue, (new_v, numVG))
                             else
-                                d[degs[k]] = Vector{Any}(undef, nvg-2)
-                                d = d[degs[k]]
+                                d[deg] = Vector{Any}(undef, nvg-2)
+                                d = d[deg]
                             end 
                             newGraph = true
                         end
@@ -278,10 +274,6 @@ function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
                     end
                     #revert the flip
                     flip!(g, i_new, j_new)
-                    degs[i] += 1
-                    degs[j] += 1
-                    degs[i_new] -= 1
-                    degs[j_new] -= 1
                 end
             end
         end

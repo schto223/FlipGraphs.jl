@@ -265,6 +265,9 @@ function get_neighbor(T::TriFace, side::Integer) ::Int
     end 
 end
 
+#function get_neighbors(T::TriFace) :: Tuple{Int, Int, Int}
+#    return get_neighbor(T, 1),get_neighbor(T, 2),get_neighbor(T, 3)
+#end
 """
     triangle_edge(T::TriFace, side::Integer) :: Tuple{Int, Int}
 
@@ -409,6 +412,13 @@ Compute the *adjacency matrix* of the delta complex `D`.
 function adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
     A = zeros(Int32, nv(D), nv(D))
     foreach(e -> (A[e.triangles[1], e.triangles[2]] = 1; A[e.triangles[2], e.triangles[1]] = 1), edges(D))
+    return A
+end
+
+export multi_adjacency_matrix_deltacomplex
+function multi_adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
+    A = zeros(Int32, nv(D), nv(D))
+    foreach(e -> (A[e.triangles[1], e.triangles[2]] += 1; A[e.triangles[2], e.triangles[1]] += 1), edges(D))
     return A
 end
 
