@@ -500,6 +500,9 @@ function diameter_triangulation(D::DeltaComplex)
     return diameter(adjacency_matrix_triangulation(D))
 end
 
+function distances(D::DeltaComplex)
+    return distances(adjacency_matrix_deltacomplex(D))
+end
 
 """
     glue_faces_along_edge!(D::DeltaComplex, t1:: TriFace, e1::Int, t2:: TriFace, e2::Int, twist::Bool=false)

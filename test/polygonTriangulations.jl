@@ -1,4 +1,4 @@
-import Graphs: SimpleEdge
+import Graphs: SimpleEdge, Edge
 
 function isBiDirectional(g::TriangulatedPolygon)
     for i = 1:nv(g), j in g.adjList[i]
@@ -18,7 +18,7 @@ end
     end
 
     g = triangulated_polygon(5)
-    remove_edge!(g,1,2)
+    remove_edge!(g,Edge(1,2))
     @test ne(g) == 6
     @test isBiDirectional(g)
     add_edge!(g,1,2)

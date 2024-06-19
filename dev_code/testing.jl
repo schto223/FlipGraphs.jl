@@ -45,5 +45,5 @@ function drawPNG(G::FlipGraph, fileName::String ="flipGraph" , drawLabels::Bool=
     end
 end
 
-G = flipgraph_modular(0,3)
-drawPNG(G, "G_0-3")
+G = flipgraph_modular(1,2)
+#drawPNG(G, "G_0-3")

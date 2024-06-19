@@ -19,9 +19,7 @@ function diameter(adjacency_matrix :: Matrix{T}) :: T where T<:Integer
         d = 2*Dist - (Dist*G .< Dist.*transpose(degrees))
         return d
     end
-
-    d = Seidel(adjacency_matrix)
-    return maximum(d)
+    return maximum(Seidel(adjacency_matrix))
 end
 
 """
@@ -33,19 +31,17 @@ Return a `Matrix` whose entry at `(i,j)` is the length of a shortest path from `
 """
 function distances(adjacency_matrix :: Matrix{T}) :: Matrix{T} where T<:Integer
     n = size(adjacency_matrix, 1)
-    function Seidel(G::Matrix{T})
+    function Seidel(G::Matrix{T}) :: Matrix{T}
         if all(G[i,j]==1 || i==j for i in 1:n, j in 1:n)
             return G
         end
-        
-        H = T.(G + G*G .> 0) #- Matrix(I,n,n)
+        H :: Matrix{T} = T.(G + G*G .> 0) #- Matrix(I,n,n)
         foreach(i -> H[i,i] = 0, 1:n)
         Dist = Seidel(H)
         degrees = [reduce(+, G[i,:]) for i in 1:n]
-        d = 2*Dist - (Dist*G .< Dist.*transpose(degrees))
+        d :: Matrix{T} = 2*Dist - (Dist*G .< Dist.*transpose(degrees))
         return d
     end
-
     return Seidel(adjacency_matrix)
 end
 
