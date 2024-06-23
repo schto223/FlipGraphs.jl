@@ -1,0 +1,3292 @@
+% Useful variables
+\newcommand{\DocMainTitle}{FlipGraphs.jl}
+\newcommand{\DocVersion}{}
+\newcommand{\DocAuthors}{}
+\newcommand{\JuliaVersion}{1.6.7}
+
+% ---- Insert preamble
+\input{preamble.tex}
+
+
+\part{Home}
+
+
+\chapter{FlipGraphs.jl Documentation}
+
+
+
+\label{9941595177337991025}{}
+
+
+Welcome to the documentation of the FlipGraphs.jl package.  This package was created as part of my master{\textquotesingle}s thesis on triangulations of closed surfaces and the flip graphs thereof.
+
+
+
+The aim of the package is to model triangulations on any closed surface and  compute their respective flip graphs.
+
+
+\hypertarget{2470651749692249226}{\texttt{FlipGraphs}}  -- {Module.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+FlipGraphs
+
+A package for \textbf{triangulations} of points and their respective \textbf{flip graphs}.
+
+So far, this package includes:\\
+- triangulations of \textbf{convex polygons} / triangulations of points situated on the border of a disc and their \emph{flip graphs} (with labeled and unlabeled points).\\
+- triangulations of points on a \textbf{closed surface} and their respective \emph{modular flip graphs} (with labeled and unlabeled points).
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/FlipGraphs.jl#L9-L17}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Table of contents}
+
+
+
+\label{11192443102986465861}{}
+
+\begin{itemize}
+\item \hyperlinkref{16848947351613073531}{Installation}
+\item \hyperlinkref{15530337615267817360}{Quick Start}
+\begin{itemize}
+\item \hyperlinkref{13164721210504126628}{Triangulated Convex Polygon}
+\item \hyperlinkref{2167686298267499854}{Δ-Complex / Triangulation of closed surface}
+\item \hyperlinkref{8001572861945648375}{Modular \texttt{FlipGraph}}
+\end{itemize}
+\item \hyperlinkref{10883852251054835207}{Triangulations of Convex Polygons}
+\begin{itemize}
+\item \hyperlinkref{15035490444877811912}{Structures}
+\item \hyperlinkref{1468722345706912774}{Constructors}
+\item \hyperlinkref{11321063701219043265}{Graph Methods}
+\item \hyperlinkref{11197232524932956081}{Flip an edge}
+\end{itemize}
+\item \hyperlinkref{11880348436537269946}{Triangulations of Closed Surfaces}
+\begin{itemize}
+\item \hyperlinkref{13627494553398038653}{DeltaComplex}
+\item \hyperlinkref{8213426381003079380}{Classifying the triangulation}
+\item \hyperlinkref{10870430378047419872}{Non-orientable closed surfaces}
+\item \hyperlinkref{17856663285825007015}{Flipping}
+\end{itemize}
+\item \hyperlinkref{691037665121027587}{Modular Flip Graphs of Closed Orientable Surfaces}
+\begin{itemize}
+\item \hyperlinkref{15035490444877811912}{Structures}
+\item \hyperlinkref{1468722345706912774}{Constructors}
+\item \hyperlinkref{18181481596881829449}{Graph methods}
+\item \hyperlinkref{9598979154961159507}{Comparing Triangulations}
+\item \hyperlinkref{7823929146850870815}{Canonical labeling of \texttt{DeltaComplex}es}
+\end{itemize}
+\item \hyperlinkref{885284519730572356}{Exporting}
+\item \hyperlinkref{15108808020745066681}{General utilities}
+\end{itemize}
+
+
+\chapter{Installation}
+
+
+
+\label{16848947351613073531}{}
+
+
+
+
+To install the package, you first need to install \href{https://julialang.org}{Julia}.  After starting Julia, type the following:
+
+
+
+
+\begin{minted}{jlcon}
+julia> using Pkg 
+julia> Pkg.add("FlipGraphs")
+\end{minted}
+
+
+
+You can start using the package as follows:
+
+
+
+
+\begin{minted}{jlcon}
+julia> using FlipGraphs
+julia> D = deltacomplex(4,10);
+DeltaComplex on orientable surface of genus 4 with 10 points
+32 TriFaces:
+ TriFace #1: Points(1 1 2) Neighbors(5 15 16)
+ TriFace #2: Points(1 1 3) Neighbors(20 17 18)
+ ⋮
+ TriFace #31: Points(1 1 10) Neighbors(10 32 9)
+ TriFace #32: Points(1 1 10) Neighbors(8 9 31)
+48 DualEdges:
+ DualEdge 1 : (Δ15)-(1)-------(1)-(Δ18)
+ DualEdge 2 : (Δ2)-(1)-------(1)-(Δ20)
+ ⋮
+ DualEdge 47 : (Δ9)-(2)-------(3)-(Δ31)
+ DualEdge 48 : (Δ31)-(2)-------(3)-(Δ32)
+\end{minted}
+
+
+
+If you need help understanding what a function does or what a structure represents, you can put a question mark in front of it:
+
+
+
+
+\begin{minted}{text}
+julia> ?FlipGraph
+  struct FlipGraph <: AbstractGraph{Int}
+
+  A Graph representing the flip graph of a Δ-Complex.
+
+  Vertices are isotopy classes of triangulations of the same surface.
+  Two vertices are linked by an edge, if the respective triangulations differ only by a single flip.
+\end{minted}
+
+
+
+\chapter{Quick Start}
+
+
+
+\label{15530337615267817360}{}
+
+
+
+
+If you{\textquotesingle}re already familiar with the concept of \textbf{flip graphs}, \textbf{triangulations} on \textbf{closed surfaces}, and \textbf{Δ-complexes}, and don{\textquotesingle}t want to read the whole documentation, then here are some quick examples of what you can do with this package.
+
+
+
+In any other case, please be sure to have a look at the rest of the documentation first.
+
+
+
+\section{Triangulated Convex Polygon}
+
+
+
+\label{13164721210504126628}{}
+
+
+Create a triangulated convex 10-gon:
+
+
+
+
+\begin{minted}{jlcon}
+julia> g = triangulated_polygon(8)
+TriangulatedPolygon with 8 vertices, and adjacency list:
+ 1  → [2, 8]
+ 2  → [1, 3, 8]
+ 3  → [2, 4, 8, 7]
+ 4  → [3, 5, 7, 6]
+ 5  → [4, 6]
+ 6  → [5, 7, 4]
+ 7  → [6, 8, 3, 4]
+ 8  → [7, 1, 2, 3]
+\end{minted}
+
+
+
+Check if the edge going from vertex 2 to vertex 10 can be flipped:
+
+
+
+
+\begin{minted}{jlcon}
+julia> is_flippable(g, 2, 8)
+true
+\end{minted}
+
+
+
+Flip the edge connecting vertices 2 and 10:
+
+
+
+
+\begin{minted}{jlcon}
+julia> flip!(g, 2, 8)
+TriangulatedPolygon with 8 vertices, and adjacency list:
+ 1  → [2, 8, 3]
+ 2  → [1, 3]
+ 3  → [2, 4, 8, 7, 1]
+ 4  → [3, 5, 7, 6]
+ 5  → [4, 6]
+ 6  → [5, 7, 4]
+ 7  → [6, 8, 3, 4]
+ 8  → [7, 1, 3]
+\end{minted}
+
+
+
+Construct the flip graph of a convex octagon:
+
+
+
+
+\begin{minted}{jlcon}
+julia> G = flipgraph_planar(8)
+FlipGraphPlanar with 132 vertices and 330 edges
+\end{minted}
+
+
+
+Export the generated flip graph as a .gml file:
+
+
+
+
+\begin{minted}{jlcon}
+julia> export_gml("C:/Users/USERNAME/Desktop/FILENAME.gml", G);
+\end{minted}
+
+
+
+\section{Δ-Complex / Triangulation of closed surface}
+
+
+
+\label{2167686298267499854}{}
+
+
+\subsection{\texttt{DeltaComplex}}
+
+
+
+\label{13627494553398038653}{}
+
+
+A \texttt{DeltaComplex} is the dual of a triangulation on a closed surface. It can be used to compute things like the diameter, but it does not offer a unique model of a triangulation on a closed surface.  Every DeltaComplex can be interpreted as the homeomorphism class of triangulations of points on a closed surface.
+
+
+
+Create a \texttt{DeltaComplex} of a surface of genus 1 with 2 points:
+
+
+
+
+\begin{minted}{jlcon}
+julia> D = deltacomplex(1, 2)
+DeltaComplex on orientable surface of genus 1 with 2 points
+4 TriFaces:
+ TriFace #1: Points(1 1 2) Neighbors(2 3 4)
+ TriFace #2: Points(1 1 1) Neighbors(4 1 3)
+ TriFace #3: Points(1 1 2) Neighbors(2 4 1)
+ TriFace #4: Points(1 1 2) Neighbors(2 1 3)
+6 DualEdges:
+ DualEdge 1 : (Δ3)-(1)-------(3)-(Δ2)
+ DualEdge 2 : (Δ1)-(1)-------(2)-(Δ2)
+ DualEdge 3 : (Δ2)-(1)-------(1)-(Δ4)
+ DualEdge 4 : (Δ4)-(2)-------(3)-(Δ1)
+ DualEdge 5 : (Δ1)-(2)-------(3)-(Δ3)
+ DualEdge 6 : (Δ3)-(2)-------(3)-(Δ4)
+\end{minted}
+
+
+
+Check if the 4th edge (DualEdge 4) can be flipped:
+
+
+
+
+\begin{minted}{jlcon}
+julia> is_flippable(D, 4)
+true
+\end{minted}
+
+
+
+Flip said edge:
+
+
+
+
+\begin{minted}{jlcon}
+julia> flip!(D, 4)
+DeltaComplex on orientable surface of genus 1 with 2 points
+4 TriFaces:
+ TriFace #1: Points(1 2 1) Neighbors(3 3 4)
+ TriFace #2: Points(1 1 1) Neighbors(4 4 3)
+ TriFace #3: Points(1 1 2) Neighbors(2 1 1)
+ TriFace #4: Points(1 1 1) Neighbors(2 1 2)
+6 DualEdges:
+ DualEdge 1 : (Δ3)-(1)-------(3)-(Δ2)
+ DualEdge 2 : (Δ4)-(1)-------(2)-(Δ2)
+ DualEdge 3 : (Δ2)-(1)-------(3)-(Δ4)
+ DualEdge 4 : (Δ4)-(2)-------(3)-(Δ1)
+ DualEdge 5 : (Δ1)-(1)-------(3)-(Δ3)
+ DualEdge 6 : (Δ3)-(2)-------(2)-(Δ1)
+\end{minted}
+
+
+
+Randomly flip edges in \texttt{D} until the diameter stabilizes:
+
+
+
+
+\begin{minted}{jlcon}
+julia> randomize!(D)
+10300000
+julia> D
+DeltaComplex on orientable surface of genus 1 with 2 points
+4 TriFaces:
+ TriFace #1: Points(1 1 1) Neighbors(3 2 2)
+ TriFace #2: Points(1 1 1) Neighbors(1 3 1)
+ TriFace #3: Points(1 1 1) Neighbors(1 2 4)
+ TriFace #4: Points(2 1 1) Neighbors(4 3 4)
+6 DualEdges:
+ DualEdge 1 : (Δ3)-(3)-------(2)-(Δ4)
+ DualEdge 2 : (Δ3)-(2)-------(2)-(Δ2)
+ DualEdge 3 : (Δ4)-(3)-------(1)-(Δ4)
+ DualEdge 4 : (Δ1)-(2)-------(3)-(Δ2)
+ DualEdge 5 : (Δ1)-(1)-------(1)-(Δ3)
+ DualEdge 6 : (Δ2)-(1)-------(3)-(Δ1)
+\end{minted}
+
+
+
+\section{Modular \texttt{FlipGraph}}
+
+
+
+\label{8001572861945648375}{}
+
+
+Construct the modular flip graph of a torus with 2 labeled points on it:
+
+
+
+
+\begin{minted}{jlcon}
+julia> G = flipgraph_modular(1,2)
+modular FlipGraph with 9 vertices and 8 edges
+\end{minted}
+
+
+
+Construct the modular flip graph of a torus with 2 unlabeled points on it:
+
+
+
+
+\begin{minted}{jlcon}
+julia> G = flipgraph_modular(1,2;labeled_points=false)
+modular FlipGraph with 5 vertices and 4 edges
+\end{minted}
+
+
+
+\part{Convex Polygons}
+
+
+\chapter{Triangulations of Convex Polygons}
+
+
+
+\label{10883852251054835207}{}
+
+
+In order to better understand \emph{triangulations}, \emph{flips} and \emph{flip graphs}, it can be helpful to start simple. If you take any number of points and iteratively connect them with straight edges that do not cross each other  until you can no longer add an edge that does not cross any other edge, what you{\textquotesingle}ll get is a (geometric) \textbf{triangulation}.
+
+
+
+To get from one triangulation of a set of points to another, you may choose an inner edge and flip it.  If you look at any inner edge, the two triangles adjacent to it form a quadrilateral, with the edge as one of its diagonals. To flip an edge, all we have to do is replace it with the other diagonal.  As we don{\textquotesingle}t want to have straight edges that cross each other, a flip can only be done if the quadrilateral is convex and no three of its corners lie on the same line. As we are interested in taking this theory to closed surfaces, where we will no longer have the restriction of edges being straight, we will only consider triangulations of points in convex general position. In this case, a triangulation in the geometric sense is equivalent to a \emph{triangulation of points on the border of a disc} or a \emph{maximal outerplanar graph}.
+
+
+
+We do not care where exactly the points are located; however, in order to keep in line with the geometric sense and have a simple visualization, we will consider these points to be the vertices of a convex polygon (i.e. points in convex position). 
+
+
+
+\section{Structures}
+
+
+
+\label{15035490444877811912}{}
+
+\hypertarget{6755725597592837229}{\texttt{FlipGraphs.TriangulatedPolygon}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct TriangulatedPolygon <: AbstractGraph{Int32}
+\end{minted}
+
+A structure representing a triangulation of a convex polygon.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L1-L5}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\texttt{TriangulatedPolygon} implements the \texttt{AbstractGraph} interface from Graphs.jl. It is therefore possible to use it with other packages that work with Graphs.jl.
+
+
+
+Vertices are not explicitly stored in \texttt{TriangulatedPolygon}.  Only the total number of vertices is stored. They are implicitly labeled by the integers from 1 up to the total number of vertices.\\
+Edges are stored as an adjacency list.
+
+
+
+\section{Constructors}
+
+
+
+\label{1468722345706912774}{}
+
+\hypertarget{11161655937638359151}{\texttt{FlipGraphs.triangulated\_polygon}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+triangulated_polygon(n::Integer) :: TriangulatedPolygon
+\end{minted}
+
+Create a triangulated convex \texttt{n}-gon. 
+
+Vertices are named from 1 to \texttt{n} in an anticlockwise manner. The inside is triangulated in a zig-zag pattern.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L27-L34}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+As an example, the output of \texttt{triangulated\_polygon(9)} would be a graph that corresponds to the following triangulation of a 9-gon:
+
+
+
+
+
+\section{Graph Methods}
+
+
+
+\label{11321063701219043265}{}
+
+
+The following methods overload some of the main functions from the \href{https://juliagraphs.org/Graphs.jl/stable/}{Graphs.jl} package.
+
+
+\hypertarget{8167533972265480819}{\texttt{Graphs.nv}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+nv(g::TriangulatedPolygon) :: Int
+\end{minted}
+
+Return the number of vertices/points in the triangulated convex polygon \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L111-L115}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4124488593235871915}{\texttt{Graphs.ne}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+ne(g::TriangulatedPolygon) :: Int
+\end{minted}
+
+Return the number of edges in the triangulated convex polygon \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L104-L108}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2409708083507170643}{\texttt{Graphs.vertices}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices(g::TriangulatedPolygon) :: Vector{Int}
+\end{minted}
+
+Create a list of all the vertices in the triangulated convex polygon \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L118-L122}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15968138045719588877}{\texttt{Graphs.edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges(g::TriangulatedPolygon) :: Vector{SimpleEdge{Int32}}
+\end{minted}
+
+Compute and return a list of all the edges in \texttt{g}.
+
+Edges are not directed. It is, however, necessary for computations to define a source and a target.  For \texttt{TriangulatedPolygon}, the source will be the incident vertex with the smaller id.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L63-L70}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{11099834342798379214}{\texttt{Graphs.has\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_vertex(g::TriangulatedPolygon, v::Integer)
+\end{minted}
+
+Return \texttt{true} if \texttt{v} is a vertex in \texttt{g}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L88-L92}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14090102072355441192}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(g::TriangulatedPolygon, e::Edge)
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L77-L79}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{9162594476608360322}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(g::TriangulatedPolygon, s::Integer, d::Integer)
+\end{minted}
+
+Return \texttt{true} if \texttt{g} has an edge going from vertex \texttt{s} to vertex \texttt{d}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L81-L85}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14095625494301593323}{\texttt{Graphs.neighbors}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+neighbors(g::TriangulatedPolygon, v::Integer) :: Vector{Int32}
+\end{minted}
+
+Return the list of all the vertices in \texttt{g} that are adjacent to \texttt{v}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L95-L99}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+If you want to extrude some more information from a \texttt{TriangulatedPolygon} object, the following functions might be useful: 
+
+
+\hypertarget{9379494963205808776}{\texttt{FlipGraphs.degrees}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+degrees(g::TriangulatedPolygon) :: Vector{Int32}
+\end{minted}
+
+Compute a list of the degrees of every single vertex in \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L222-L226}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2070049552425424645}{\texttt{FlipGraphs.adjacency\_matrix}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+adjacency_matrix(g::TriangulatedPolygon) :: Matrix{Int32}
+\end{minted}
+
+Compute the adjacency matrix for the triangulated graph \texttt{g}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L240-L244}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4612475216183140749}{\texttt{FlipGraphs.diameter}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter(g::TriangulatedPolygon)
+\end{minted}
+
+Compute the diameter of the \texttt{TriangulatedPolygon} \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L231-L235}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Flip an edge}
+
+
+
+\label{11197232524932956081}{}
+
+\hypertarget{1509616110747472477}{\texttt{FlipGraphs.is\_flippable}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_flippable(g::TriangulatedPolygon, src::Integer, dst::Integer) :: Bool
+\end{minted}
+
+Return whether or not the edge can be flipped.
+
+Note that for a triangulation of a convex polygon, the inner edges are always flippable,      while the outer edges cannot be flipped.    
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L209-L216}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2288003655784744554}{\texttt{FlipGraphs.is\_flippable}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_flippable(g::TriangulatedPolygon, e::Edge) :: Bool
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L204-L206}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17369255639942436693}{\texttt{FlipGraphs.flip!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
+\end{minted}
+
+Flip the edge incident to \texttt{src} and \texttt{dst} in the triangulated convex polygon \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L162-L166}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{863666498151329777}{\texttt{FlipGraphs.flip}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
+\end{minted}
+
+Return the \texttt{TriangulatedPolygon} obtained from \texttt{g} by flipping the edge incident to \texttt{src} and \texttt{dst}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L141-L145}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{3573918791108921628}{\texttt{FlipGraphs.flip!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip!(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon
+\end{minted}
+
+Flip the edge \texttt{e} in the triangulated convex polygon \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L155-L159}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{475240096103298242}{\texttt{FlipGraphs.flip}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon
+\end{minted}
+
+Return the triangulated polygon obtained by flipping the edge \texttt{e} in \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L148-L152}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{6564352418014428904}{\texttt{FlipGraphs.flip\_get\_edge!}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip_get_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: Tuple{Int32, Int32}
+\end{minted}
+
+Flip the edge incident to the vertices \texttt{src} and \texttt{dst} and return the new endpoints of the flipped edge.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L183-L187}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\chapter{Flip Graphs of Convex Polygons}
+
+
+
+\label{5007793054777268130}{}
+
+
+\textbf{Flip Graphs}, are obtained by considering triangulations on a fixed set of points as vertices, and connecting two vertices, if it is possible to get from one triangulation to the other by flipping a single edge.
+
+
+
+\section{Structures}
+
+
+
+\label{15035490444877811912}{}
+
+
+The main structure for this part of the package is the \textbf{\texttt{FlipGraphPlanar}} structure.  This implements the \texttt{AbstractGraph} interface from \href{https://juliagraphs.org/Graphs.jl/stable/}{Graphs.jl}.  It is therefore possible to use it with other packages that work with \emph{Graphs.jl}.
+
+
+\hypertarget{10784171746981031091}{\texttt{FlipGraphs.FlipGraphPlanar}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct FlipGraphPlanar <: AbstractGraph{Int32}
+\end{minted}
+
+A Graph representing the \textbf{flip graph} of a \textbf{convex polygon}. 
+
+Vertices are different triangulations of the same convex polygon. Two vertices are linked by an edge, if the respective graphs differ only by a single flip.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L1-L8}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Constructors}
+
+
+
+\label{1468722345706912774}{}
+
+
+To construct the flip graph of a convex polygon, you can either start from a \texttt{TriangulatedPolygon} or just set the number of vertices of the triangulated convex polygon.
+
+
+\hypertarget{8931391207780679550}{\texttt{FlipGraphs.flipgraph}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flipgraph(g::TriangulatedPolygon; kwargs..)
+\end{minted}
+
+Construct the \textbf{\texttt{FlipGraph}} for the \texttt{TriangulatedPolygon} \texttt{g}.
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item {\textquotesingle}modular::Bool = false{\textquotesingle} : by default, the whole flip graph is constructed. If \texttt{modular} is set to \texttt{true}, then only the modular flip graph is constructed.
+
+\end{itemize}
+In a \emph{modular flip graph}, vertices of the flip graph are classes of isomorphisms up to renaming the vertices.  Each class is then represented by one of its elements.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L118-L127}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{7158471706617452188}{\texttt{FlipGraphs.flipgraph\_planar}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flipgraph_planar(n::Integer; modular=false) :: FlipGraphPlanar
+\end{minted}
+
+Construct the \texttt{FlipGraphPlanar} of a convex \texttt{n}-gon. 
+
+If \texttt{modular=true}, the flip graph is reduced to its modular form.
+
+\textbf{Examples}
+
+
+\begin{minted}{jlcon}
+julia> flipgraph_planar(6)
+FlipGraphPlanar with 14 vertices and 21 edges
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L300-L312}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Graph methods}
+
+
+
+\label{18181481596881829449}{}
+
+
+The following methods overload some of the main functions from the \href{https://juliagraphs.org/Graphs.jl/stable/}{Graphs.jl} package.
+
+
+\hypertarget{12642971583515548947}{\texttt{Graphs.nv}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+nv(G::FlipGraphPlanar)
+\end{minted}
+
+Return the number of vertices in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L83-L87}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{12070345305935665180}{\texttt{Graphs.ne}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+ne(G::FlipGraphPlanar)
+\end{minted}
+
+Return the number of edges in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L76-L80}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{11409300395072670495}{\texttt{Graphs.vertices}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices(G::FlipGraphPlanar)
+\end{minted}
+
+Return the List of all vertices in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L90-L94}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17434895256593567637}{\texttt{Graphs.edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges(G::FlipGraphPlanar) ::Vector{Edge}
+\end{minted}
+
+Construct an array containing all the edges in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L24-L28}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{6073231109657752490}{\texttt{Graphs.has\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_vertex(G::FlipGraphPlanar, g::TriangulatedPolygon) :: Bool
+\end{minted}
+
+Return \texttt{true} if \texttt{g} is a vertex in \texttt{G}. 
+
+If \texttt{G} is a modular flip graph, this will only return \texttt{true} if \texttt{g} is the proper representant of the vertex.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L57-L63}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{11632110415817252502}{\texttt{Graphs.has\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_vertex(G::FlipGraphPlanar, i::Integer) :: Bool
+\end{minted}
+
+Return \texttt{true} if \texttt{i} is a valid index of a vertex in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L50-L54}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2888131517601982711}{\texttt{FlipGraphs.get\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_vertex(G::FlipGraphPlanar, i::Integer) :: TriangulatedPolygon
+\end{minted}
+
+Return the \texttt{i}-th vertex in the planar flip graph \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L97-L101}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{13899120146903475816}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(G::FlipGraphPlanar, s, d)
+\end{minted}
+
+Return \texttt{true} if there is an edge between \texttt{s} and \texttt{d} in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L43-L47}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{5416200093936098716}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(G::FlipGraphPlanar, e::Edge)
+\end{minted}
+
+Return \texttt{true} if \texttt{e} is an edge in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L36-L40}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4523162264564818691}{\texttt{Graphs.neighbors}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+neighbors(G::FlipGraphPlanar, v::Integer) :: Vector{Int32}
+\end{minted}
+
+Return a list of all the indices of vertices in \texttt{G}, that are adjacent to \texttt{v}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L67-L71}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14666488080537054881}{\texttt{FlipGraphs.diameter}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter(G::FlipGraphPlanar)
+\end{minted}
+
+Compute the diameter of \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L373-L377}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Comparing Triangulations}
+
+
+
+\label{9598979154961159507}{}
+
+
+To compute the \emph{flip graph}, one needs to be able to determine if two triangulations are identical (if the points are labeled) or isomorphic to each other (if the points are unlabeled). \\
+The first case is fairly simple, as two triangulations are identical if their adjacency lists are. The only difficulty here is that the order in the list of neighbors is not fixed.\\
+The second case is more challenging, as there are \(n!\) different ways to label \(n\) points. The way it is done in this package is to use a variation of \emph{McKay{\textquotesingle}s canonical graph labeling algorithm}\footnotemark[1] to rattle the number of possible labelings down to a relatively small number.
+
+
+\hypertarget{3606704227605247881}{\texttt{FlipGraphs.is\_isomorphic}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon)
+\end{minted}
+
+Check if \texttt{g1} and \texttt{g2} are isomorphic up to a relabeling of the vertices.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L357-L361}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15972932308511385085}{\texttt{FlipGraphs.is\_isomorphic}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon, permutations::Vector{Vector{T}}) where T<:Integer
+\end{minted}
+
+Check if \texttt{g2} is isomorphic to \texttt{g1} up to a relabeling of the vertices by one of the \texttt{permutations}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L343-L347}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+The following methods are used to build the flip graph; However, they can also be useful elsewhere:
+
+
+\hypertarget{1425231861830903434}{\texttt{FlipGraphs.mcKay}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+mcKay(g::TriangulatedPolygon) :: Vector{Vector{<:Integer}}
+\end{minted}
+
+Apply \emph{McKay{\textquotesingle}s canonical graph labeling algorithm} to determine all possible permutations  of the vertices, which give a canonical isomorphism class representant.
+
+Return a list of all possible canonical point-relabeling permutations \texttt{p} such that the i-th point should be relabeled as the \texttt{p[i]}-th point
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L405-L412}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{18413919120035264143}{\texttt{FlipGraphs.rename\_vertices}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+rename_vertices(g::TriangulatedPolygon, p::Vector{<:Integer}) :: TriangulatedPolygon
+\end{minted}
+
+Return the \texttt{TriangulatedPolygon} obtained from renaming the vertices of the triangulated convex polygon \texttt{g} by applying the permutation \texttt{p}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L317-L321}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16314066137346966911}{\texttt{FlipGraphs.rename\_vertices!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+rename_vertices!(g::TriangulatedPolygon, p::Vector{<:Integer}) :: TriangulatedPolygon
+\end{minted}
+
+Rename the vertices of the triangulated convex polygon \texttt{g} by applying the permutation \texttt{p}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L330-L334}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2627864872710428840}{\texttt{FlipGraphs.relative\_degree}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{<:Integer}) :: Vector{<:Integer}
+\end{minted}
+
+Count the number of edges in \texttt{g} going from \texttt{u} to a vertex in \texttt{V}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L395-L399}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{11363186084085056127}{\texttt{FlipGraphs.relative\_degrees}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
+\end{minted}
+
+Count, for each vertex in \texttt{U}, the number of incident edges, which are also incident to an edge in \texttt{V}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L380-L384}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\footnotetext[1]{Hartke, S.G., \& Radcliffe, A.J. (2008). McKay ’ s Canonical Graph Labeling Algorithm.
+
+}
+
+
+\part{Closed Surfaces}
+
+
+\chapter{Triangulations of Closed Surfaces}
+
+
+
+\label{11880348436537269946}{}
+
+
+
+
+A triangulation of a closed surface is composed of points on the closed surface, which are connected by a maximal number of arcs (isotopy classes of curves on the surface that start and end at fixed points without containing any loops) in such a way, that no two arcs are homotopic to each other.\\
+As these become very complex objects that are difficult and computationally complex to model, it is often more useful to look at the dual of a triangulation. This dual is called a \emph{Δ-complex}. 
+
+
+
+\section{DeltaComplex}
+
+
+
+\label{13627494553398038653}{}
+
+
+A \textbf{Δ-complex} is a representation of a triangulation on a closed surface. To define a triangulation on a closed surface, it does not suffice to consider vertices and edges. We will also need to consider the triangular faces between them. Therefore, the triangulations are modeled using an extension of their dual graph.
+
+
+
+Vertices are triangular faces, which in turn consist of three points and three edges. These points and edges are not necessarily distinct. Edges in the dual (i.e. the Δ-complex) connect two triangular faces if they, in turn, share an edge. To avoid confusion between the edges of the triangulation and the edges of the dual, I will henceforth refer to the latter as the \emph{dual edge}.
+
+
+
+\subsection{Structures}
+
+
+
+\label{15035490444877811912}{}
+
+\hypertarget{1315454663023603173}{\texttt{FlipGraphs.DeltaComplex}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct DeltaComplex
+\end{minted}
+
+A graph data structure representing a triangulation of a surface.
+
+The \texttt{DeltaComplex} may be thought of as the dual of a triangulation.
+
+Vertices are triangular faces (\texttt{TriFace}). Every vertex has three edges (\texttt{DualEdge}) incident to it.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L47-L55}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{724782505096909684}{\texttt{FlipGraphs.TriFace}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct TriFace
+\end{minted}
+
+A \texttt{TriFace} represents a triangle in the triangulation of a surface. 
+
+The \texttt{TriFace}s form the vertices of a DeltaComplex. Each \texttt{TriFace} is formed between 3 points and is connected to 3 \texttt{TriFace}s through \texttt{DualEdges}. The points and neighboring triangles do not have to be unique.
+
+The points and edges are stored in an anticlockwise order.\\
+The first edge/side is between the first and second point.\\
+The second edge/side is between the second and third point.\\
+The third edge/side is between the third and first point.\\
+
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L24-L37}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{10259513458807449042}{\texttt{FlipGraphs.DualEdge}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct DualEdge
+\end{minted}
+
+Representation of an edge in a \texttt{DeltaComplex} (i.e. the dual graph of a triangulation).
+
+A \texttt{DualEdge} connects two \texttt{TriFaces} through specific sides.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L4-L10}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\subsection{Construction of a DeltaComplex}
+
+
+
+\label{9718644995923369106}{}
+
+
+This Module comes with some handy and easy to use tools to construct a triangulation of a surface:
+
+
+\hypertarget{5812016659056946666}{\texttt{FlipGraphs.deltacomplex}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+deltacomplex(genus :: Integer, num_points :: Integer = 1) :: DeltaComplex
+\end{minted}
+
+Create a triangulation of an orientable surface of a certain \texttt{genus} with \texttt{num\_points} points on it. 
+
+By default, \texttt{num\_points} is set to 1.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L590-L596}{\texttt{source}}
+
+
+
+\begin{minted}{julia}
+deltacomplex(s :: Vector{<:Integer})
+\end{minted}
+
+Create a triangulation of an orientable surface with a single point, by gluing the corresponding edges together.
+
+\texttt{s} should be an array of nonzero integers representing the edges of a polygon in anticlockwise order.\\
+The i-th edge is orientated anticlockwise if \texttt{s[i]>0} and anticlockwise if \texttt{s[i]<0}.\\
+If \texttt{s[i]} and \texttt{s[j]} have the same absolute value, they are glued together while respecting their orientation.
+
+\textbf{Examples}
+
+The following results in the triangulation of a \emph{torus} with one point:
+
+
+\begin{minted}{text}
+julia> deltacomplex([1,2,-1,-2])
+\end{minted}
+
+The following results in the triangulation of a \emph{klein bottle} with one point:
+
+
+\begin{minted}{text}
+julia> deltacomplex([1,2,-1,2])
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L646-L665}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14191397339116909052}{\texttt{FlipGraphs.deltacomplex\_non\_orientable}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+deltacomplex_non_orientable(demigenus :: Integer, num_points :: Integer = 1) :: DeltaComplex
+\end{minted}
+
+Create a triangulation of a non-orientable surface with \texttt{num\_points} points on it. 
+
+By default, \texttt{num\_points} is set to 1.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L615-L621}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{3302743078986330830}{\texttt{FlipGraphs.subdivide!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+subdivide!(D::DeltaComplex, t::Integer)
+\end{minted}
+
+Add a point to the inside of the \texttt{t}-th \texttt{TriFace} and connect it to each corner.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L757-L761}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\subsection{Extracting information from \texttt{DeltaComplex}{\textquotesingle}}
+
+
+
+\label{14634587330370490614}{}
+
+
+\texttt{DeltaComplex} is not an implementation of \emph{Graphs.AbstractGraph}. However, as it is similar to a simple graph, the same notation and function names were used for simplicity.
+
+
+\hypertarget{6458119118606584173}{\texttt{FlipGraphs.np}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+np(D::DeltaComplex) :: Int
+\end{minted}
+
+Return the number of points in the triangulation defined by \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L344-L348}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{6570522663719518946}{\texttt{Graphs.nv}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+nv(D::DeltaComplex) :: Int
+\end{minted}
+
+Return the number of vertices (\texttt{TriFace}s) in \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L351-L355}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16904350056714108716}{\texttt{Graphs.ne}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+ne(D::DeltaComplex) :: Int
+\end{minted}
+
+Return the number of edges (\texttt{DualEdge}s) in the \texttt{DeltaComplex} \texttt{D}.
+
+This is equal to the number of edges in the triangulation itself.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L358-L364}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17625980901339751316}{\texttt{Graphs.vertices}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices(D::DeltaComplex) :: Vector{TriFace}
+\end{minted}
+
+Return the list of all vertices(\texttt{TriFace}s) in \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L292-L296}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{9599335666183177786}{\texttt{FlipGraphs.get\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_vertex(D::DeltaComplex, t::Integer) :: TriFace
+\end{minted}
+
+Return the \texttt{t}-th \texttt{TriFace} in \texttt{D}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L285-L289}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{891918059960523943}{\texttt{Graphs.edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges(D::DeltaComplex) :: Vector{DualEdge}
+\end{minted}
+
+Return the list of all the \texttt{DualEdge}s in \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L324-L328}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{3085851381282903585}{\texttt{FlipGraphs.get\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_edge(D::DeltaComplex, e::Integer) :: DualEdge
+\end{minted}
+
+Return the \texttt{e}-th \texttt{DualEdge} in the \texttt{DeltaComplex D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L310-L314}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14400153517699669145}{\texttt{FlipGraphs.get\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_edge(D::DeltaComplex, t::Integer, side::Integer) :: DualEdge
+\end{minted}
+
+Return the edge that forms the respective \texttt{side}(1,2 or 3) of the \texttt{t}-th \texttt{TriFace} in the given \texttt{DeltaComplex}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L317-L321}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17895896900520043067}{\texttt{FlipGraphs.quadrilateral\_edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+quadrilateral_edges(D::DeltaComplex, diagonal::DualEdge) :: Tuple{DualEdge, DualEdge, DualEdge, DualEdge}
+\end{minted}
+
+Return the 4 edges who form a quadrilateral with the given \texttt{diagonal}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L980-L984}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{18090201370347779315}{\texttt{FlipGraphs.is\_similar}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_similar(d1::DualEdge, d2::DualEdge) :: Bool
+\end{minted}
+
+Return \texttt{true} if d1 and d2 have the same twist and are connected to the same triangles.
+
+This is only the case if \texttt{d1} and \texttt{d2} are the same edge, or if they are incident to a point of degree 2.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L141-L147}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\subsection{Extracting information from \texttt{TriFace}s}
+
+
+
+\label{17925776943648899087}{}
+
+
+\texttt{TriFace}s form the vertices of a \texttt{DeltaComplex}. They are defined by their 3 edges. Additionally, they store the 3 points that form their corners.
+
+
+
+As the \texttt{TriFace}s are stored in a list in \texttt{DeltaComplex}, each \texttt{TriFace} has its proper \texttt{id} which is the same as its index in the list.
+
+
+\hypertarget{5123364288866187946}{\texttt{FlipGraphs.id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+id(T::TriFace) :: Int
+\end{minted}
+
+Return the index of the triangular face \texttt{T} in its \texttt{DeltaComplex}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L248-L252}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+If you wish to get the edges of a \texttt{TriFace}, you might want to use any of the following methods:
+
+
+\hypertarget{13542500775827372404}{\texttt{FlipGraphs.get\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_edge(T::TriFace, side::Integer) :: DualEdge
+\end{minted}
+
+Return the \texttt{DualEdge} that is incident to the given \texttt{side}(1, 2 or 3) of the triangular face \texttt{T}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L206-L210}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{1436822443817835679}{\texttt{FlipGraphs.get\_edge\_id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_edge_id(T::TriFace, side::Integer) :: Integer
+\end{minted}
+
+Return the index of the \texttt{DualEdge}s on the respective \texttt{side}(1, 2 or 3) of the triangular face \texttt{T}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L213-L217}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4963844152486253737}{\texttt{Graphs.edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges(T::TriFace) :: Vector{DualEdge}
+\end{minted}
+
+Return the list of all 3 \texttt{DualEdge}s that are incident to the triangular face \texttt{T}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L220-L224}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{10965646028083896720}{\texttt{FlipGraphs.edges\_id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges_id(T::TriFace) :: Tuple{Int, Int, Int}
+\end{minted}
+
+Return the indices of all 3 \texttt{DualEdge}s that are incident to the \texttt{TriFace T}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L241-L245}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15082074870570804350}{\texttt{Graphs.edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges(D::DeltaComplex, t::Integer) :: Vector{DualEdge}
+\end{minted}
+
+Return the list of all 3 \texttt{DualEdge}s that are incident to the \texttt{t}-th \texttt{TriFace} in \texttt{D}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L227-L231}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16383920566377462491}{\texttt{FlipGraphs.edges\_id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges_id(D::DeltaComplex, t::Integer) :: Tuple{Int, Int, Int}
+\end{minted}
+
+Return the indices of all 3 \texttt{DualEdge}s that are incident to the \texttt{t}-th \texttt{TriFace} in \texttt{D}. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L234-L238}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+If you wish to get the points that form the corners of a \texttt{TriFace}, you might want to use any of the following methods:
+
+
+\hypertarget{299338672099245860}{\texttt{FlipGraphs.has\_point}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_point(T::TriFace, x::Integer) :: Bool
+\end{minted}
+
+Return \texttt{true} if \texttt{x} forms one of the corners of the triangular face \texttt{T}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L182-L187}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{11409664667544908067}{\texttt{FlipGraphs.get\_point}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_point(T::TriFace, corner::Integer) :: Int
+\end{minted}
+
+Return the point that is at the given \texttt{corner}(1, 2 or 3) of the triangular face \texttt{T}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L197-L201}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15026073979390803683}{\texttt{FlipGraphs.points}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+points(T::TriFace) :: Tuple{Int, Int, Int}
+\end{minted}
+
+Return a tuple of the three points, that form the corners of \texttt{T}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L190-L194}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15096165755102203171}{\texttt{FlipGraphs.points}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+points(D::DeltaComplex, d::DualEdge) :: Tuple{Int, Int}
+\end{minted}
+
+Return both endpoints of the edge \texttt{d} in the triangulation defined by \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L333-L337}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\subsection{Extracting information from \texttt{DualEdge}s}
+
+
+
+\label{5107965111902850169}{}
+
+
+\texttt{DualEdge}s form the edges in a \texttt{DeltaComplex}. They are defined by the 2 triangles that form the endpoints and the respective sides through which they connect them. In addition, they may be twisted. (See \hyperlinkref{10870430378047419872}{Non-orientable closed surfaces} for more on twisted edges) Contrary to a normal graph, it is important on which side of a \texttt{TriFace} an edge is incident to.
+
+
+
+Like the \texttt{TriFace}s, \texttt{DualEdge}s are also stored in a list in \texttt{DeltaComplex}, each \texttt{DualEdge} has its proper \texttt{id} which is the same as its index in the list.
+
+
+\hypertarget{16105808937943859257}{\texttt{FlipGraphs.id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+id(d::DualEdge) :: Int
+\end{minted}
+
+Return the index of \texttt{d} in its \texttt{DeltaComplex}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L134-L138}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+If you wish to get the \texttt{TriFace}s that border the \texttt{DualEdge}, you might want to use any of the following methods:
+
+
+\hypertarget{14467734776111556954}{\texttt{Graphs.vertices}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices(D::DeltaComplex, d::DualEdge) :: Tuple{TriFace, TriFace}
+\end{minted}
+
+Return both vertices(\texttt{TriFace}s) adjacent to the dual edge \texttt{d}.
+
+The first \texttt{TriFace} is on the left of the edge, and the second one on the right of the edge.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L299-L305}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{3945932976546166137}{\texttt{FlipGraphs.vertices\_id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices_id(d::DualEdge) :: Tuple{Int, Int}
+\end{minted}
+
+Return the indices of both vertices (\texttt{TriFace}s) adjacent to \texttt{d}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L97-L101}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2037339518078384361}{\texttt{FlipGraphs.get\_vertex\_id}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_vertex_id(d::DualEdge, side::Integer) :: Int
+\end{minted}
+
+Return the index of the vertex (\texttt{TriFace}) to the left of \texttt{d}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L104-L108}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4237288860456336970}{\texttt{FlipGraphs.sides}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+sides(d::DualEdge) :: Tuple{Int8, Int8}
+\end{minted}
+
+Return the respective sides through which \texttt{d} connects its incident \texttt{TriFace}s.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L111-L115}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4112526725817145726}{\texttt{FlipGraphs.get\_side}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_side(d::DualEdge, side::Integer) :: Int8
+\end{minted}
+
+Return the respective side of the triangle that \texttt{d} forms on the \texttt{TriFace} on the given \texttt{side} of \texttt{d}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L118-L122}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15748626811343085304}{\texttt{FlipGraphs.other\_endpoint}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+other_endpoint(d::DualEdge, t::Integer, side::Integer) :: Tuple{Int, Int8}
+\end{minted}
+
+Return the index of the other \texttt{TriFace} and its respective side, that is incident to \texttt{d} 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L167-L171}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Classifying the triangulation}
+
+
+
+\label{8213426381003079380}{}
+
+
+Here are some useful methods, to pull out general information about the Δ-Complex, and the triangulation it represents:
+
+
+\hypertarget{2459276078495976634}{\texttt{FlipGraphs.genus}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+genus(D::DeltaComplex) :: Int
+\end{minted}
+
+Compute the \emph{genus} of the \texttt{DeltaComplex} \texttt{D} if it forms an orientable surface.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L380-L384}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{7011472771353721906}{\texttt{FlipGraphs.euler\_characteristic}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+euler_characteristic(D::DeltaComplex) :: Int
+\end{minted}
+
+Compute the \emph{euler characteristic} of the \texttt{DeltaComplex D}:
+
+\begin{equation*}
+\begin{split}X = n_{vertices} - n_{edges} + n_{faces} \end{split}\end{equation*}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L368-L376}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16918497129552259148}{\texttt{FlipGraphs.diameter\_triangulation}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter_triangulation(D::DeltaComplex)
+\end{minted}
+
+Compute the diameter of the triangulation defined by the DeltaComplex \texttt{D}.
+
+The \textbf{diameter} of a graph is the greatest minimal distance between any 2 vertices.
+
+See also \hyperlinkref{17984212332069823233}{\texttt{diameter\_deltaComplex}}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L511-L519}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17984212332069823233}{\texttt{FlipGraphs.diameter\_deltaComplex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter_deltacomplex(D::DeltaComplex)
+\end{minted}
+
+Compute the \emph{diameter} of the \texttt{DeltaComplex} \texttt{D}.\\
+ The \textbf{diameter} of a graph is the greatest minimal distance between any 2 vertices.
+
+See also \hyperlinkref{16918497129552259148}{\texttt{diameter\_triangulation}}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L483-L491}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{8391561643002151248}{\texttt{FlipGraphs.diameter}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter(D::DeltaComplex)
+\end{minted}
+
+Compute the diameter of the \texttt{DeltaComplex} \texttt{D}.\\
+ The \textbf{diameter} of a graph is the greatest minimal distance between any 2 vertices.
+
+See also \hyperlinkref{16918497129552259148}{\texttt{diameter\_triangulation}}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L496-L504}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16623789823786931701}{\texttt{FlipGraphs.adjacency\_matrix\_deltacomplex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{::Int32}
+\end{minted}
+
+Compute the simple \emph{adjacency matrix} of the delta complex \texttt{D}.
+
+Values are either 0(not adjacent) or 1(adjacent).
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L407-L413}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{3047080931709895726}{\texttt{FlipGraphs.multi\_adjacency\_matrix\_deltacomplex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+multi_adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
+\end{minted}
+
+Compute the multi \emph{adjacency matrix} of the delta complex \texttt{D}.
+
+The \texttt{i,j}-th value counts the number of sides through which the \texttt{i}-th and \texttt{j}-th \texttt{TriFace} are adjacent.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L432-L438}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{10856297191220049265}{\texttt{FlipGraphs.adjacency\_matrix\_triangulation}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int32}
+\end{minted}
+
+Compute the \emph{simple adjacency matrix} of the triangulation defined by \texttt{D}.
+
+All entries are either 0 or 1.
+
+See also \hyperlinkref{9319800104016369462}{\texttt{multi\_adjacency\_matrix\_triangulation}}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L445-L453}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{9319800104016369462}{\texttt{FlipGraphs.multi\_adjacency\_matrix\_triangulation}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+multi_adjacency_matrix_triangulation(D::DeltaComplex) :: Matrix{Int32}
+\end{minted}
+
+Compute the \emph{adjacency matrix} of the multigraph of the triangulation defined by \texttt{D}.
+
+The \(i,j\)-th entry notes the number of edges that connect these two points.
+
+See also \hyperlinkref{10856297191220049265}{\texttt{adjacency\_matrix\_triangulation}}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L464-L472}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{12112898979774677454}{\texttt{FlipGraphs.point\_degrees}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+point_degrees(D::DeltaComplex) :: Vector{<:Integer}
+\end{minted}
+
+Return a vector containing the respective degree of each point in the triangulation.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L1091-L1095}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\subsection{Relabeling}
+
+
+
+\label{13834926465878219209}{}
+
+
+If you want to relabel/reorder the points, vertices or edges, you may do so, by providing a permutation vector \(p=[p_1, p_2, \ldots , p_n]\) which will relabel \(i\) as \(p_i\). 
+
+
+\hypertarget{17900291854214806966}{\texttt{FlipGraphs.rename\_edges!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+rename_edges!(D::DeltaComplex, p::Vector{<:Integer})
+\end{minted}
+
+Relabel every edge(\texttt{DualEdge}) in \texttt{D}, according to the permutation \texttt{p}.
+
+\texttt{DualEdge} 1 => \texttt{DualEdge} \(p[1]\)
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L1128-L1134}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14975581289018999996}{\texttt{FlipGraphs.rename\_points!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+rename_points!(D::DeltaComplex, p::Vector{<:Integer})
+\end{minted}
+
+Rename all the points in \texttt{D} according to the permutation \texttt{p}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L1103-L1107}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14047662745601523605}{\texttt{FlipGraphs.rename\_vertices!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+rename_vertices!(D::DeltaComplex, p::Vector{<:Integer})
+\end{minted}
+
+Relabel every vertex(\texttt{TriFace}) in \texttt{D}, according to the permutation \texttt{p}.
+
+\texttt{TriFace} 1 => \texttt{TriFace} \(p[1]\) 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L1114-L1120}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Non-orientable closed surfaces}
+
+
+
+\label{10870430378047419872}{}
+
+
+Regarding on how different sides of triangles are associated to each other, the resulting surface may be non-orientable. These surfaces can also be modeled by \texttt{DeltaComplex}, and all the methods above (except for \hyperlinkref{2459276078495976634}{\texttt{genus}}) may still be applied.
+
+
+\hypertarget{15427213162715270496}{\texttt{FlipGraphs.is\_orientable}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_orientable(D::DeltaComplex) :: Bool
+\end{minted}
+
+Check if the surface defined by \texttt{D} is orientable or not.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L995-L999}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{9818394393198899675}{\texttt{FlipGraphs.demigenus}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+demigenus(D::DeltaComplex) :: Int
+\end{minted}
+
+Compute the \emph{demigenus} of the \texttt{DeltaComplex} \texttt{D} if it is non-orientable.
+
+The \textbf{demigenus} or \textbf{non-orientable genus} (\(k\)) of a connected non-orientable closed surface is defined via the euler characteristic (\(X\)) :\\
+\(k = 2 - X\)
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L392-L399}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17066969119815195638}{\texttt{FlipGraphs.twist\_edges!}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+twist_edges!(D::DeltaComplex, t::Integer)
+twist_edges!(T::TriFace)
+\end{minted}
+
+Twist or untwist all 3 \texttt{DualEdges} of a \texttt{TriFace}, and reverse the side order.
+
+This action gives an equivalent representation of the same triangulation. It is useful in the case that you would like to untwist a certain edge.
+
+\textbf{Examples}
+
+
+\begin{minted}{jlcon}
+julia> D = deltacomplex([1,2,-1,2]);
+julia> T = get_vertex(D,1);
+julia> edges(T)
+3-element Array{DualEdge,1}:
+ DualEdge 2 : (Δ1)-(1)-------(2)-(Δ2)
+ DualEdge 1 : (Δ1)-(2)-------(3)-(Δ2)
+ DualEdge 3 : (Δ2)-(1)---↺---(3)-(Δ1)
+ julia> twist_edges!(T);
+ julia> edges(T)
+ 3-element Array{DualEdge,1}:
+ DualEdge 3 : (Δ2)-(1)-------(1)-(Δ1)
+ DualEdge 1 : (Δ1)-(2)---↺---(3)-(Δ2)
+ DualEdge 2 : (Δ1)-(3)---↺---(2)-(Δ2)
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L801-L826}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{5140467616149147479}{\texttt{FlipGraphs.is\_twisted}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_twisted(d::DualEdge) :: Bool
+\end{minted}
+
+Return whether or not the given edge is twisted. 
+
+If \texttt{d} is twisted, then everything on the other side gets regarded as its mirror image. 
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L125-L131}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Flipping}
+
+
+
+\label{17856663285825007015}{}
+
+
+A \textbf{flip} is defined as the action of replacing an edge in the triangulation by the other diagonal of the quadrilateral formed by the two triangles adjacent to the edge.
+
+
+
+It has been shown, that the flip graph of any closed surface is connected. Hence, it is possible, to obtain any triangulation by a finite number of flips.
+
+
+\hypertarget{10138197749309540155}{\texttt{FlipGraphs.flip}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip(D::DeltaComplex, e::Integer) :: DeltaComplex
+\end{minted}
+
+Return the resulting \texttt{DeltaComplex} obtained by flipping the given edge in \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L860-L864}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{18117735675891637030}{\texttt{FlipGraphs.flip!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip!(D::DeltaComplex, e::Integer)
+\end{minted}
+
+Flip, if possible, the given edge in \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L871-L875}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{5822682659714476017}{\texttt{FlipGraphs.flip!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flip!(D::DeltaComplex, d::DualEdge)
+\end{minted}
+
+Flip, if possible, the given edge in \texttt{D}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L878-L882}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2770587389040278334}{\texttt{FlipGraphs.is\_flippable}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_flippable(D::DeltaComplex, e::Integer) :: Bool
+\end{minted}
+
+Return \texttt{true} if the given edge can be flipped.
+
+This is always the case if the edge does not connect a \texttt{TriFace} to itself.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L838-L844}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2293470848079560427}{\texttt{FlipGraphs.is\_flippable}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_flippable(d::DualEdge)
+\end{minted}
+
+Return \texttt{true} if the given edge can be flipped.
+
+This is always the case if the edge does not connect a \texttt{TriFace} to itself.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L849-L855}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{5742364185354903394}{\texttt{FlipGraphs.random\_flips!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+random_flips!(D::DeltaComplex, n::Integer)
+\end{minted}
+
+Randomly pick an edge, and flip it if possible. Repeat this \texttt{n} times.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L1023-L1027}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{6729796171434163830}{\texttt{FlipGraphs.randomize!}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+randomize!(D::DeltaComplex; kwargs...) -> Int
+\end{minted}
+
+Randomly flip edges in \texttt{D} until \texttt{D} is sufficiently generic and return the number of attempted flips.
+
+The measure by which we determine if \texttt{D} is sufficiently generic is through its diameter. This Method repeatedly flips a certain number of times. After each flip sequence, the diameter is computed. Once this was repeated a certain number of times, the variance of all these past diameter measurements gets computed.
+
+In theory, the variance should diminish over time. However, as we are flipping randomly, it will never truly converge to 0. A certain flutter in the variance is expected, this will at some point cause the variance to increase every so often. The algorithm stops once the last measured variance is bigger than the past few measurements.
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{num\_initial\_flips::Integer=1000000} : the number of flips to do before even start taking measurements.
+
+
+\item \texttt{num\_flips\_per\_step::Integer=10000} : the number of flips to do before computing the diameter each step.
+
+
+\item \texttt{variance\_interval\_size::Integer=10} : the number of diameters to store, before computing their variance. 
+
+
+\item \texttt{lookback\_size::Integer=2} : how far back to compare the current variance to, in order to decide when to stop. 
+
+\end{itemize}
+\textbf{Examples}
+
+
+\begin{minted}{jlcon}
+julia> D = deltacomplex(30,30);
+julia> randomize!(D, num_initial_flips=10000, num_flips_per_step = 1000, variance_interval_size=10, lookback_size = 5)
+160000
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/deltaComplex.jl#L1033-L1059}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\chapter{Modular Flip Graphs of Closed Orientable Surfaces}
+
+
+
+\label{691037665121027587}{}
+
+
+
+
+Contrary to flip graphs of planar triangulations like that of a convex polygon, the flip graph of a closed surface is generally infinitely large. Therefore, it is impossible to construct the whole flip graph. Not only are they infinitely large, but they also {\textquotedbl}grow{\textquotedbl} very fast. For this reason, it is more interesting and achievable to look at the \textbf{modular flip graphs}. These are graphs whose vertices are homotopy classes of triangulations on closed surfaces.
+
+
+
+It turns out that the vertices of modular flip graphs are equivalent to the \emph{Δ-coplexes} which we have already modeled in \hyperlinkref{1315454663023603173}{DeltaComplex}.
+
+
+
+\section{Structures}
+
+
+
+\label{15035490444877811912}{}
+
+
+A \textbf{\texttt{FlipGraph}} consists of vertices that represent homotopy classes of \texttt{DeltaComplex}es and edges between them.  In order to be able to efficiently compute the whole flip graph, vertices are not \texttt{DeltaComplex}es but have their own structure (\texttt{FGVertex}) which consists of a \texttt{DeltaComplex} with additional information.
+
+
+\hypertarget{14918097106326738732}{\texttt{FlipGraphs.FlipGraph}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct FlipGraph <: AbstractGraph{Int}
+\end{minted}
+
+A \emph{graph} representing the \textbf{flip graph} of a \textbf{Δ-Complex}.
+
+Vertices are isotopy classes of triangulations of the same surface.\\
+Two vertices are linked by an edge, if the respective triangulations differ only by a single flip.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L151-L158}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{120589140144457623}{\texttt{FlipGraphs.FGVertex}}  -- {Type.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+struct FGVertex
+\end{minted}
+
+A \emph{vertex} in a \texttt{FlipGraph}. 
+
+A \texttt{FGVertex} is composed of a representant (\texttt{DeltaComplex}) of the isotopy class of that vertex.  The representant has been relabeled with one of the canonical labeling obtained by an adaptation of \emph{McKay{\textquotesingle}s Algorithm}. Additionally, the \texttt{FGVertex} contains the number of labeling that are output by the respective \emph{McKay{\textquotesingle}s Algorithms}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L33-L41}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Constructors}
+
+
+
+\label{1468722345706912774}{}
+
+
+Currently, it is only possible to create the modular flip graph of a closed \emph{orientable} surface. Non-orientable surfaces would need an adapted approach to solving, as the way they are modeled right now would require a lot more options to be checked just to determine if two \texttt{DeltaComplex}es are isomorphic to each other.
+
+
+
+As even modular flip graphs become very large quite quickly, you have the possibility of only building a local portion of a flip graph. The way this works is, by giving it a \texttt{DeltaComplex}, which forms the root vertex, and setting the \texttt{depth}, which will limit the vertices to only include those that are at a distance less or equal to this \texttt{depth} from the root.
+
+
+\hypertarget{11553076379005232901}{\texttt{FlipGraphs.flipgraph\_modular}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+flipgraph_modular(g::Integer, p::Integer; kwargs..) :: FlipGraph
+\end{minted}
+
+Construct the \textbf{modular flip graph} for a genus \texttt{g} closed orientable surface with \texttt{p} points on it.  
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{labeled\_points :: Bool = true} : If set to \texttt{false}, the isomorphism also includes a renaming of the points. 
+
+\end{itemize}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L284-L291}{\texttt{source}}
+
+
+
+\begin{minted}{julia}
+flipgraph_modular(D::DeltaComplex; kwargs..)
+\end{minted}
+
+Construct the \textbf{modular flip graph} for the closed orientable surface defined by the \emph{Δ-complex} \texttt{D}.  
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{labeled\_points :: Bool = true} : If is set to \texttt{false}, then the isomorphism also includes a renaming of the points. 
+
+
+\item \texttt{depth :: Integer = ∞} : Determines the depth to which the flip graph should be constructed. i.e. up to which distance from \texttt{D}. 
+
+\end{itemize}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L296-L304}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Graph methods}
+
+
+
+\label{18181481596881829449}{}
+
+
+As with \hyperlinkref{10784171746981031091}{\texttt{FlipGraphPlanar}}, there are a bunch of methods which overload some of the main functions from the \href{https://juliagraphs.org/Graphs.jl/stable/}{Graphs.jl} package.
+
+
+\hypertarget{13593568570027390357}{\texttt{Graphs.nv}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+nv(G::FlipGraph) :: Int
+\end{minted}
+
+Return the number of vertices in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L228-L232}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2573469596919273383}{\texttt{Graphs.ne}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+ne(G::FlipGraph) :: Int
+\end{minted}
+
+Return the number of edges in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L221-L225}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{13164447363141201356}{\texttt{Graphs.vertices}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices(G::FlipGraph) :: Vector{FGVertex}
+\end{minted}
+
+Return the list of all the vertices that have been constructed in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L235-L239}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2224360680418397816}{\texttt{FlipGraphs.vertices\_deltacomplex}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+vertices_deltacomplex(G::FlipGraph) :: Vector{DeltaComplex}
+\end{minted}
+
+Construct a list of all the \texttt{DeltaComplex}s which form the vertices in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L249-L253}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{13528482185720073226}{\texttt{Graphs.edges}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+edges(G::FlipGraph) :: Vector{Edge}
+\end{minted}
+
+Construct a list containing all the edges in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L173-L177}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{10831218003372438250}{\texttt{Graphs.has\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_vertex(G::FlipGraph, v::Integer) :: Bool
+\end{minted}
+
+Return true if \texttt{v} is a valid index of a vertex in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L205-L209}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{12246764547045339836}{\texttt{FlipGraphs.get\_vertex}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+get_vertex(G::FlipGraph, id::Integer) :: Vector{FGVertex}
+\end{minted}
+
+Return the \texttt{id}-th vertex of the \texttt{FlipGraph} \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L242-L246}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{4723161772743408612}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(G::FlipGraph, e::Edge) :: Bool
+\end{minted}
+
+Return \texttt{true} if \texttt{e} is an edge in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L184-L188}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{8874867711328913772}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(G::FlipGraph, s::Integer, d::Integer) :: Bool
+\end{minted}
+
+Return \texttt{true} if there is an edge between the \texttt{s}-th and \texttt{d}-th vertex in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L191-L195}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{14525428844387179697}{\texttt{Graphs.has\_edge}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+has_edge(G::FlipGraph, v1::FGVertex, v2::FGVertex) :: Bool
+\end{minted}
+
+Return \texttt{true} if there is an edge between \texttt{v1} and \texttt{v2} in \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L198-L202}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{10601523073478244094}{\texttt{Graphs.neighbors}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+neighbors(G::FlipGraph, v::Integer) :: Vector{Int32}
+\end{minted}
+
+Return a list of the indices of all the neighboring vertices of the \texttt{v}-th vertex.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L212-L216}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{18322570677264282309}{\texttt{FlipGraphs.diameter}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter(G::FlipGraph)
+\end{minted}
+
+Compute the diameter of the \texttt{FlipGraph} \texttt{G}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L602-L606}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Comparing Triangulations}
+
+
+
+\label{9598979154961159507}{}
+
+
+One problem in deciding if two triangulations are equivalent, is that the naming of the vertices, edges and points is completely arbitrary. In the act of flipping, \texttt{DualEdge}s and \texttt{TriFace}s {\textquotedbl}move around{\textquotedbl}. It is therefore possible to obtain two \texttt{DeltaComplex}es representing the same triangulation of a surface but with different labeled \texttt{TriFace}s and \texttt{DualEdge}s. 
+
+
+
+The following method will determine if two \texttt{DeltaComplex}es are isomorphic to each other and therefore represent the same vertex in the modular flip graph:
+
+
+\hypertarget{11364192622904495301}{\texttt{FlipGraphs.is\_isomorphic}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+is_isomorphic(D1::DeltaComplex, D2::DeltaComplex; kwargs..) :: Bool
+\end{minted}
+
+Return \texttt{true} if \texttt{D1} is isomorph to \texttt{D2} up to a renaming of the vertices, edges and if \texttt{labeled\_points=false} also points.
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{labeled\_points :: Bool = true} : If labeled\_points is set to \texttt{false}, then the isomorphism also includes a renaming of the points. 
+
+\end{itemize}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L492-L499}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\section{Canonical labeling of \texttt{DeltaComplex}es}
+
+
+
+\label{7823929146850870815}{}
+
+
+Checking every possible permutation of \texttt{TriFace} and \texttt{DualEdge} labeling was not an option, as the number of possibilities would blow up immediately. 
+
+
+
+What one can do instead is try to find a canonical labeling. This module uses a version of \emph{McKay{\textquotesingle}s canonical graph labeling algorithm}\footnotemark[1] to try and determine a unique labeling based on the relationship of vertices and edges to other vertices and edges. In general, it is not always possible to determine a unique labeling. However, with this method, we can reduce the number of labelings to a manageable number.
+
+
+
+The \texttt{mcKay} methods each return a permutation vector \texttt{p} which can be interpreted as a Cauchy{\textquotesingle}s one-line notation for permutations.  For example, \texttt{p = [3,5,1,2,6,4]} would correspond to the following permutation:
+
+
+
+\begin{equation*}
+\begin{split}σ = \begin{pmatrix}
+1 & 2 & 3 & 4 & 5 & 6\\
+3 & 5 & 1 & 2 & 6 & 4
+\end{pmatrix} = (1\ 3)(2\ 5\ 6\ 4)\end{split}\end{equation*}
+
+
+This algorithm has been adapted to find canonical labelings for points, vertices and edges. These are not independent from each other. In fact, only the point labelings depend on themselves. mcKay\emph{vertices will give different results basedon the point labelings, and mcKay}edges will give different results based on both point and vertex labelings. Therefore, they are to be used in sequence.
+
+
+\hypertarget{17229019016549800560}{\texttt{FlipGraphs.mcKay\_points}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+mcKay_points(D::DeltaComplex; kwargs..) :: Vector{Vector{Int32}}
+\end{minted}
+
+Apply a version of McKay{\textquotesingle}s canonical graph labeling algorithm to determine all possible permutations  of the points which give a canonical isomorphism class representant.
+
+Return a vector of permutation vectors \texttt{p} such that point 1 becomes point \texttt{p[1]}, point 2 becomes point \texttt{p[2]},...
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{only\_one :: Bool = false}, If set to true, the algorithm will stop after finding a single valid permutation.
+
+\end{itemize}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L734-L744}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15594744299233707772}{\texttt{FlipGraphs.mcKay\_vertices}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+mcKay_vertices(D::DeltaComplex; , A_deltacomplex::Matrix{<:Integer}, point_perm::Vector{<:Integer}) :: Vector{Vector{Int32}}
+\end{minted}
+
+Apply a version of McKay{\textquotesingle}s canonical graph labeling algorithm in order to determine all possible permutations  of the \texttt{TriFace}s which give a canonical isomorphism class representant.
+
+Return a vector of permutation vectors \texttt{p} such that \texttt{TriFace} 1 becomes \texttt{TriFace} \texttt{p[1]}, \texttt{TriFace} 2 becomes \texttt{TriFace} \texttt{p[2]}, ...\\
+If \texttt{only\_one=true}, the algorithm stops after finding one valid permutation.
+
+The vectors \texttt{point\_perm} determins how the points of \texttt{D} are implied to have been renamed, without actually having been changed.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L773-L783}{\texttt{source}}
+
+
+
+\begin{minted}{julia}
+mcKay_vertices(D::DeltaComplex; kwargs..) :: Vector{Vector{Int32}}
+\end{minted}
+
+Apply a version of McKay{\textquotesingle}s canonical graph labeling algorithm in order to determine all possible permutations  of the \texttt{TriFace}s which give a canonical isomorphism class representant.
+
+Return a vector of permutation vectors \texttt{p} such that \texttt{TriFace} 1 becomes \texttt{TriFace} \texttt{p[1]}, \texttt{TriFace} 2 becomes \texttt{TriFace} \texttt{p[2]}, ...\\
+If \texttt{only\_one=true}, the algorithm stops after finding one valid permutation.
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{only\_one :: Bool = false}, If set to true, the algorithm will stop after finding a single valid permutation.
+
+
+\item A\_deltacomplex :: Matrix\{<:Integer\} = Matrix\{Int32\}(adjacency\emph{matrix}deltacomplex(D)). If provided, the algorithm will use the adjacency matrix of the \texttt{DeltaComplex} \texttt{D}. If not, the algorithm would have to compute it itself.
+
+\end{itemize}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L805-L817}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16516759205726853869}{\texttt{FlipGraphs.mcKay\_edges}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+mcKay_edges(D::DeltaComplex; kwargs..) :: Vector{Vector{Int32}}
+\end{minted}
+
+Apply McKay{\textquotesingle}s canonical graph labeling algorithm in order to determine all possible permutations  of the \texttt{DualEdge}s which give a canonical isomorphism class representant.
+
+Return a vector of permutation vectors \texttt{p} such that \texttt{DualEdge} 1 becomes \texttt{DualEdge} \texttt{p[1]}, \texttt{DualEdge} 2 becomes \texttt{DualEdge} \texttt{p[2]}, ...\\
+
+
+\textbf{Arguments}
+
+\begin{itemize}
+\item \texttt{only\_one :: Bool = false}, If set to true, the algorithm will stop after finding a single valid permutation.
+
+\end{itemize}
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraph.jl#L853-L863}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\footnotetext[1]{Hartke, S.G., \& Radcliffe, A.J. (2008). McKay ’ s Canonical Graph Labeling Algorithm.
+
+}
+
+
+\part{General Utilities}
+
+
+\chapter{General utilities}
+
+
+
+\label{15108808020745066681}{}
+
+
+These are some methods that you might want to use, but they aren{\textquotesingle}t specific to one of the main structures in this package.
+
+
+\hypertarget{14583114515296484060}{\texttt{FlipGraphs.diameter}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+diameter(adjacency_matrix :: Matrix{<:Integer}) :: Int
+\end{minted}
+
+Compute the diameter of a graph from its simple adjacency matrix.
+
+All values in \texttt{adjacency\_matrix} should be either 0 or 1.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L1-L7}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{15595577474420342013}{\texttt{FlipGraphs.distances}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+distances(adjacency_matrix :: Matrix{T}) :: Matrix{T} where T<:Integer
+\end{minted}
+
+Compute the shortest distance from any vertex to any other vertex in the graph for the given \texttt{adjacency\_matrix}.
+
+Return a \texttt{Matrix} whose entry at \texttt{(i,j)} is the length of a shortest path from \texttt{i} to \texttt{j}.
+
+The Graph has to be connected. This method uses \emph{Seidels APSP-Algorithm}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L89-L97}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16883507873940775758}{\texttt{FlipGraphs.adjacency\_matrix}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+adjacency_matrix(adjList::Vector{Vector{<:Integer}}) :: Matrix{Int}
+\end{minted}
+
+Construct the adjacency matrix from an adjacency list.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L153-L157}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{2902498613952484789}{\texttt{FlipGraphs.matrix\_equal}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+matrix_equal(A::Matrix{Int}, B::Matrix{Int}, p::Vector{Int}) :: Bool
+\end{minted}
+
+returns \texttt{true} if \texttt{A == B[p,p]}`
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L201-L205}{\texttt{source}}
+
+
+
+\begin{minted}{julia}
+matrix_equal(A::Matrix{Int}, B::Matrix{Int}) :: Bool
+\end{minted}
+
+Return \texttt{true} if \texttt{A} equals \texttt{B}. 
+
+This function is much faster than calling \texttt{A==B}. However, \texttt{A} and \texttt{B} are assumed to have the same dimensions.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L217-L223}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{8511433467110044213}{\texttt{FlipGraphs.invert\_permutation}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+invert_permutation(p::Vector{<:Integer})
+\end{minted}
+
+Return the inverse of the permutation \texttt{p}. 
+
+\textbf{Example}
+
+
+\begin{minted}{jlcon}
+julia> p = [2,1,4,5,3];
+julia> p_inv = invert_perm(p); 
+julia> show(p_inv)
+[4, 2, 5, 1, 6, 3]
+julia> show(p_inv[p])
+[1, 2, 3, 4, 5, 6]
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L169-L183}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{7908214606729723836}{\texttt{FlipGraphs.degrees}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+degrees(A::Matrix{<:Integer}) :: Vector{<:Integer}
+\end{minted}
+
+Return a vector containing the degrees of every vertex given an adjacency matrix \texttt{A}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L191-L195}{\texttt{source}}
+
+
+
+\begin{minted}{julia}
+degrees(g::TriangulatedPolygon) :: Vector{Int32}
+\end{minted}
+
+Compute a list of the degrees of every single vertex in \texttt{g}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/polygonTriangulations.jl#L222-L226}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{16388680941512068090}{\texttt{FlipGraphs.relative\_degree}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+relative_degree(A::Matrix{<:Integer}, u::Integer, V::Vector{<:Integer}) :: Int32
+\end{minted}
+
+Compute the number of edges going from \texttt{u} into any vertex in the subset of points \texttt{V}.
+
+\textbf{Arguments}
+
+-\texttt{A::Matrix\{<:Integer\}}: the adjacency matrix. \texttt{A[i,j] = 1} if there is an edge going from \texttt{i} to \texttt{j}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L250-L257}{\texttt{source}}
+
+
+
+\begin{minted}{julia}
+relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{<:Integer}) :: Vector{<:Integer}
+\end{minted}
+
+Count the number of edges in \texttt{g} going from \texttt{u} to a vertex in \texttt{V}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/flipGraphPlanar.jl#L395-L399}{\texttt{source}}
+
+
+\end{adjustwidth}
+\hypertarget{17468080694136774284}{\texttt{FlipGraphs.relative\_degrees}}  -- {Method.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+relative_degrees(A::Matrix{<:Integer}, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int32}
+\end{minted}
+
+Compute the relative degrees of points in \texttt{U} onto the subset of points \texttt{V}.
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/generalUtilities.jl#L235-L239}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\chapter{Exporting}
+
+
+
+\label{885284519730572356}{}
+
+
+
+\hypertarget{3881430055272391096}{\texttt{FlipGraphs.export\_gml}}  -- {Function.}
+
+\begin{adjustwidth}{2em}{0pt}
+
+
+\begin{minted}{julia}
+export_gml(fpn::String, G::AbstractGraph{::Integer}, kwargs...)
+\end{minted}
+
+Save the graph \texttt{G} as a .gml file.
+
+\texttt{G} can be either a \texttt{FlipGraph} or \texttt{FlipGraphPlanar}.
+
+\textbf{Examples}
+
+
+\begin{minted}{jlcon}
+julia> G = flipgraph_planar(10);
+julia> export_gml("C:/Users/USERNAME/Desktop/filename.gml", G);
+\end{minted}
+
+By adding the additional symbol \texttt{:diameter}, the nodes get a value \emph{diameter} which corresponds to the diameter of the \texttt{DeltaComplex} or \texttt{TriangulatedPolygon} it models. Be aware however, that this diameter is computed on the run and will therefore significantly slow down this export method.
+
+
+\begin{minted}{jlcon}
+julia> G = flipgraph_modular(1,3,labeled_points = true);
+julia> export_gml("C:/Users/USERNAME/Desktop/filename.gml", G, :diameter);
+\end{minted}
+
+
+
+\href{https://github.com/schto223/FlipGraphs.jl/blob/490c01a7adf74b42f27dda05099165c47ae8133e/src/exporting.jl#L1-L22}{\texttt{source}}
+
+
+\end{adjustwidth}
+
+\end{document}
