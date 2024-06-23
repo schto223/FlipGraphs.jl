@@ -20,7 +20,7 @@ makedocs(
     modules= [FlipGraphs],
     #format = Documenter.LaTeX(platform = "none"), #format = Documenter.LaTeX(),
     #format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
-    doctest = true, #remove later
+    doctest = true,
     pages = [
         "Home" => ["index.md", "install.md", "quickStart.md"],
         "Convex Polygons" => ["polygonTriangulation.md", "flipGraphPlanar.md"],

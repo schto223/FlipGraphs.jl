@@ -45,5 +45,13 @@ function drawPNG(G::FlipGraph, fileName::String ="flipGraph" , drawLabels::Bool=
     end
 end
 
-G = flipgraph_modular(1,2)
+#G = flipgraph_modular(1,2)
 #drawPNG(G, "G_0-3")
+
+#for i in 3:15
+#    export_gml("gml_exports/G-$i", flipgraph_planar(i), :diameter);
+#end
+
+for (g,p) in [(0,3),(0,4),(0,5), (0,6), (0,7), (0,8), (1,2), (1,4), (1,5), (2,2), (2,3), (1,6)]
+    export_gml("gml_exports/closed_surfaces/G~$g-$p", flipgraph_modular(g,p,labeled_points=false), :diameter);
+end

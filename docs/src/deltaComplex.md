@@ -115,6 +115,7 @@ Here are some useful methods, to pull out general information about the Δ-Compl
     diameter_deltaComplex(::DeltaComplex)
     diameter(::DeltaComplex)
     adjacency_matrix_deltacomplex(::DeltaComplex)
+    multi_adjacency_matrix_deltacomplex(::DeltaComplex)
     adjacency_matrix_triangulation(::DeltaComplex)
     multi_adjacency_matrix_triangulation(::DeltaComplex)
 ```

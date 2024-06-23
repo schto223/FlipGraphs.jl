@@ -125,7 +125,7 @@ vertices(g::TriangulatedPolygon) :: Vector{eltype(g)} = collect(eltype(g), 1:g.n
 is_directed(g::TriangulatedPolygon) = false
 is_directed(::Type{TriangulatedPolygon}) = false
 
-function add_edge!(g::TriangulatedPolygon, v, w)
+function add_edge!(g::TriangulatedPolygon, v::Integer, w::Integer)
     if !has_edge(g, v, w)
         push!(g.adjList[v],w)
         push!(g.adjList[w],v)
@@ -228,6 +228,14 @@ function degrees(g::TriangulatedPolygon{T}) :: Vector{T} where T<:Integer
     return [T(length(g.adjList[i])) for i in 1:g.n]
 end
 
+"""
+    diameter(g::TriangulatedPolygon)
+
+Compute the diameter of the `TriangulatedPolygon` `g`.
+"""
+function diameter(g::TriangulatedPolygon)
+    return diameter(adjacency_matrix(g.adjList))
+end
 
 """
     adjacency_matrix(g::TriangulatedPolygon) :: Matrix{Int32}

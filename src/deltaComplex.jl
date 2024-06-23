@@ -407,7 +407,9 @@ end
 """
     adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{::Int32}
 
-Compute the *adjacency matrix* of the delta complex `D`.
+Compute the simple *adjacency matrix* of the delta complex `D`.
+
+Values are either 0(not adjacent) or 1(adjacent).
 """
 function adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
     A = zeros(Int32, nv(D), nv(D))
@@ -415,7 +417,25 @@ function adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
     return A
 end
 
-export multi_adjacency_matrix_deltacomplex
+#export bitadjacency_matrix_deltacomplex
+#"""
+#    bitadjacency_matrix_deltacomplex(D::DeltaComplex) :: BitMatrix
+#
+#Compute the *adjacency matrix* of the delta complex `D` as a boolean matrix.
+#"""
+#function bitadjacency_matrix_deltacomplex(D::DeltaComplex) :: BitMatrix
+#    A = falses(nv(D), nv(D))
+#    foreach(e -> (A[e.triangles[1], e.triangles[2]] = true; A[e.triangles[2], e.triangles[1]] = true), edges(D))
+#    return A
+#end
+
+"""
+    multi_adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
+
+Compute the multi *adjacency matrix* of the delta complex `D`.
+
+The `i,j`-th value counts the number of sides through which the `i`-th and `j`-th `TriFace` are adjacent.
+"""
 function multi_adjacency_matrix_deltacomplex(D::DeltaComplex) :: Matrix{Int32}
     A = zeros(Int32, nv(D), nv(D))
     foreach(e -> (A[e.triangles[1], e.triangles[2]] += 1; A[e.triangles[2], e.triangles[1]] += 1), edges(D))
@@ -484,6 +504,7 @@ See also [`diameter_triangulation`](@ref)
 """
 function diameter(D::DeltaComplex)
     return diameter_deltaComplex(D)
+    #return diameter_bool_big(bitadjacency_matrix_deltacomplex(D))
 end
 
 

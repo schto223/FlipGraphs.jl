@@ -28,8 +28,9 @@ docs/site/
 Manifest.toml
 
 
-#Images
+#Images and gml files
 img/*.png
+gml_exports/*
 
 #VSC
 .vscode/*
