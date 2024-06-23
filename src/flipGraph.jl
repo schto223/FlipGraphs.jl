@@ -242,7 +242,7 @@ vertices(G::FlipGraph) :: Vector{FGVertex} = G.V
 """
     get_vertex(G::FlipGraph, id::Integer) :: Vector{FGVertex}
 
-Return the `id`-th vertex the flip graph `G`.
+Return the `id`-th vertex of the `FlipGraph` `G`.
 """
 get_vertex(G::FlipGraph, id::Integer) :: FGVertex = G.V[id]
 
@@ -300,7 +300,7 @@ Construct the **modular flip graph** for the closed orientable surface defined b
 
 # Arguments
 - `labeled_points :: Bool = true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
-- `depth :: Integer = ∞` : Determines the depth to which the flip grap should be constructed. i.e. up to which distance from `D`. 
+- `depth :: Integer = ∞` : Determines the depth to which the flip graph should be constructed. i.e. up to which distance from `D`. 
 """
 function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), labeled_points::Bool = true)
     if np(D) == 1

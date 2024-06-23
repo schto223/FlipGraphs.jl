@@ -13,7 +13,7 @@ A **Δ-complex** is a representation of a triangulation on a closed surface.
 To define a triangulation on a closed surface, it does not suffice to consider vertices and edges. We will also need to consider the triangular faces between them. Therefore, the triangulations are modeled using an extension of their dual graph.
 
 Vertices are triangular faces, which in turn consist of three points and three edges. These points and edges are not necessarily distinct.
-Edges in the dual (i.e. the Δ-complex) connect two triangular faces if they, in turn, share an edge. In order to avoid confusion between the edges of the triangulation and the edges of the dual, I will henceforth refer to the latter as the *dual edge*.
+Edges in the dual (i.e. the Δ-complex) connect two triangular faces if they, in turn, share an edge. To avoid confusion between the edges of the triangulation and the edges of the dual, I will henceforth refer to the latter as the *dual edge*.
 
 ### Structures
 
@@ -126,7 +126,7 @@ Here are some useful methods, to pull out general information about the Δ-Compl
 
 ### Relabeling
 
-If you wan't to relabel/reorder the points vertices or edges, you may do so, by providing a permutation vector `` p=[p_1, p_2, \ldots , p_n] `` which will relabel ``i`` as ``p_i``. 
+If you want to relabel/reorder the points, vertices or edges, you may do so, by providing a permutation vector `` p=[p_1, p_2, \ldots , p_n] `` which will relabel ``i`` as ``p_i``. 
 
 ```@docs
     rename_edges!(::DeltaComplex, ::Vector{<:Integer})
@@ -149,7 +149,7 @@ Regarding on how different sides of triangles are associated to each other, the 
 
 A **flip** is defined as the action of replacing an edge in the triangulation by the other diagonal of the quadrilateral formed by the two triangles adjacent to the edge.
 
-It has been shown, that the flip graph of any closed surface is connected. Hence it is possible, to obtain any triangulation by a finite number of flips.
+It has been shown, that the flip graph of any closed surface is connected. Hence, it is possible, to obtain any triangulation by a finite number of flips.
 
 ```@docs
     flip(::DeltaComplex, ::Integer)

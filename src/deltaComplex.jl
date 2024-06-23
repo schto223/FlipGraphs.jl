@@ -4,9 +4,9 @@ import Base.reverse, Base.reverse!
 """
     struct DualEdge
 
-Representation of an edge in a DeltaComplex (i.e. the dual graph of a triangulation).
+Representation of an edge in a `DeltaComplex` (i.e. the dual graph of a triangulation).
 
-A DualEdge connects two TriFaces through specific sides.
+A `DualEdge` connects two `TriFaces` through specific sides.
 """
 mutable struct DualEdge
     id :: Int
@@ -24,7 +24,7 @@ end
 """
     struct TriFace
 
-A `TriFace` represents a triangle in the triangulization of a surface. 
+A `TriFace` represents a triangle in the triangulation of a surface. 
 
 The `TriFace`s form the vertices of a DeltaComplex.
 Each `TriFace` is formed between 3 points and is connected to 3 `TriFace`s through `DualEdges`.
@@ -167,7 +167,7 @@ end
 """
     other_endpoint(d::DualEdge, t::Integer, side::Integer) :: Tuple{Int, Int8}
 
-Return the index of the other TriFace and its respective side, that is incident to `d` 
+Return the index of the other `TriFace` and its respective side, that is incident to `d` 
 """
 function other_endpoint(d::DualEdge, t::Integer, side::Integer) :: Tuple{Int, Int8}
     if d.triangles[1] == t && d.sides[1] == side
@@ -496,7 +496,7 @@ end
 """
     diameter(D::DeltaComplex)
 
-Compute the diameter of the DeltaComplex `D`.\\
+Compute the diameter of the `DeltaComplex` `D`.\\
 
 The **diameter** of a graph is the greatest minimal distance between any 2 vertices.
 
@@ -804,8 +804,8 @@ end
 
 Twist or untwist all 3 `DualEdges` of a `TriFace`, and reverse the side order.
 
-This action gives an equivalent representation ot the same triangulation.
-It is usefull in the case that you would like to untwist a certain edge.
+This action gives an equivalent representation of the same triangulation.
+It is useful in the case that you would like to untwist a certain edge.
 
 # Examples
 ```julia-repl
@@ -849,7 +849,7 @@ end
 """
     is_flippable(d::DualEdge)
 
-Return `true` if the given edge is can be flipped.
+Return `true` if the given edge can be flipped.
 
 This is always the case if the edge does not connect a `TriFace` to itself.
 """
@@ -995,7 +995,7 @@ end
 """
     is_orientable(D::DeltaComplex) :: Bool
 
-Ckeck if the surface defined by `D` is orientable or not.
+Check if the surface defined by `D` is orientable or not.
 """
 function is_orientable(D::DeltaComplex)
     color = zeros(Int8, nv(D))
@@ -1035,7 +1035,7 @@ end
 
 Randomly flip edges in `D` until `D` is sufficiently generic and return the number of attempted flips.
 
-The measure by which we determin if `D` is sufficiently generic is through its diameter.
+The measure by which we determine if `D` is sufficiently generic is through its diameter.
 This Method repeatedly flips a certain number of times.
 After each flip sequence, the diameter is computed.
 Once this was repeated a certain number of times, the variance of all these past diameter measurements gets computed.

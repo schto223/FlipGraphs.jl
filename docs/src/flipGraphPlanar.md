@@ -43,9 +43,9 @@ The following methods overload some of the main functions from the [Graphs.jl](h
 
 ## Comparing Triangulations
 
-In order to compute the *flip graph*, one needs to be able to determine if two triangulations are identical (if the points are labeled) or isomorphic to each other (if the points are unlabeled). \
+To compute the *flip graph*, one needs to be able to determine if two triangulations are identical (if the points are labeled) or isomorphic to each other (if the points are unlabeled). \
 The first case is fairly simple, as two triangulations are identical if their adjacency lists are. The only difficulty here is that the order in the list of neighbors is not fixed.\
-The second case is more challenging, as there are $n!$ different ways to label $n$ points. The way it is done in this package is to use a variation of *McKay's canonical graph labeling algorithm*[^1] in order to rattle the number of possible labelings down to a relatively small number.
+The second case is more challenging, as there are $n!$ different ways to label $n$ points. The way it is done in this package is to use a variation of *McKay's canonical graph labeling algorithm*[^1] to rattle the number of possible labelings down to a relatively small number.
 
 ```@docs    
     is_isomorphic(::TriangulatedPolygon, ::TriangulatedPolygon)

@@ -59,7 +59,7 @@ has_vertex(G::FlipGraphPlanar, i::Integer) ::Bool = (1 <= i <= nv(G))
 
 Return `true` if `g` is a vertex in `G`. 
 
-If `G` is a modular flip graph, this will only return `true` if `g` is the propper representant of the vertex.
+If `G` is a modular flip graph, this will only return `true` if `g` is the proper representant of the vertex.
 """
 has_vertex(G::FlipGraphPlanar, g::TriangulatedPolygon) :: Bool = (g in G.V)
 
@@ -121,7 +121,7 @@ end
 Construct the **`FlipGraph`** for the `TriangulatedPolygon` `g`.
 
 # Arguments
-- 'modular::Bool = false' : by default the whole flip graph is constructed. If modular is set to true, then only the modular flip graph is constructed.
+- 'modular::Bool = false' : by default, the whole flip graph is constructed. If `modular` is set to `true`, then only the modular flip graph is constructed.
 In a *modular flip graph*, vertices of the flip graph are classes of isomorphisms up to renaming the vertices. 
 Each class is then represented by one of its elements.
 """
@@ -302,7 +302,7 @@ end
 
 Construct the `FlipGraphPlanar` of a convex `n`-gon. 
 
-If `modular=true`, the FlipGraph is reduced to its modular form.
+If `modular=true`, the flip graph is reduced to its modular form.
 
 # Examples
 ```julia-repl
@@ -380,7 +380,7 @@ diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 """
     relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
 
-Count for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
+Count, for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
 """
 function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int32}
     rdegs = zeros(Int32, length(U))

@@ -12,7 +12,7 @@ julia> export_gml("C:/Users/USERNAME/Desktop/filename.gml", G);
 ```
 
 By adding the additional symbol `:diameter`, the nodes get a value *diameter* which corresponds to the diameter of the `DeltaComplex` or `TriangulatedPolygon` it models.
-Be aware however, that this diameter is computed on the run and will therefore significantly slow donw this export method.
+Be aware however, that this diameter is computed on the run and will therefore significantly slow down this export method.
 
 ```julia-repl
 julia> G = flipgraph_modular(1,3,labeled_points = true);
