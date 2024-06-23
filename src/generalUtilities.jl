@@ -11,43 +11,144 @@ function diameter(adjacency_matrix :: Matrix{T}) :: T where T<:Integer
         if all(G[i,j]==1 || i==j for i in 1:n, j in 1:n)
             return G
         end
-        
         H = T.(G + G*G .> 0) #- Matrix(I,n,n)
         foreach(i -> H[i,i] = 0, 1:n)
         Dist = Seidel(H)
-        degrees = [reduce(+, G[i,:]) for i in 1:n]
+        degrees = collect(T, reduce(+, G[i,:]) for i in 1:n)
         d = 2*Dist - (Dist*G .< Dist.*transpose(degrees))
         return d
     end
-
-    d = Seidel(adjacency_matrix)
-    return maximum(d)
+    return maximum(Seidel(adjacency_matrix))
 end
 
+#function matrix_mul_bool(A::AbstractMatrix{Bool}, B::AbstractMatrix{Bool})
+#    m, n = size(A)
+#    AB = falses(m, n)
+#    @inbounds for i in 1:m, j in 1:n
+#        @inbounds for k in 1:n
+#            if A[i,k] && B[k,j]
+#                AB[i,j] = true
+#                break
+#            end
+#        end
+#    end
+#    return AB
+#end
+#
+#export diameter_bool_small, diameter_bool_big
+#function diameter_bool_big(A :: AbstractMatrix{Bool})
+#    diag = BitVector(A[i,i] for i in axes(A,1))
+#    for i in axes(A,1)
+#        A[i,i] = true
+#    end
+#
+#    An = Vector{BitMatrix}(undef, 20)
+#    An[1] = A
+#    i = 1
+#    while !all(An[i])
+#        An[i+1] = matrix_mul_bool(An[i],An[i])        
+#        i+=1
+#    end
+#    i -= 1
+#    diam = 2^(i-1)
+#    B = An[i]
+#    while i > 0
+#        C = matrix_mul_bool(B, An[i])
+#        if !all(C)
+#            B = C
+#            diam += 2^(i-1)
+#            i -= 1
+#        else
+#            i-=1
+#        end
+#    end
+#    
+#    for i in axes(A,1)
+#        A[i,i] = diag[i]
+#    end
+#    return diam + 1
+#end
+#
+#function diameter_bool_small(A :: AbstractMatrix{Bool})
+#    diag = BitVector(A[i,i] for i in axes(A,1))
+#    for i in axes(A,1)
+#        A[i,i] = true
+#    end
+#    B=A
+#    diam = 1
+#    while !all(B)
+#        B = matrix_mul_bool(A,B)
+#        diam += 1        
+#    end
+#    for i in axes(A,1)
+#        A[i,i] = diag[i]
+#    end
+#    return diam
+#end
+
 """
-    distances(adjacency_matrix :: Matrix{<:Integer}) :: Matrix{<:Integer}
+    distances(adjacency_matrix :: Matrix{T}) :: Matrix{T} where T<:Integer
 
 Compute the shortest distance from any vertex to any other vertex in the graph for the given `adjacency_matrix`.
 
 Return a `Matrix` whose entry at `(i,j)` is the length of a shortest path from `i` to `j`.
+
+The Graph has to be connected. This method uses *Seidels APSP-Algorithm*.
 """
 function distances(adjacency_matrix :: Matrix{T}) :: Matrix{T} where T<:Integer
     n = size(adjacency_matrix, 1)
-    function Seidel(G::Matrix{T})
+    function Seidel(G::Matrix{T}) :: Matrix{T}
         if all(G[i,j]==1 || i==j for i in 1:n, j in 1:n)
             return G
         end
-        
-        H = T.(G + G*G .> 0) #- Matrix(I,n,n)
+        H :: Matrix{T} = T.(G + G*G .> 0) #- Matrix(I,n,n)
         foreach(i -> H[i,i] = 0, 1:n)
         Dist = Seidel(H)
         degrees = [reduce(+, G[i,:]) for i in 1:n]
-        d = 2*Dist - (Dist*G .< Dist.*transpose(degrees))
+        d :: Matrix{T} = 2*Dist - (Dist*G .< Dist.*transpose(degrees))
         return d
     end
-
     return Seidel(adjacency_matrix)
 end
+
+
+#"""
+#    distances(adjacency_matrix :: BitMatrix) :: Matrix{Int32}
+#
+#Compute the shortest distance from any vertex to any other vertex in the graph for the given `adjacency_matrix`.
+#
+#Return a `Matrix` whose entry at `(i,j)` is the length of a shortest path from `i` to `j`.
+#
+#The Graph has to be connected. This method uses Seidels APSP-Algorithm.
+#"""
+#function distances(adjacency_matrix :: BitMatrix) :: Matrix{Int32}
+#    n = size(adjacency_matrix, 1)
+#    A = adjacency_matrix
+#    Dist = Matrix{Int32}(adjacency_matrix)
+#    diag = BitVector([A[i,i] for i in 1:n])
+#    for i in 1:n
+#        A[i,i] = true
+#    end
+#    B = A
+#    diam = 1
+#    while !all(B)
+#        B = matrix_mul_bool(A,B)
+#        diam += 1   
+#        for i in 1:n, j in 1:n
+#            if Dist[i,j] == 0 && B[i,j] 
+#                Dist[i,j] = diam
+#            end
+#        end
+#    end
+#    for i in 1:n
+#        Dist[i,i] = 0
+#    end
+#    for i in 1:n
+#        A[i,i] = diag[i]
+#    end
+#    return Dist
+#end
+
 
 """
     adjacency_matrix(adjList::Vector{Vector{<:Integer}}) :: Matrix{Int}

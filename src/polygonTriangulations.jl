@@ -125,7 +125,7 @@ vertices(g::TriangulatedPolygon) :: Vector{eltype(g)} = collect(eltype(g), 1:g.n
 is_directed(g::TriangulatedPolygon) = false
 is_directed(::Type{TriangulatedPolygon}) = false
 
-function add_edge!(g::TriangulatedPolygon, v, w)
+function add_edge!(g::TriangulatedPolygon, v::Integer, w::Integer)
     if !has_edge(g, v, w)
         push!(g.adjList[v],w)
         push!(g.adjList[w],v)
@@ -141,7 +141,7 @@ end
 """
     flip(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
 
-Return the `TriangulatedPolygon` obtained from `g` by flipping the the edge incident to `src` and `dst`.
+Return the `TriangulatedPolygon` obtained from `g` by flipping the edge incident to `src` and `dst`.
 """
 flip(g::TriangulatedPolygon, src::Integer, dst::Integer) ::TriangulatedPolygon = flip!(deepcopy(g), src, dst)
 
@@ -162,7 +162,7 @@ flip!(g::TriangulatedPolygon, e::Edge) :: TriangulatedPolygon = flip!(g, src(e),
 """
     flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
 
-Flip the the edge incident to `src` and `dst` in the triangulated convex polygon `g`.
+Flip the edge incident to `src` and `dst` in the triangulated convex polygon `g`.
 """
 function flip!(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
     u = 0; v = 0
@@ -228,6 +228,14 @@ function degrees(g::TriangulatedPolygon{T}) :: Vector{T} where T<:Integer
     return [T(length(g.adjList[i])) for i in 1:g.n]
 end
 
+"""
+    diameter(g::TriangulatedPolygon)
+
+Compute the diameter of the `TriangulatedPolygon` `g`.
+"""
+function diameter(g::TriangulatedPolygon)
+    return diameter(adjacency_matrix(g.adjList))
+end
 
 """
     adjacency_matrix(g::TriangulatedPolygon) :: Matrix{Int32}

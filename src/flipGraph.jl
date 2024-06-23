@@ -12,8 +12,8 @@ struct FGVertexCandidate
 
     p_degrees :: Vector{Int}
 
-    multi_adjacency_matrix_triangulation
-    multi_adjacency_matrix_deltacomplex
+    multi_adjacency_matrix_triangulation ::Matrix{Int32}
+    special_adjacency_matrix_deltacomplex :: Matrix{Int32}
 
     function FGVertexCandidate(D::DeltaComplex, labeled_points::Bool)
         if !labeled_points
@@ -21,11 +21,11 @@ struct FGVertexCandidate
             rename_points!(D, point_perms[1])
             rename_vertices!(D, mcKay_vertices(D, only_one=true)[1])
             new(D, length(point_perms), point_degrees(D),
-            multi_adjacency_matrix_triangulation(D), multi_adjacency_matrix_deltacomplex(D))
+            multi_adjacency_matrix_triangulation(D), special_adjacency_matrix_deltacomplex(D))
         else
             rename_vertices!(D, mcKay_vertices(D, only_one=true)[1])
             new(D, 1, point_degrees(D),
-            multi_adjacency_matrix_triangulation(D), multi_adjacency_matrix_deltacomplex(D))
+            multi_adjacency_matrix_triangulation(D), special_adjacency_matrix_deltacomplex(D))
         end 
     end
 end
@@ -43,55 +43,53 @@ struct FGVertex
     D :: DeltaComplex
     id :: Int
 
-    np :: Int
-    nv :: Int
-    ne :: Int
-
-    point_perms :: Vector{Vector{Int}}
-    vertex_perms :: Vector{Vector{Vector{Int}}}
+    point_perms :: Vector{Vector{Int32}}
+    vertex_perms :: Vector{Vector{Vector{Int32}}}
 
     p_degrees :: Vector{Int} #sorted if labeled_points=false
 
     multi_adjacency_matrix_triangulation :: Matrix{Int32}
-    multi_adjacency_matrix_deltacomplex :: Matrix{Int32}
+    special_adjacency_matrix_deltacomplex :: Matrix{Int32}
 
-    function FGVertex(D::DeltaComplex, id::Integer, labeled_points::Bool)
-        A_deltacomplex = multi_adjacency_matrix_deltacomplex(D)
+    distance_from_root :: Int32
+
+    function FGVertex(D::DeltaComplex, id::Integer, labeled_points::Bool, distance_from_root::Int = 0)
+        A_deltacomplex = special_adjacency_matrix_deltacomplex(D)
         if labeled_points
-            point_perms = [collect(1:np(D))]
+            point_perms = [collect(Int32,1:np(D))]
         else
             point_perms = mcKay_points(D)
         end
-        vertex_perms = Vector{Vector{Vector{Int}}}(undef, length(point_perms)) 
+        vertex_perms = Vector{Vector{Vector{Int32}}}(undef, length(point_perms)) 
         for i_p in eachindex(point_perms)
             if labeled_points
-                vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = A_deltacomplex)
+                vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = A_deltacomplex, only_one=false)
             else
                 vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex, point_perms[i_p])
             end
         end 
-        new(D, id, np(D), nv(D), ne(D), point_perms, vertex_perms, 
+        new(D, id, point_perms, vertex_perms, 
         (labeled_points ? point_degrees(D) : sort!(point_degrees(D))), 
-        multi_adjacency_matrix_triangulation(D), A_deltacomplex)
+        multi_adjacency_matrix_triangulation(D), A_deltacomplex, distance_from_root)
     end
 
-    function FGVertex(fgvc::FGVertexCandidate, id::Integer, labeled_points::Bool)
+    function FGVertex(fgvc::FGVertexCandidate, id::Integer, labeled_points::Bool, distance_from_root::Int = 0)
         D = deepcopy(fgvc.D)
         if labeled_points
-            point_perms = [collect(1:length(fgvc.p_degrees))]
+            point_perms = [collect(Int32,1:length(fgvc.p_degrees))]
         else
             point_perms = mcKay_points(D)
         end
-        vertex_perms = Vector{Vector{Vector{Int}}}(undef, length(point_perms)) 
+        vertex_perms = Vector{Vector{Vector{Int32}}}(undef, length(point_perms)) 
         for i_p in eachindex(point_perms)
             if labeled_points
-                vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = fgvc.multi_adjacency_matrix_deltacomplex)
+                vertex_perms[i_p] = mcKay_vertices(D, A_deltacomplex = fgvc.special_adjacency_matrix_deltacomplex, only_one=false)
             else
-                vertex_perms[i_p] = mcKay_vertices(D, fgvc.multi_adjacency_matrix_deltacomplex, point_perms[i_p])
+                vertex_perms[i_p] = mcKay_vertices(D, fgvc.special_adjacency_matrix_deltacomplex, point_perms[i_p])
             end
         end 
-        new(D, id, np(D), nv(D), ne(D), point_perms, vertex_perms, 
-        fgvc.p_degrees, fgvc.multi_adjacency_matrix_triangulation, fgvc.multi_adjacency_matrix_deltacomplex)
+        new(D, id, point_perms, vertex_perms, 
+        fgvc.p_degrees, fgvc.multi_adjacency_matrix_triangulation, fgvc.special_adjacency_matrix_deltacomplex, distance_from_root)
     end
 end
 
@@ -129,6 +127,26 @@ end
 #    return rename_edges!(D, fgv.edge_perms[i_p][i_v][i_e])
 #end
 
+"""
+    special_adjacency_matrix_deltacomplex(D::DeltaComplex)
+
+inflates special values in the multi adjacency matrix in order for the mcKay algorithm to better distinguish them
+"""
+function special_adjacency_matrix_deltacomplex(D::DeltaComplex)
+    A = multi_adjacency_matrix_deltacomplex(D)
+    for i in axes(A,1)
+        for j in axes(A,2)
+            if A[i,j] > 1
+                if i==j
+                    A[i,j] *= 6
+                else
+                    A[i,j] *= 3
+                end
+            end
+        end
+    end
+    return A
+end
 
 """
     struct FlipGraph <: AbstractGraph{Int}
@@ -224,7 +242,7 @@ vertices(G::FlipGraph) :: Vector{FGVertex} = G.V
 """
     get_vertex(G::FlipGraph, id::Integer) :: Vector{FGVertex}
 
-Return the `id`-th vertex the flip graph `G`.
+Return the `id`-th vertex of the `FlipGraph` `G`.
 """
 get_vertex(G::FlipGraph, id::Integer) :: FGVertex = G.V[id]
 
@@ -252,35 +270,15 @@ function add_vertex!(G::FlipGraph, fgv::FGVertex) :: FGVertex
     return fgv
 end
 
-function add_vertex!(G::FlipGraph, D::DeltaComplex) :: FGVertex
-    fgv = FGVertex(D, nv(G)+1, G.labeled_points)
+function add_vertex!(G::FlipGraph, D::DeltaComplex, distance_from_root::Int = 0) :: FGVertex
+    fgv = FGVertex(D, nv(G)+1, G.labeled_points, distance_from_root)
     return add_vertex!(G, fgv)
 end
 
-function add_vertex!(G::FlipGraph, fgvc::FGVertexCandidate) :: FGVertex
-    fgv = FGVertex(fgvc, nv(G)+1, G.labeled_points)
+function add_vertex!(G::FlipGraph, fgvc::FGVertexCandidate, distance_from_root::Int = 0) :: FGVertex
+    fgv = FGVertex(fgvc, nv(G)+1, G.labeled_points, distance_from_root)
     return add_vertex!(G, fgv)
 end
-
-#function build_vertex_tree(nps::Integer, nes::Integer, labeled_points::Bool)
-#    if nps == 1
-#        return Vector{FGVertex}()
-#    end
-#    T = Vector{Any}(collect(2*nes-1:-1:(nps-1)))
-#    t = T
-#    d = 1
-#    while d < nps
-#        for i in eachindex(t)
-#            if d < nps-1
-#                t[i] = Vector{Any}(collect(t[i]-1):-1:(nps-d))
-#            else
-#                t[i] = Vector{Any}(undef, t[i])
-#            end
-#        end
-#        d += 1
-#        t
-#    end
-#end
 
 
 """
@@ -302,23 +300,22 @@ Construct the **modular flip graph** for the closed orientable surface defined b
 
 # Arguments
 - `labeled_points :: Bool = true` : If is set to `false`, then the isomorphism also includes a renaming of the points. 
-- `depth :: Integer = ∞` : Determines the depth to which the flip grap should be constructed. i.e. up to which distance from `D`. 
+- `depth :: Integer = ∞` : Determines the depth to which the flip graph should be constructed. i.e. up to which distance from `D`. 
 """
 function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), labeled_points::Bool = true)
+    if np(D) == 1
+        return flipgraph_modular_singlepoint(D, depth=depth, labeled_points=labeled_points)
+    end
     G = FlipGraph(labeled_points)
-    nes = ne(D); nps = np(D)#TODO add the first vertex to the tree    
+    nes = ne(D); nps = np(D) 
     fgv_first = add_vertex!(G, D)
 
     #rooted tree whose i-th nodes branch-off according to the possible degrees of the i-th point. 
     #The leafs contain all the vertices that have the same point_degrees
-    if nps > 1
-        if labeled_points
-            vertex_tree = Vector{Any}(undef, 2*nes-(nps-1)) 
-        else
-            vertex_tree = Vector{Any}(undef, (2*nes)÷nps) 
-        end
+    if labeled_points
+        vertex_tree = Vector{Any}(undef, 2*nes-(nps-1)) 
     else
-        vertex_tree = Vector{FGVertex}([fgv_first])
+        vertex_tree = Vector{Any}(undef, (2*nes)÷nps) 
     end
 
     vtn = vertex_tree
@@ -335,16 +332,22 @@ function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), label
         vtn = vtn[fgv_first.p_degrees[i]]
     end
 
-    queue = Vector{Tuple{FGVertex, Int, Int}}()  #(D, fgv, index, depth)
-    push!(queue, (fgv_first, 1, 0))
-    while !isempty(queue)
-        fgv_first, ind_D, d = popfirst!(queue)
+    ind_D = 0
+    n = 1
+    d = 0
+    deph_increase_at = [2]
+    while ind_D < n
+        ind_D += 1
+        if ind_D == deph_increase_at[end] && d == length(deph_increase_at) - 1
+            d += 1
+            push!(deph_increase_at, n+1)
+        end
+        fgv_first = G.V[ind_D]
         D = deepcopy(fgv_first.D)
-        edge_ids = collect(1:ne(D))
-        for e in 1:ne(D)
-            if is_flippable(D, edge_ids[e])
-                flip!(D, edge_ids[e])
-                fgvc = FGVertexCandidate(D, labeled_points)
+        for e in 1:nes
+            if is_flippable(D, e)
+                flip!(D, e)
+                fgvc = FGVertexCandidate(D, labeled_points) #renames vertices (and points)
                 is_new = false
                 vtn = vertex_tree
                 pdegs = fgvc.p_degrees
@@ -367,23 +370,118 @@ function flipgraph_modular(D::DeltaComplex; depth::Integer = typemax(Int), label
                 end
                 if !is_new
                     is_new = true
-                    for v in vtn
-                        if is_isomorphic(fgvc, v; labeled_points=labeled_points)
+                    for v::FGVertex in vtn
+                        if v.distance_from_root >= d-1 
+                            if (v.distance_from_root > d-1 || has_edge(G, ind_D, v.id)) && is_isomorphic(fgvc, v; labeled_points=labeled_points)
+                                add_edge!(G, ind_D, v.id)
+                                is_new = false
+                                break
+                            end
+                        end
+                    end
+                end
+                if is_new #add the new DeltaComplex to the Graph
+                    fgv_new = add_vertex!(G, fgvc, d+1)
+                    n += 1
+                    push!(vtn, fgv_new)
+                    add_edge!(G, ind_D, n)
+                    #if n%1000 == 0
+                    #    print("\e[2K") # clear line
+                    #    print("\e[1G") # move cursor to column 1
+                    #    print(n)
+                    #end
+                end
+                flip!(D, e)
+            end
+        end
+    end
+    return G
+end
+
+function distance_sums(D::DeltaComplex)
+    s = zeros(Int, nv(D))
+    d = distances(D)
+    for i in axes(d,1)
+        s[i] = sum(d[i,:])
+    end
+    return sort!(s)
+end
+
+function flipgraph_modular_singlepoint(D::DeltaComplex; depth::Integer = typemax(Int), labeled_points::Bool=true)
+    G = FlipGraph(labeled_points)
+    nvs=nv(D);     nes = ne(D)
+    fgv_first = add_vertex!(G, D)
+
+    #rooted tree whose i-th nodes branch-off according to the i-th value in the ordered list of summed distances from one vertex to all the other vertices. 
+    #The leafs contain all the vertices that have the same ordered list of summed distances.
+    vertex_tree = Dict{Int, Dict}() 
+    
+    distancesums = distance_sums(D)
+    vtn = vertex_tree
+    for i in eachindex(distancesums) 
+        if i != nvs
+            vtn[distancesums[i]] = Dict{Int, Any}() 
+        else
+            vtn[distancesums[i]] = Vector{Int}([1]) 
+        end
+        vtn = vtn[distancesums[i]]
+    end
+
+    ind_D = 0
+    n = 1
+    d = 0
+    deph_increase_at = [2]
+    while ind_D < n
+        ind_D += 1
+        if ind_D == deph_increase_at[end] && d == length(deph_increase_at) - 1
+            d += 1
+            push!(deph_increase_at, n+1)
+        end
+        fgv_first = G.V[ind_D]
+        D = deepcopy(fgv_first.D)
+        for e in 1:nes
+            if is_flippable(D, e)
+                flip!(D, e)
+                is_new = false
+                vtn = vertex_tree
+                distancesums = distance_sums(D)
+                for i in 1:nvs
+                    if !haskey(vtn, distancesums[i])
+                        if i != nvs
+                            vtn[distancesums[i]] = Dict{Int, Any}() 
+                        else
+                            vtn[distancesums[i]] = Vector{Int}() 
+                        end
+                        is_new = true
+                    end
+                    vtn = vtn[distancesums[i]]
+                end
+                if !is_new                
+                    fgvc = FGVertexCandidate(D, labeled_points) #renames vertices (and points)
+                    is_new = true
+                    for v_id in vtn
+                        v = G.V[v_id]
+                        if v.distance_from_root >= d-1 && is_isomorphic(fgvc, v; labeled_points=labeled_points)
                             add_edge!(G, ind_D, v.id)
                             is_new = false
                             break
                         end
                     end
+                else
+                    fgvc = deepcopy(D)
                 end
                 if is_new #add the new DeltaComplex to the Graph
-                    fgv_new = add_vertex!(G, fgvc)
-                    push!(vtn, fgv_new)
-                    add_edge!(G, ind_D, length(G.V))
-                    if d + 1 < depth
-                        push!(queue, (fgv_new, length(G.V), d+1))
-                    end
+                    n += 1
+                    add_vertex!(G, fgvc, d+1)
+                    push!(vtn, n)
+                    add_edge!(G, ind_D, n)
+                    #if n%1000 == 0
+                    #    print("\e[2K") # clear line
+                    #    print("\e[1G") # move cursor to column 1
+                    #    print(n)
+                    #end
                 end
-                flip!(D, edge_ids[e])
+                flip!(D, e)
             end
         end
     end
@@ -424,29 +522,23 @@ function is_isomorphic(candidate::FGVertexCandidate, fgv::FGVertex; labeled_poin
     if labeled_points
         return is_isomorphic_labeled_points(candidate, fgv)
     end
-        
     #point mapping
     permutations_points = get_point_perms(fgv)
-    valid_permutation_points = trues(length(permutations_points))
     if length(permutations_points) != candidate.num_point_perms
         return false
     end        
-    for i in eachindex(permutations_points)
-        if !matrix_equal(fgv.multi_adjacency_matrix_triangulation, candidate.multi_adjacency_matrix_triangulation, permutations_points[i]) 
-            valid_permutation_points[i] = false
-        end
-    end
-    if !any(valid_permutation_points) 
-        return false
-    end
-
     for i_p in eachindex(permutations_points)
-        #Triface mapping
-        permutations_trifaces = get_vertex_perms(fgv, i_p)
-        for perm_v in permutations_trifaces
-            #DualEdge mapping
-            if is_all_equivalent(candidate.D, fgv, get_point_perm(fgv, i_p), perm_v)                 
-                return true
+        if matrix_equal(fgv.multi_adjacency_matrix_triangulation, candidate.multi_adjacency_matrix_triangulation, permutations_points[i_p]) 
+            #Triface mapping
+            permutations_trifaces = get_vertex_perms(fgv, i_p)         
+            #if !matrix_equal(fgv.adjacency_matrix_deltacomplex, candidate.adjacency_matrix_deltacomplex, permutations_trifaces[1])
+            #    return false
+            #end
+            for perm_v in permutations_trifaces
+                    #DualEdge mapping
+                if is_all_equivalent(candidate.D, fgv, get_point_perm(fgv, i_p), perm_v)                 
+                    return true
+                end
             end
         end
     end
@@ -458,27 +550,17 @@ function is_isomorphic_labeled_points(candidate::FGVertexCandidate, fgv::FGVerte
     if !matrix_equal(fgv.multi_adjacency_matrix_triangulation, candidate.multi_adjacency_matrix_triangulation)
         return false
     end
-    #Triface mapping
     permutations_trifaces = get_vertex_perms(fgv, 1)
-    valid_permutation_vertices = trues(length(permutations_trifaces))
-    for i in eachindex(permutations_trifaces) 
-        p = permutations_trifaces[i]
-        if !matrix_equal(fgv.multi_adjacency_matrix_deltacomplex, candidate.multi_adjacency_matrix_deltacomplex, p)
-            valid_permutation_vertices[i] = false
-        end
-    end
-    if !any(valid_permutation_vertices)
+
+    if !matrix_equal(fgv.special_adjacency_matrix_deltacomplex, candidate.special_adjacency_matrix_deltacomplex, permutations_trifaces[1])
         return false
     end
-
-    for i_v in eachindex(permutations_trifaces)
-        if !valid_permutation_vertices[i_v]
-            continue
-        end
-        #DualEdge mapping
-        if is_all_equivalent(candidate.D, fgv, get_point_perm(fgv, 1), get_vertex_perm(fgv, 1, i_v))                 
+    for p in permutations_trifaces 
+        #if matrix_equal(fgv.adjacency_matrix_deltacomplex, candidate.adjacency_matrix_deltacomplex, p)
+        if is_all_equivalent(candidate.D, fgv, get_point_perm(fgv, 1), p)            
             return true
         end
+        #end    
     end
     return false
 end
@@ -524,6 +606,15 @@ Compute the diameter of the `FlipGraph` `G`.
 """
 function diameter(G::FlipGraph)
     return diameter(adjacency_matrix(G.adjList))
+end
+
+"""
+    diameter(v::FGVertex)
+
+Compute the diameter of the `DeltaComplex` that represents the `FlipGraphVertex` `v`.
+"""
+function diameter(v::FGVertex)
+    return diameter(v.D)
 end
 
 """
@@ -702,7 +793,7 @@ function mcKay_vertices(D::DeltaComplex, A_deltacomplex::Matrix{<:Integer}, poin
 
     n = nv(D)
     p = split(collect(Int32,1:n), collect(pointValue(T) for T in D.V))
-    makeEquitable!(p,A_deltacomplex)
+    makeEquitable!(p, A_deltacomplex)
     if length(p) == n #there is only one canonical permutation
         return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
     end
@@ -722,9 +813,9 @@ If `only_one=true`, the algorithm stops after finding one valid permutation.
 
 # Arguments
 - `only_one :: Bool = false`, If set to true, the algorithm will stop after finding a single valid permutation.
-- A\\_deltacomplex :: Matrix{<:Integer} = Matrix{Int32}(multi_adjacency_matrix_deltacomplex(D)). If provided, the algorithm will use the adjacency matrix of the `DeltaComplex` `D`. If not, the algorithm would have to compute it itself.
+- A\\_deltacomplex :: Matrix{<:Integer} = Matrix{Int32}(adjacency_matrix_deltacomplex(D)). If provided, the algorithm will use the adjacency matrix of the `DeltaComplex` `D`. If not, the algorithm would have to compute it itself.
 """
-function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::Matrix{<:Integer} = Matrix{Int32}(multi_adjacency_matrix_deltacomplex(D))) ::Vector{Vector{Int32}}
+function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::Matrix{<:Integer} = Matrix{Int32}(special_adjacency_matrix_deltacomplex(D))) ::Vector{Vector{Int32}}
     np1 = np(D)
     np2 = np1*np1
 
@@ -755,7 +846,6 @@ function mcKay_vertices(D::DeltaComplex; only_one::Bool=false, A_deltacomplex::M
             return Vector{Vector{Int32}}([invert_permutation(reduce(vcat, p))])
         end
     end
-    
     return force_makeEquitable!(p, A_deltacomplex, n)
 end
 

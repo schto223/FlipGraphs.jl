@@ -182,7 +182,7 @@ function isGood(fgvc::FGVertexCandidate)
         if !sameDcomplex(Dp, get_D(fgvc, p))
             println("badP")
         end
-        v=1
+        v = 1
         for pv in get_vertex_perms(fgvc, p)
             Dv = rename_vertices!(deepcopy(Dp), pv)
             if !sameDcomplex(Dv, get_D(fgvc, p, v))

@@ -45,7 +45,7 @@ export get_edge, get_point, get_vertex, get_vertex_id, vertices_id, vertices, ed
 export sides, get_side
 export flip!, is_flippable, is_orientable, random_flips!, randomize!, point_degrees, relative_point_degrees
 export euler_characteristic, genus, demigenus, diameter_triangulation, diameter_deltaComplex
-export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltacomplex
+export adjacency_matrix_triangulation, multi_adjacency_matrix_triangulation, adjacency_matrix_deltacomplex, multi_adjacency_matrix_deltacomplex
 export subdivide!, twist_edges!, is_twisted
 export rename_edges!, rename_points!, rename_vertices!, is_similar, other_endpoint, quadrilateral_edges
 

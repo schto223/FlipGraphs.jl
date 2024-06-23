@@ -59,6 +59,7 @@ If you want to extrude some more information from a `TriangulatedPolygon` object
 ```@docs
     degrees(::TriangulatedPolygon)
     adjacency_matrix(::TriangulatedPolygon)
+    diameter(::TriangulatedPolygon)
 ```
 
 ## Flip an edge

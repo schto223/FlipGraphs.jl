@@ -8,7 +8,7 @@ end
 
 If you're already familiar with the concept of **flip graphs**, **triangulations** on **closed surfaces**, and **Δ-complexes**, and don't want to read the whole documentation, then here are some quick examples of what you can do with this package.
 
-In any other case, please be sure to take a look at the rest of the documentation first.
+In any other case, please be sure to have a look at the rest of the documentation first.
 
 ## Triangulated Convex Polygon
 
@@ -68,7 +68,7 @@ julia> export_gml("C:/Users/USERNAME/Desktop/FILENAME.gml", G);
 ### `DeltaComplex`
 
 A `DeltaComplex` is the dual of a triangulation on a closed surface.
-It can be used to compute things like the diameter, but it does not offer a unique modelisation of a triangulation on a closed surface. 
+It can be used to compute things like the diameter, but it does not offer a unique model of a triangulation on a closed surface. 
 Every DeltaComplex can be interpreted as the homeomorphism class of triangulations of points on a closed surface.
 
 Create a `DeltaComplex` of a surface of genus 1 with 2 points:

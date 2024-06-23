@@ -59,7 +59,7 @@ has_vertex(G::FlipGraphPlanar, i::Integer) ::Bool = (1 <= i <= nv(G))
 
 Return `true` if `g` is a vertex in `G`. 
 
-If `G` is a modular flip graph, this will only return `true` if `g` is the propper representant of the vertex.
+If `G` is a modular flip graph, this will only return `true` if `g` is the proper representant of the vertex.
 """
 has_vertex(G::FlipGraphPlanar, g::TriangulatedPolygon) :: Bool = (g in G.V)
 
@@ -121,7 +121,7 @@ end
 Construct the **`FlipGraph`** for the `TriangulatedPolygon` `g`.
 
 # Arguments
-- 'modular::Bool = false' : by default the whole flip graph is constructed. If modular is set to true, then only the modular flip graph is constructed.
+- 'modular::Bool = false' : by default, the whole flip graph is constructed. If `modular` is set to `true`, then only the modular flip graph is constructed.
 In a *modular flip graph*, vertices of the flip graph are classes of isomorphisms up to renaming the vertices. 
 Each class is then represented by one of its elements.
 """
@@ -155,9 +155,19 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
         end    
     end
 
-    id = 0
+    id  = 0
+    depth  = 0
+    numV  = 1
+    depth_next_jump = 2
+    depth_1  = 0
+    depth_2 = 0
+    depth_cutof = 0
     while id < length(G.V)
         id += 1
+        if id == depth_next_jump
+            depth += 1
+            depth_cutof, depth_1, depth_2, depth_next_jump = depth_1, depth_2, depth_next_jump, numV
+        end
         g_v = G.V[id]
         g = deepcopy(g_v)
         for i in 1:nvg
@@ -186,18 +196,21 @@ function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
                     if !newGraph
                         newGraph = true
                         for v_id in d
-                            if is_isomorphic(G.V[v_id], g, permutations)
-                                add_edge!(G, v_id, id)
-                                newGraph = false
-                                break
+                            if v_id >= depth_cutof
+                                if is_isomorphic(G.V[v_id], g, permutations)
+                                    add_edge!(G, v_id, id)
+                                    newGraph = false
+                                    break
+                                end
                             end
                         end
                     end
                     if newGraph
                         new_v = rename_vertices(g, permutations[1])
                         add_vertex!(G, new_v)
-                        add_edge!(G, id, nv(G))
-                        push!(d, nv(G))
+                        numV += 1
+                        add_edge!(G, id, numV)
+                        push!(d, numV)
                     end
                     flip!(g, i_new, j_new)
                 end
@@ -235,10 +248,12 @@ function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
     end
     d[degs[end-1]] = 1
 
-    queue::Vector{Tuple{typeof(g), Int32}} = [(g,1)]
+    queue::Vector{typeof(g)} = [g]
     numVG = 1
+    v_id = 0
     while !isempty(queue)
-        fgpv, v_id = popfirst!(queue)
+        v_id += 1
+        fgpv = popfirst!(queue)
         g = deepcopy(fgpv)
         for i in 1:nvg
             for j in fgpv.adjList[i]
@@ -260,7 +275,7 @@ function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
                                 push!(G.V, new_v)
                                 push!(G.adjList, [])
                                 add_edge!(G, v_id, numVG)
-                                push!(queue, (new_v, numVG))
+                                push!(queue, new_v)
                             else
                                 d[deg] = Vector{Any}(undef, nvg-2)
                                 d = d[deg]
@@ -287,7 +302,7 @@ end
 
 Construct the `FlipGraphPlanar` of a convex `n`-gon. 
 
-If `modular=true`, the FlipGraph is reduced to its modular form.
+If `modular=true`, the flip graph is reduced to its modular form.
 
 # Examples
 ```julia-repl
@@ -365,7 +380,7 @@ diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 """
     relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
 
-Count for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
+Count, for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
 """
 function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int32}
     rdegs = zeros(Int32, length(U))
