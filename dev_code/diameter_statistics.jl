@@ -1,10 +1,8 @@
 using FlipGraphs
 import XLSX
 using StatsPlots
-gr(size=(1000,800))
+gr(size=(1500,1000))
 using DataFrames
-import RDatasets
-iris = RDatasets.dataset("datasets", "iris")
 using Interact
 using Blink
 
@@ -75,4 +73,6 @@ function plot_averages(genus, points, n_diams::Integer, n_flips::Integer, n_runs
     body!(w, dataviewer(df))
 end
 
-plot_average(10,10,100,2,10)
+println("Go")
+plot_average(20,1,500,10,100)
+println("Stop")
