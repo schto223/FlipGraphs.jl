@@ -138,6 +138,26 @@ function remove_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer)
     deleteat!(g.adjList[dst], findfirst(x -> x==src, g.adjList[dst]))
 end
 
+export is_outer
+"""
+    is_outer(g::TriangulatedPolygon, e::Edge)
+
+Return `true` if `e` is an outer edge in the TriangulatedPolygon.
+"""
+function is_outer(g::TriangulatedPolygon, e::Edge)
+    return (dst(e) - src(e) <= 1) || (src(e) == 1 && dst(e) == g.n)
+end
+
+export is_inner
+"""
+    is_inner(g::TriangulatedPolygon, e::Edge)
+
+Return `true` if `e` is an inner edge in the TriangulatedPolygon.
+"""
+function is_inner(g::TriangulatedPolygon, e::Edge)
+    return (dst(e)-src(e) != 1) && !(src(e) == 1 && dst(e) == g.n)
+end
+
 """
     flip(g::TriangulatedPolygon, src::Integer, dst::Integer) :: TriangulatedPolygon
 
