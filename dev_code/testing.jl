@@ -112,26 +112,23 @@ end
 #println("done")
 
 
-export_gml("gml_exports/closed_surfaces/G_1-3", flipgraph_modular(1,3,labeled_points=true), add_diameter=true);
-
+for i in 13:15
+    #export_withclasses(i)
+    export_gml("gml_exports/convex_polygon/G-$i", flipgraph_planar(i), add_diameter=true);
+end
 
 for i in 3:15
-    export_withclasses(i)
-    #export_gml("gml_exports/convex_polygon/G-$i", flipgraph_planar(i), add_diameter=true);
+    export_gml("gml_exports/convex_polygon/G~$i", flipgraph_planar(i,modular=true), add_diameter=true);
 end
-#
-#for i in 3:15
-#    export_gml("gml_exports/convex_polygon/G~$i", flipgraph_planar(i,modular=true), add_diameter=true);
-#end
-#
-#for (g,p) in [(0,3),(0,4),(0,5), (0,6), (0,7), (0,8), (1,2), (1,3), (1,4), (1,5), (2,2), (2,3), (1,6)]
-#    export_gml("gml_exports/closed_surfaces/G~$g-$p", flipgraph_modular(g,p,labeled_points=false), add_diameter=true);
-#end
-#
-#for (g,p) in [(0,3),(0,4),(0,5), (0,6), (1,1), (1,2), (1,4), (2,1), (2,2), (2,3)]
-#    export_withclasses(g,p)
+
+for (g,p) in [(0,3),(0,4),(0,5), (0,6), (0,7), (0,8), (1,2), (1,3), (1,4), (1,5), (2,2), (2,3), (1,6)]
+    export_gml("gml_exports/closed_surfaces/G~$g-$p", flipgraph_modular(g,p,labeled_points=false), add_diameter=true);
+end
+
+for (g,p) in [(0,3),(0,4),(0,5), (0,6), (1,1), (1,2), (1,4), (2,1), (2,2), (2,3)]
+    export_withclasses(g,p)
     #export_gml("gml_exports/closed_surfaces/G_$g-$p", flipgraph_modular(g,p,labeled_points=true), add_diameter=true);
-#end
+end
 
 
 

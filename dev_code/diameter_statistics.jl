@@ -49,8 +49,8 @@ function plot_average(genus::Integer, points::Integer, n_diams::Integer, n_flips
         end
     end
     avrg = cum./n_runs
-    df = DataFrame(MIN = mind, AVERAGE = avrg, MAX = maxd)
-    @df df plot(:MIN, :AVERAGE, :MAX, colour = [:blue :green :red])
+    df = DataFrame(a = 1:n_flips:n_diams*n_flips, MIN = mind, AVERAGE = avrg, MAX = maxd)
+    @df df plot(:a, [:MIN :AVERAGE :MAX], colour = [:blue :green :red])
     #w = Window()
     #body!(w, dataviewer(df))
 end
@@ -74,3 +74,5 @@ function plot_averages(genus, points, n_diams::Integer, n_flips::Integer, n_runs
     w = Window()
     body!(w, dataviewer(df))
 end
+
+plot_average(10,10,100,2,10)
