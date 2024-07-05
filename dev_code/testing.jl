@@ -28,13 +28,13 @@ function walk_unique_nodes()
     end
 end
 
-function dostuff()
+function drawtriangulationsteps()
     G = flipgraph_planar(8)
     g = G.V[68]
     Random.seed!(100)
     E = filter(e -> is_inner(g, e), edges(g))
     shuffle!(E)
-    j=6
+    j = 6
     while !isempty(E)
         drawPNG(g,"g-8-$j"; nodecolor = colorant"black", inedgecolor = colorant"steelblue1", outedgecolor = colorant"grey10")
         remove_edge!(g, popfirst!(E))
@@ -43,7 +43,7 @@ function dostuff()
     drawPNG(g,"g-8-$j"; nodecolor = colorant"black", inedgecolor = colorant"steelblue1", outedgecolor = colorant"grey10")
 end
 
-function dosuff2()
+function drawcoloredflip()
     g = flipgraph_planar(8).V[37]
     #g = flipgraph_planar(8).V[68]
     n = g.n
@@ -62,8 +62,7 @@ function dosuff2()
     draw(PNG("img/gt.png", 1000px, 1000px), gplot(g,x,y, nodefillc=nodefillc, edgestrokec =edgestrokec, edgelinewidth=1.0, EDGELINEWIDTH=3.0 ))
 end
 
-function printallvertices()
-    n = 8
+function printallvertices(n = 8)
     G= flipgraph_planar(n) 
     for i in eachindex(G.V)
         drawPNG(G.V[i],"g-$n-$i"; nodecolor = colorant"black", inedgecolor = colorant"steelblue1", outedgecolor = colorant"grey10")
@@ -97,13 +96,15 @@ function export_withclasses(p)
         for j in eachindex(Gtilde.V)
             if is_isomorphic(get_vertex(G, i), get_vertex(Gtilde,j))
                 vats[i]["equivalence_class"] = j
+                drawPNG(G.V[i], "$j-$i")
                 break
             end
         end
     end
-    export_gml(string("gml_exports/convex_polygon/G_",p), G; vertex_attributes=vats, add_diameter=true);  
+    #export_gml(string("gml_exports/convex_polygon/G_",p), G; vertex_attributes=vats, add_diameter=true);  
 end
 
+#export_withclasses(8)
 
 #printallvertices()
 
@@ -112,23 +113,28 @@ end
 #println("done")
 
 
-for i in 13:15
-    #export_withclasses(i)
-    export_gml("gml_exports/convex_polygon/G-$i", flipgraph_planar(i), add_diameter=true);
-end
+#for i in 13:15
+#    #export_withclasses(i)
+#    export_gml("gml_exports/convex_polygon/G-$i", flipgraph_planar(i), add_diameter=true);
+#end
+#
+#for i in 3:15
+#    export_gml("gml_exports/convex_polygon/G~$i", flipgraph_planar(i,modular=true), add_diameter=true);
+#end
+#
+#for (g,p) in [(0,3),(0,4),(0,5), (0,6), (0,7), (0,8), (1,2), (1,3), (1,4), (1,5), (2,2), (2,3), (1,6)]
+#    export_gml("gml_exports/closed_surfaces/G~$g-$p", flipgraph_modular(g,p,labeled_points=false), add_diameter=true);
+#end
+#
+#for (g,p) in [(0,3),(0,4),(0,5), (0,6), (1,1), (1,2), (1,4), (2,1), (2,2), (2,3)]
+#    export_withclasses(g,p)
+#    #export_gml("gml_exports/closed_surfaces/G_$g-$p", flipgraph_modular(g,p,labeled_points=true), add_diameter=true);
+#end
 
-for i in 3:15
-    export_gml("gml_exports/convex_polygon/G~$i", flipgraph_planar(i,modular=true), add_diameter=true);
-end
-
-for (g,p) in [(0,3),(0,4),(0,5), (0,6), (0,7), (0,8), (1,2), (1,3), (1,4), (1,5), (2,2), (2,3), (1,6)]
-    export_gml("gml_exports/closed_surfaces/G~$g-$p", flipgraph_modular(g,p,labeled_points=false), add_diameter=true);
-end
-
-for (g,p) in [(0,3),(0,4),(0,5), (0,6), (1,1), (1,2), (1,4), (2,1), (2,2), (2,3)]
-    export_withclasses(g,p)
-    #export_gml("gml_exports/closed_surfaces/G_$g-$p", flipgraph_modular(g,p,labeled_points=true), add_diameter=true);
-end
 
 
-
+#g = triangulated_polygon(6)
+#min_lexicographic_degrees(g)
+g = triangulated_polygon(14)
+g.adjList.=[[2, 14, 13, 12], [1, 3, 12], [2, 4, 12, 5, 11], [3, 5], [4, 6, 3, 11, 10], [5, 7, 10], [6, 8, 10, 9], [7, 9], [8, 10, 7], [9, 11, 6, 7, 5], [10, 12, 3, 5], [11, 13, 1, 2, 3], [12, 14, 1], [13, 1]]
+min_lexicographic_degrees(g)

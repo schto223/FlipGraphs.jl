@@ -48,7 +48,31 @@ function plot_average(genus::Integer, points::Integer, n_diams::Integer, n_flips
     end
     avrg = cum./n_runs
     df = DataFrame(a = 1:n_flips:n_diams*n_flips, MIN = mind, AVERAGE = avrg, MAX = maxd)
-    @df df plot(:a, [:MIN :AVERAGE :MAX], colour = [:blue :green :red])
+    @df df plot(:a, [:MIN :AVERAGE :MAX], colour = [:blue :green :red], xlabel = "#flips", ylabel = "diameter" , title = "DeltaComplex of genus $(genus) with $(points) points. $(n_runs) runs | n_diams = $(n_diams) | n_flips = $(n_flips)")
+    savefig("C:/Users/schto/Dropbox/uniLU/SEM-4/Master Thesis/Presentation/flip_diameter/plot_D("*string(genus,", ",points,").svg"))
+    #w = Window()
+    #body!(w, dataviewer(df))
+end
+
+function plot_allruns(genus::Integer, points::Integer, n_diams::Integer, n_flips::Integer, n_runs::Integer)
+    cum = zeros(Int, n_diams)
+    runs = []
+    for i in 1:n_runs
+        diams = collect_diameters(genus, points, n_diams, n_flips)
+        for j in eachindex(diams)
+            cum[j] += diams[j]
+        end
+        push!(runs, diams)
+    end
+    avrg = cum./n_runs
+    df = DataFrame(runs, :auto)
+    P = plot(1:n_flips:n_diams*n_flips, runs; 
+        linealpha = 0.5,  
+        xlabel = "#flips", 
+        ylabel = "diameter" , 
+        legend = false,
+        title = "DeltaComplex of genus $(genus) with $(points) points. $(n_runs) runs | n_diams = $(n_diams) | n_flips = $(n_flips)")
+    savefig(P,"C:/Users/schto/Dropbox/uniLU/SEM-4/Master Thesis/Presentation/flip_diameter/plot_D("*string(genus,", ",points,").svg"))
     #w = Window()
     #body!(w, dataviewer(df))
 end
@@ -73,6 +97,6 @@ function plot_averages(genus, points, n_diams::Integer, n_flips::Integer, n_runs
     body!(w, dataviewer(df))
 end
 
-println("Go")
-plot_average(20,1,500,10,100)
-println("Stop")
+#println("Go")
+#plot_average(30,1,50,100,10)
+#println("Stop")
