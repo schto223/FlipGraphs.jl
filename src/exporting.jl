@@ -5,6 +5,13 @@ Save the graph `G` as a .gml file.
 
 `G` can be either a `FlipGraph` or `FlipGraphPlanar`.
 
+# Arguments
+- vertex_attributes::Vector{Dict} : If provided, the `i`-th vertex gets the attributes from the `i`-th `Dict`. 
+                                    Each `key`, `value` pair defines an attribute, where the `key` is the name of the attribute and `value` is its value.
+- edge_attributes::Vector{Dict}   : If provided, the `i`-th edge gets the attributes from the `i`-th `Dict`. 
+                                    Each `key`, `value` pair defines an attribute, where the `key` is the name of the attribute and `value` is its value.
+- add_diameter = false :            If set to true, every vertex in the exported tree gets an attribute called diameter with the respective diameter of the `DeltaComplex` of that vertex.
+
 # Examples
 ```julia-repl
 julia> G = flipgraph_planar(10);
@@ -16,11 +23,11 @@ Be aware however, that this diameter is computed on the run and will therefore s
 
 ```julia-repl
 julia> G = flipgraph_modular(1,3,labeled_points = true);
-julia> export_gml("C:/Users/USERNAME/Desktop/filename.gml", G, :diameter);
+julia> export_gml("C:/Users/USERNAME/Desktop/filename.gml", G, add_diameter=true);
 ```
 
 """
-function export_gml(fpn::String, G::AbstractGraph, kwargs...)
+function export_gml(fpn::String, G::AbstractGraph; vertex_attributes::Vector=[], edge_attributes::Vector=[], add_diameter = false)
     if '.' in fpn
         fpn[end-2:end] == "gml" || throw(ArgumentError("The filename should end in \".gml\""))
     else
@@ -38,15 +45,27 @@ function export_gml(fpn::String, G::AbstractGraph, kwargs...)
             write(file,"\n\tnode [")
             write(file,"\n\t\tid $i")
             write(file,"\n\t\tlabel \"$i\"")
-            if :diameter in kwargs
+            if add_diameter
                 write(file,"\n\t\tdiameter $(diameter(G.V[i]))")
+            end
+            if !isempty(vertex_attributes)
+                for (key,value) in vertex_attributes[i]
+                    write(file,"\n\t\t$(key) $(value)")
+                end
             end
             write(file,"\n\t]")
         end
+        i = 0
         for e in edges(G)
+            i += 1
             write(file,"\n\tedge [")
             write(file,"\n\t\tsource ", string(e.src))
             write(file,"\n\t\ttarget ", string(e.dst))
+            if !isempty(edge_attributes)
+                for (key,value) in edge_attributes[i]
+                    write(file,"\n\t\t$(key) $(value)")
+                end
+            end
             write(file,"\n\t]")
         end
         write(file,"\n]");

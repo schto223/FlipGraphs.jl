@@ -61,6 +61,28 @@ end
 
     @test outneighbors(g,4) == inneighbors(g,4) == neighbors(g,4)
 
+    #edges_outer, edges_inner
+    g = triangulated_polygon(3)
+    @test edges_outer(g) == edges(g)
+    @test isempty(edges_inner(g)) == true
+    g = triangulated_polygon(27)
+    @test isempty(intersect(edges_outer(g), edges_inner(g)))
+    @test ne(g) == length(edges_outer(g)) + length(edges_inner(g))
+    g = triangulated_polygon(7)
+    for e in edges_inner(g)
+        @test is_inner(g, e) == true
+    end
+    for e in edges_outer(g)
+        @test is_outer(g, e) == true
+    end
+
+    #is_identical
+    g1 = triangulated_polygon(30)
+    g2 = triangulated_polygon(31)
+    @test is_identical(g1,g2) == false
+    g2 = flip(g1, edges_inner(g1)[5])
+    @test is_identical(g1,g2) == false
+
     @testset "mcKay" begin
         g = triangulated_polygon(100)
         g_copy= deepcopy(g)
@@ -71,5 +93,20 @@ end
         rename_vertices!(g, p_inv)
         @test g.adjList == g_copy.adjList
     end
-end
+    
+    @testset "symmetry" begin
+        for n in 3:10
+            g = triangulated_polygon(n)
+            g2 = deepcopy(g)
+            for i in 1:n
+                rotate!(g,1)
+                @test is_isomorphic(g, g2)
+            end
+            @test is_identical(g, g2) == true
+            @test is_identical(rotate!(g,n), g2) == true
+            mirror!(g)
+            @test is_isomorphic(g, g2)
+        end
+    end
 
+end

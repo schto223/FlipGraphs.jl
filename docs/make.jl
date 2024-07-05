@@ -19,7 +19,7 @@ makedocs(
     sitename="FlipGraphs.jl",     
     modules= [FlipGraphs],
     #format = Documenter.LaTeX(platform = "native"), 
-    format = Documenter.LaTeX(platform = "none"), 
+    #format = Documenter.LaTeX(platform = "none"), 
     #format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
     doctest = true,
     pages = [

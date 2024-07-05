@@ -27,12 +27,13 @@ export edgetype, has_edge, has_vertex, neighbors, inneighbors, outneighbors, ne,
 export vertices, edges, is_directed, add_edge!, remove_edge!#, add_vertex!
 
 #graphFunctions
-export diameter, adjacency_matrix, invert_permutation
+export diameter, adjacency_matrix, invert_permutation, degree
 
 #polygonTriangulations
 export TriangulatedPolygon, triangulated_polygon
 export degrees
-export flip, flip!, flip_get_edge!, is_flippable, edges_flippable
+export flip, flip!, flip_get_edge!, is_flippable, edges_flippable, edges_inner, edges_outer, is_inner, is_outer
+export mirror!, rotate!, is_identical
 
 #flipGraph_planar
 export FlipGraphPlanar, flipgraph, flipgraph_planar

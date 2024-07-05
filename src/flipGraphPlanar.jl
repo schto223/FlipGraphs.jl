@@ -116,6 +116,15 @@ function add_vertex!(G::FlipGraphPlanar, g::TriangulatedPolygon)
 end
 
 """
+    degree(G::FlipGraphPlanar, v::Integer)
+
+Return the **degree** of the `v`-th vertex in the graph `G`.
+"""
+function degree(G::FlipGraphPlanar, v::Integer) :: Int
+    return length(G.adjList[v])
+end
+
+"""
     flipgraph(g::TriangulatedPolygon; kwargs..)
     
 Construct the **`FlipGraph`** for the `TriangulatedPolygon` `g`.
@@ -128,103 +137,16 @@ Each class is then represented by one of its elements.
 function flipgraph(g::TriangulatedPolygon; modular::Bool = false)
     if !modular
         return flipgraph_planar_labeledpoints(g)
+    else
+        return flipgraph_planar_unlabeledpoints(g)
     end
-    nvg = nv(g)
-
-    G = FlipGraphPlanar()
-    p = mcKay(g, only_one=true)[1]
-    add_vertex!(G, rename_vertices!(g,p))
-    
-    #D is a search tree which sorts vertices by their sorted degrees. 
-    #Since arrays have to start at 1, and we do not want leading empty values, we look at the increase in the degree from vertex to vertex
-    #max_steps gives an upper limit to the possible step size at that point.
-    max_cum_degs = 2*nvg - 6 
-    deg_steps = degree_steps(g)
-    max_steps = zeros(Int, nvg-2)
-    for i in eachindex(max_steps)
-        max_steps[i] =  max_cum_degs ÷ (nvg-1-i)
-    end
-    D = Vector{Vector{Any}}(undef, 1 + max_cum_degs÷(nvg-2))
-    d = D  
-    for i in eachindex(deg_steps)
-        if i == nvg-2
-            d[deg_steps[i] + 1] = Int[1]
-        else
-            d[deg_steps[i] + 1] = Vector{Any}(undef, 1 + max_steps[i+1])
-            d = d[deg_steps[i] + 1]
-        end    
-    end
-
-    id  = 0
-    depth  = 0
-    numV  = 1
-    depth_next_jump = 2
-    depth_1  = 0
-    depth_2 = 0
-    depth_cutof = 0
-    while id < length(G.V)
-        id += 1
-        if id == depth_next_jump
-            depth += 1
-            depth_cutof, depth_1, depth_2, depth_next_jump = depth_1, depth_2, depth_next_jump, numV
-        end
-        g_v = G.V[id]
-        g = deepcopy(g_v)
-        for i in 1:nvg
-            for j in g_v.adjList[i]
-                if  i<j && count(k in g.adjList[j] for k in g.adjList[i]) == 2 # i-j is a flippable edge  is_flippable(g ,i ,j)
-                    i_new, j_new = flip_get_edge!(g,i,j)
-                    permutations = mcKay(g, only_one=true)
-                    d = D
-                    newGraph = false
-                    degs = sort!(degrees(g))
-                    for k in eachindex(deg_steps)
-                        deg_step = degs[k+2] - degs[k+1] + 1
-                        if isassigned(d, deg_step)
-                            d = d[deg_step]
-                        else
-                            if k == nvg - 2
-                                d[deg_step] = Int[]
-                                d = d[deg_step]
-                            else
-                                d[deg_step] = Vector{Vector{Any}}(undef, 1 + max_steps[k+1])
-                                d = d[deg_step]
-                            end
-                            newGraph = true
-                        end            
-                    end
-                    if !newGraph
-                        newGraph = true
-                        for v_id in d
-                            if v_id >= depth_cutof
-                                if is_isomorphic(G.V[v_id], g, permutations)
-                                    add_edge!(G, v_id, id)
-                                    newGraph = false
-                                    break
-                                end
-                            end
-                        end
-                    end
-                    if newGraph
-                        new_v = rename_vertices(g, permutations[1])
-                        add_vertex!(G, new_v)
-                        numV += 1
-                        add_edge!(G, id, numV)
-                        push!(d, numV)
-                    end
-                    flip!(g, i_new, j_new)
-                end
-            end
-        end
-    end
-    return G
 end
 
 #We assume n>=4: The first two are always 2, hence they are skipped. we start at the third degree in the sorted list and only store the increases. Most will be 0.
-function degree_steps(g::TriangulatedPolygon{T}) :: Vector{T} where T<:Integer
-    d = sort!([length(g.adjList[i]) for i in 1:g.n])
-    return d[3:end] - d[2:end-1]
-end
+#function degree_steps(g::TriangulatedPolygon{T}) :: Vector{T} where T<:Integer
+#    d = sort!([length(g.adjList[i]) for i in 1:g.n])
+#    return d[3:end] - d[2:end-1]
+#end
 
 """
     flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
@@ -234,11 +156,10 @@ Compute the **flip graph** with labeled points from the root vertex `g`.
 function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
     nvg = nv(g)
     G = FlipGraphPlanar()
-    push!(G.adjList, [])
 
     #D is a search tree which branches of for each degree of a vertex. The leafs are the ids of the vertices in the flip graph
     D = Vector{Any}(undef, nvg-2)
-    push!(G.V, g)
+    add_vertex!(G, g)
     d = D
     degs = degrees(g)
     degs .-= 1
@@ -272,8 +193,7 @@ function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
                                 numVG += 1
                                 d[deg] = numVG
                                 new_v = deepcopy(g)
-                                push!(G.V, new_v)
-                                push!(G.adjList, [])
+                                add_vertex!(G, new_v)
                                 add_edge!(G, v_id, numVG)
                                 push!(queue, new_v)
                             else
@@ -296,6 +216,108 @@ function flipgraph_planar_labeledpoints(g::TriangulatedPolygon)
     return G
 end
 
+"""
+    min_lexicographic_degrees(g::TriangulatedPolygon)
+
+Return the lexicographically minimal `degrees(gi)` for the dihedral group of `g`.
+"""
+function min_lexicographic_degrees(g::TriangulatedPolygon)
+    n = g.n
+    degs = degrees(g)
+    d2s = findall(x-> x==2, degs)
+    best = vcat(d2s[1]:n, 1:d2s[1]-1)
+    mirrored = true
+    for i in eachindex(d2s)
+        d = d2s[i]
+        j = 1
+        while j < n
+            if mirrored  
+                if degs[(d+n-1-j)%n + 1] != degs[best[j+1]]
+                    if degs[(d+n-1-j)%n + 1] < degs[best[j+1]] #new best found
+                        best = vcat(d2s[i]:-1:1, n:-1:d2s[i]+1)
+                    end
+                    mirrored = false
+                    break
+                end
+            else
+                if degs[(d+j-1)%n + 1] != degs[best[j+1]]
+                    if degs[(d+j-1)%n + 1] < degs[best[j+1]]
+                        best = vcat(d2s[i]:n, 1:d2s[i]-1)
+                    end
+                    j = 0
+                    mirrored = true
+                end
+            end
+            j += 1
+            if j==n
+                mirrored = false
+            end
+        end
+    end
+    return degs[best]
+end
+
+function flipgraph_planar_unlabeledpoints(g::TriangulatedPolygon)
+    nvg = nv(g)
+    G = FlipGraphPlanar()
+    add_vertex!(G, g)
+
+    #D is a search tree which branches of for each degree of a vertex. The leafs are the ids of the vertices in the flip graph
+    d = D = Vector{Any}(undef, nvg-2)
+    degs = min_lexicographic_degrees(g)
+    degs .-= 1
+    for i in degs[1:end-2]
+        d[i] = Vector{Any}(undef, nvg-2)
+        d = d[i]
+    end
+    d[degs[end-1]] = 1
+
+    queue::Vector{typeof(g)} = [g]
+    numVG = 1
+    v_id = 0
+    while !isempty(queue)
+        v_id += 1
+        fgpv = popfirst!(queue)
+        g = deepcopy(fgpv)
+        for i in 1:nvg
+            for j in fgpv.adjList[i]
+                if i<j && i+1!=j && (i!=1 || j!=nvg)                        
+                    i_new, j_new = flip_get_edge!(g,i,j)
+                    newGraph = false
+                    k = 1
+                    d = D
+                    degs = min_lexicographic_degrees(g).-1
+                    while k < nvg
+                        deg = degs[k]
+                        if isassigned(d, deg)
+                            d = d[deg]
+                        else
+                            if k == nvg - 1 #it is a new vertex
+                                numVG += 1
+                                d[deg] = numVG
+                                new_v = deepcopy(g)
+                                add_vertex!(G, new_v)
+                                add_edge!(G, v_id, numVG)
+                                push!(queue, new_v)
+                            else
+                                d[deg] = Vector{Any}(undef, nvg-2)
+                                d = d[deg]
+                            end 
+                            newGraph = true
+                        end
+                        k += 1
+                    end
+                    if !newGraph
+                        add_edge!(G, v_id, d)
+                    end
+                    #revert the flip
+                    flip!(g, i_new, j_new)
+                end
+            end
+        end
+    end
+    return G
+end
 
 """
     flipgraph_planar(n::Integer; modular=false) :: FlipGraphPlanar
@@ -360,10 +382,10 @@ end
 Check if `g1` and `g2` are isomorphic up to a relabeling of the vertices.
 """
 function is_isomorphic(g1::TriangulatedPolygon, g2::TriangulatedPolygon)
-    rename_vertices!(g1, mcKay(g1, only_one=true)[1])
+    g = rename_vertices(g1, mcKay(g1, only_one=true)[1])
     permutations = mcKay(g2)
     for p in permutations
-        if all(i-> all(j-> has_edge(g1, p[i], p[j]), g2.adjList[i]) , eachindex(g2.adjList))
+        if all(i-> all(j-> has_edge(g, p[i], p[j]), g2.adjList[i]) , eachindex(g2.adjList))
             return true
         end
     end
@@ -377,30 +399,6 @@ Compute the diameter of `G`.
 """
 diameter(G::FlipGraphPlanar) = diameter(adjacency_matrix(G.adjList))
 
-"""
-    relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
-
-Count, for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
-"""
-function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int32}
-    rdegs = zeros(Int32, length(U))
-    for i in eachindex(U), j in V
-        if has_edge(g, U[i], j)
-            rdegs[i] += 1
-        end
-    end
-    return rdegs
-end
-
-"""
-    relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{<:Integer}) :: Vector{<:Integer}
-
-Count the number of edges in `g` going from `u` to a vertex in `V`.
-"""
-function relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{T}) :: T where T<:Integer
-    adj = g.adjList[u]
-    return count(j->j in adj, V)
-end
 
 """
     mcKay(g::TriangulatedPolygon) :: Vector{Vector{<:Integer}}

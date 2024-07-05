@@ -101,9 +101,9 @@ function get_point_perms(fgv::FGVertex)
     return fgv.point_perms
 end
 
-function get_vertex_perm(fgv::FGVertex, i_p::Integer, i_v::Integer)
-    return fgv.vertex_perms[i_p][i_v]
-end
+#function get_vertex_perm(fgv::FGVertex, i_p::Integer, i_v::Integer)
+#    return fgv.vertex_perms[i_p][i_v]
+#end
 
 function get_vertex_perms(fgv::FGVertex, i_p::Integer)
     return fgv.vertex_perms[i_p]
@@ -280,6 +280,14 @@ function add_vertex!(G::FlipGraph, fgvc::FGVertexCandidate, distance_from_root::
     return add_vertex!(G, fgv)
 end
 
+"""
+    degree(G::FlipGraph, v::Integer)
+
+Return the **degree** of the `v`-th vertex in the graph `G`.
+"""
+function degree(G::FlipGraph, v::Integer) :: Int
+    return length(G.adjList[v])
+end
 
 """
     flipgraph_modular(g::Integer, p::Integer; kwargs..) :: FlipGraph

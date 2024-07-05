@@ -16,9 +16,9 @@ function Base.show(io::IO, mime::MIME"text/plain", g::TriangulatedPolygon)
     if g.n > 20
         println(io, string("TriangulatedPolygon with ", g.n, " vertices"))
     else
-        println(io, string("TriangulatedPolygon with ", g.n, " vertices, and adjacency list:"))
+        print(io, string("TriangulatedPolygon with ", g.n, " vertices, and adjacency list:"))
         for i in eachindex(g.adjList)
-            println(io, " $i $(i<10 ? " " : "")→ ["*join(g.adjList[i],", ")*"]")
+            print(io, "\n $i $(i<10 ? " " : "")→ ["*join(g.adjList[i],", ")*"]")
         end
     end
 end
@@ -61,16 +61,40 @@ end
 
 
 """
-    edges(g::TriangulatedPolygon) :: Vector{SimpleEdge{Int32}}
+    edges(g::TriangulatedPolygon{T}) :: Vector{SimpleEdge{T}} where T<:Integer
 
-Compute and return a list of all the edges in `g`.
+Compute and return a list of all the inner edges in `g`. 
 
 Edges are not directed. It is, however, necessary for computations to define a source and a target. 
 For `TriangulatedPolygon`, the source will be the incident vertex with the smaller id.
 """
 function edges(g::TriangulatedPolygon{T}) where T<:Integer
     return collect(SimpleEdge{T}, Edge(T(i),j) for i in 1:nv(g) for j in g.adjList[i] if i<j)
-end 
+end
+
+"""
+    edges_inner(g::TriangulatedPolygon{T}) :: Vector{SimpleEdge{T}} where T<:Integer
+
+Compute and return a list of all the edges in `g`. These are exactly the flippable edges in `g`.
+
+Edges are not directed. It is, however, necessary for computations to define a source and a target. 
+For `TriangulatedPolygon`, the source will be the incident vertex with the smaller id.
+"""
+function edges_inner(g::TriangulatedPolygon{T}) where T<:Integer
+    return collect(SimpleEdge{T}, Edge(T(i),j) for i in 1:nv(g) for j in g.adjList[i] if i<j && i+1!=j && (i!=1 || j!=nv(g))) 
+end
+
+"""
+    edges_outer(g::TriangulatedPolygon{T}) :: Vector{SimpleEdge{T}} where T<:Integer
+
+Compute and return a list of all the outer edges in `g`. These are exactly the non-flippable edges in `g`.
+
+Edges are not directed. It is, however, necessary for computations to define a source and a target. 
+For `TriangulatedPolygon`, the source will be the incident vertex with the smaller id.
+"""
+function edges_outer(g::TriangulatedPolygon{T}) where T<:Integer
+    return collect(SimpleEdge{T}, Edge(T(i),j) for i in 1:nv(g) for j in g.adjList[i] if i+1==j || (i==1 && j==nv(g))) 
+end
 
 edgetype(g::TriangulatedPolygon) = SimpleEdge{eltype(g)}
 
@@ -136,6 +160,24 @@ remove_edge!(g::TriangulatedPolygon, e::Edge) = remove_edge!(g, src(e), dst(e))
 function remove_edge!(g::TriangulatedPolygon, src::Integer, dst::Integer)
     deleteat!(g.adjList[src], findfirst(x -> x==dst, g.adjList[src]))
     deleteat!(g.adjList[dst], findfirst(x -> x==src, g.adjList[dst]))
+end
+
+"""
+    is_outer(g::TriangulatedPolygon, e::Edge)
+
+Return `true` if `e` is an outer edge in the TriangulatedPolygon.
+"""
+function is_outer(g::TriangulatedPolygon, e::Edge)
+    return (dst(e) - src(e) <= 1) || (src(e) == 1 && dst(e) == g.n)
+end
+
+"""
+    is_inner(g::TriangulatedPolygon, e::Edge)
+
+Return `true` if `e` is an inner edge in the TriangulatedPolygon.
+"""
+function is_inner(g::TriangulatedPolygon, e::Edge)
+    return (dst(e)-src(e) != 1) && !(src(e) == 1 && dst(e) == g.n)
 end
 
 """
@@ -244,4 +286,79 @@ Compute the adjacency matrix for the triangulated graph `g`.
 """
 function adjacency_matrix(g::TriangulatedPolygon{T}) :: Matrix{T} where T<:Integer
     return adjacency_matrix(g.adjList)
+end
+
+"""
+    rotate!(g::TriangulatedPolygon, i::Integer)
+
+Rotate `g` by `i` steps anticlockwise. 
+
+A rotation by `nv(g)` would simply yield `g` again
+"""
+function rotate!(g::TriangulatedPolygon, i::Integer)
+    n = g.n
+    i = i%n
+    g.adjList[1:(n-i)], g.adjList[(n-i+1):end] = g.adjList[(1+i):end], g.adjList[1:i]
+    for adj in g.adjList
+        adj .+= (n-i-1) % n 
+        adj .%= n
+        adj .+= 1
+    end
+    return g
+end
+
+"""
+    mirror!(g::TriangulatedPolygon)
+
+Mirror `g` along the middle axis passing through `g`.
+"""
+function mirror!(g::TriangulatedPolygon)
+    n = g.n
+    g.adjList[1:end] = g.adjList[end:-1:1]
+    for adj in g.adjList
+        adj .= (n:-1:1)[adj] 
+    end
+    return g
+end
+
+"""
+    is_identical(g1::TriangulatedPolygon, g2::TriangulatedPolygon)
+
+Return `true` if 'g1' and 'g2' are the same triangulated polygon.
+"""
+function is_identical(g1::TriangulatedPolygon, g2::TriangulatedPolygon)
+    if g1.n != g2.n
+        return false
+    end
+    for i in eachindex(g1.adjList)
+        if length(g1.adjList[i]) != length(g2.adjList[i])
+            return false
+        end
+    end
+    return true
+end
+
+"""
+    relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{<:Integer}
+
+Count, for each vertex in `U`, the number of incident edges, which are also incident to an edge in `V`.
+"""
+function relative_degrees(g::TriangulatedPolygon, U::Vector{<:Integer}, V::Vector{<:Integer}) :: Vector{Int32}
+    rdegs = zeros(Int32, length(U))
+    for i in eachindex(U), j in V
+        if has_edge(g, U[i], j)
+            rdegs[i] += 1
+        end
+    end
+    return rdegs
+end
+
+"""
+    relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{<:Integer}) :: Vector{<:Integer}
+
+Count the number of edges in `g` going from `u` to a vertex in `V`.
+"""
+function relative_degree(g::TriangulatedPolygon, u::Integer, V::Vector{T}) :: T where T<:Integer
+    adj = g.adjList[u]
+    return count(j->j in adj, V)
 end

@@ -1,6 +1,6 @@
 @testset "flipGraph_planar" begin
 
-    for n in 3:10
+    for n in 3:12
         G = flipgraph_planar(n, modular=false)
         #Comparing to the Catalan numbers: https://oeis.org/A000108
         catalan = [1, 2, 5, 14, 42, 132, 429, 1430, 4862, 16796, 58786, 208012, 742900, 2674440]
@@ -11,7 +11,7 @@
         end
     end
 
-    for n in 3:12
+    for n in 3:14
         G = flipgraph_planar(n, modular=true)
         # Check if number of triangulations is correct (comparing to https://oeis.org/A000207)
         @test nv(G)== [1, 1, 1, 3, 4, 12, 27, 82, 228, 733, 2282, 7528, 24834, 83898][n-2] 
@@ -57,4 +57,11 @@
     p = mcKay(g, only_one=true)[1]
     g2 = rename_vertices(g,p)
     @test is_isomorphic(g,g2)
+
+    g = triangulated_polygon(47)
+    perms = mcKay(g)
+    g2 = rename_vertices(g,perms[1])
+    @test is_isomorphic(g2,g, perms)
+    flip!(g2, edges_inner(g2)[4])
+    @test is_isomorphic(g2,g, perms) == false
 end

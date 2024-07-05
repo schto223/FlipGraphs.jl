@@ -37,6 +37,7 @@ The following methods overload some of the main functions from the [Graphs.jl](h
     has_edge(::FlipGraphPlanar,s,d)
     has_edge(::FlipGraphPlanar,::Edge)
 
+    degree(::FlipGraphPlanar, ::Integer)
     neighbors(::FlipGraphPlanar, ::Integer)
     diameter(::FlipGraphPlanar)
 ```
@@ -58,10 +59,7 @@ The following methods are used to build the flip graph; However, they can also b
     mcKay
     rename_vertices(::TriangulatedPolygon, ::Vector{<:Integer})
     rename_vertices!(::TriangulatedPolygon, ::Vector{<:Integer})    
-    relative_degree(::TriangulatedPolygon, ::Integer, ::Vector{<:Integer})
-    relative_degrees(::TriangulatedPolygon, ::Vector{<:Integer}, ::Vector{<:Integer})
 ```
-
 
 
 [^1]: Hartke, S.G., & Radcliffe, A.J. (2008). McKay ’ s Canonical Graph Labeling Algorithm.

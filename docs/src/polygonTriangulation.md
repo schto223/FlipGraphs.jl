@@ -44,20 +44,33 @@ The following methods overload some of the main functions from the [Graphs.jl](h
 ```@docs
     nv(::TriangulatedPolygon)
     ne(::TriangulatedPolygon)
-    vertices(::TriangulatedPolygon)
-    edges(::TriangulatedPolygon)
+    vertices(::TriangulatedPolygon)    
     has_vertex(::TriangulatedPolygon, v)
+
+    edges(::TriangulatedPolygon)
+    edges_inner(::TriangulatedPolygon)
+    edges_outer(::TriangulatedPolygon)
     
     has_edge(::TriangulatedPolygon, e::Edge)
     has_edge(::TriangulatedPolygon, s, d)
 
+    is_inner(::TriangulatedPolygon, ::Edge)
+    is_outer(::TriangulatedPolygon, ::Edge)
+
     neighbors(::TriangulatedPolygon, ::Integer)
+
+    is_identical(::TriangulatedPolygon, ::TriangulatedPolygon)
+
+    rotate!(::TriangulatedPolygon, ::Integer)
+    mirror!(::TriangulatedPolygon)
 ```
 
 If you want to extrude some more information from a `TriangulatedPolygon` object, the following functions might be useful: 
 
 ```@docs
     degrees(::TriangulatedPolygon)
+    relative_degree(::TriangulatedPolygon, ::Integer, ::Vector{<:Integer})
+    relative_degrees(::TriangulatedPolygon, ::Vector{<:Integer}, ::Vector{<:Integer})
     adjacency_matrix(::TriangulatedPolygon)
     diameter(::TriangulatedPolygon)
 ```

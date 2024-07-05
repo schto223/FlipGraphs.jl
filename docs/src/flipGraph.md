@@ -44,7 +44,8 @@ As with [`FlipGraphPlanar`](@ref), there are a bunch of methods which overload s
     has_edge(::FlipGraph,::Edge)
     has_edge(::FlipGraph,::Integer, ::Integer)    
     has_edge(::FlipGraph,::FGVertex, ::FGVertex)
-    neighbors(::FlipGraph, ::Integer)
+    neighbors(::FlipGraph, ::Integer)    
+    degree(::FlipGraph, ::Integer)
     diameter(::FlipGraph)
 ```
 
