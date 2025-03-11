@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Schmit"
+  given-names: "Tom"
+  orcid: "https://orcid.org/0009-0005-2797-7668"
+title: "FlipGraphs.jl"
+version: 0.4.3
+date-released: 2024-06-24
+url: "https://github.com/schto223/FlipGraphs.jl"
